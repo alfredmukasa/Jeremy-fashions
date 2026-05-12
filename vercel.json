@@ -1,0 +1,15 @@
+{
+  "installCommand": "npm install && npm install --prefix server",
+  "buildCommand": "npm run build",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/server"
+    }
+  ],
+  "functions": {
+    "api/server.ts": {
+      "maxDuration": 30
+    }
+  }
+}

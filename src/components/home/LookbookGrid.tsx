@@ -3,12 +3,12 @@ import { motion } from 'framer-motion'
 import { Container } from '../layout/Container'
 
 const shots = [
-  'https://images.unsplash.com/photo-1509631179647-017733b3a056?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1490367532201-b9bc1df483a6?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=800&q=80',
-  'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&w=800&q=80',
+  'https://cdn.pixabay.com/photo/2020/11/06/06/24/black-5716973_1280.jpg',
+  'https://cdn.pixabay.com/photo/2016/09/10/01/24/urban-1658436_1280.jpg',
+  'https://cdn.pixabay.com/photo/2022/02/07/22/04/man-7000371_1280.jpg',
+  'https://cdn.pixabay.com/photo/2024/11/27/07/51/woman-9227532_1280.jpg',
+  'https://cdn.pixabay.com/photo/2020/08/26/14/02/girl-5519558_1280.jpg',
+  'https://cdn.pixabay.com/photo/2018/05/11/16/18/man-3390927_1280.jpg',
 ]
 
 export function LookbookGrid() {

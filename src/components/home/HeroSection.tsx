@@ -1,20 +1,94 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 
 import { ROUTES } from '../../constants'
 import { Button } from '../common/Button'
 import { Container } from '../layout/Container'
 
+const HERO_SLIDES = [
+  {
+    src: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=3840&q=85',
+    alt: 'Editorial fashion in a luxury retail setting',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=3840&q=85',
+    alt: 'Monochrome outerwear styled for the season',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=3840&q=85',
+    alt: 'Runway-inspired tailoring in motion',
+  },
+  {
+    src: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=3840&q=85',
+    alt: 'Dark luxury fashion portrait',
+  },
+] as const
+
+const SLIDE_MS = 5200
+
 export function HeroSection() {
+  const [index, setIndex] = useState(0)
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setIndex((current) => (current + 1) % HERO_SLIDES.length)
+    }, SLIDE_MS)
+    return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    const next = HERO_SLIDES[(index + 1) % HERO_SLIDES.length]
+    const link = document.createElement('link')
+    link.rel = 'preload'
+    link.as = 'image'
+    link.href = next.src
+    document.head.appendChild(link)
+    return () => {
+      document.head.removeChild(link)
+    }
+  }, [index])
+
+  const active = HERO_SLIDES[index]
+
   return (
-    <section className="relative isolate min-h-[88svh] overflow-hidden bg-neutral-950 text-white">
-      <img
-        src="https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=2000&q=80"
-        alt=""
-        className="absolute inset-0 h-full w-full object-cover opacity-70"
+    <section className="relative isolate min-h-svh overflow-hidden bg-neutral-950 text-white">
+      <div className="absolute inset-0" aria-hidden>
+        <AnimatePresence mode="sync">
+          <motion.div
+            key={active.src}
+            initial={{ opacity: 0, scale: 1.06 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 1.35, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute inset-0"
+          >
+            <img
+              src={active.src}
+              alt=""
+              className="h-full w-full object-cover"
+              loading={index === 0 ? 'eager' : 'lazy'}
+              fetchPriority={index === 0 ? 'high' : 'auto'}
+              decoding="async"
+            />
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      <motion.div
+        aria-hidden
+        className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/25"
+        initial={false}
+        animate={{ opacity: 1 }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-black/20" />
-      <Container className="relative flex min-h-[88svh] flex-col justify-end pb-20 pt-32 md:pb-28">
+      <motion.div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.08),transparent_55%)]"
+        initial={false}
+        animate={{ opacity: 1 }}
+      />
+
+      <Container className="relative flex min-h-svh flex-col justify-end pb-20 pt-32 md:pb-28">
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -37,7 +111,7 @@ export function HeroSection() {
           transition={{ delay: 0.15, duration: 0.6 }}
           className="mt-6 max-w-xl text-sm leading-relaxed text-white/80 md:text-base"
         >
-          Tailored outer layers, sculptural sneakers, and studio‑grade essentials — designed as a system,
+          Tailored outer layers, sculptural sneakers, and studio-grade essentials — designed as a system,
           not a statement.
         </motion.p>
         <motion.div
@@ -52,11 +126,25 @@ export function HeroSection() {
             </Button>
           </Link>
           <Link to={`${ROUTES.shop}?tag=new`}>
-            <Button variant="ghost" className="min-w-[160px] border border-white/30 bg-transparent text-white hover:bg-white hover:text-neutral-950">
+            <Button
+              variant="ghost"
+              className="min-w-[160px] border border-white/30 bg-transparent text-white hover:bg-white hover:text-neutral-950"
+            >
               View new arrivals
             </Button>
           </Link>
         </motion.div>
+
+        <div className="mt-12 flex items-center gap-3" aria-hidden>
+          {HERO_SLIDES.map((slide, slideIndex) => (
+            <span
+              key={slide.src}
+              className={`h-px transition-all duration-500 ${
+                slideIndex === index ? 'w-10 bg-white' : 'w-6 bg-white/35'
+              }`}
+            />
+          ))}
+        </div>
       </Container>
     </section>
   )

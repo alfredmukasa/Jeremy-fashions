@@ -1,156 +1,256 @@
-import { Link } from 'react-router-dom'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import {
+  HiOutlineHeart,
+  HiOutlineMapPin,
+  HiOutlineShoppingBag,
+  HiOutlineSparkles,
+} from 'react-icons/hi2'
+import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
-import { products } from '../../data/products'
-import { mockAddresses, mockOrders, mockUser } from '../../data/users'
+import { useAuth } from '../../context/AuthContext'
+import { listCustomerOrdersDetailed } from '../../services/orderService'
+import { listShippingAddresses } from '../../services/shippingAddressService'
 import { useWishlistStore } from '../../store/wishlistStore'
-import { formatPrice } from '../../utils/formatPrice'
 
-import { Badge } from '../../components/common/Badge'
+import { AccountSidebar } from '../../components/account/dashboard/AccountSidebar'
+import { DashboardHeader } from '../../components/account/dashboard/DashboardHeader'
+import { DashboardSkeleton } from '../../components/account/dashboard/DashboardSkeleton'
+import { EmptyState } from '../../components/account/dashboard/EmptyState'
+import { LogoutModal } from '../../components/account/dashboard/LogoutModal'
+import { OrderCard } from '../../components/account/dashboard/OrderCard'
+import { OrderHistoryTable } from '../../components/account/dashboard/OrderHistoryTable'
+import { UserProfileCard } from '../../components/account/dashboard/UserProfileCard'
 import { Container } from '../../components/layout/Container'
-import { ProductGrid } from '../../components/product/ProductGrid'
-import { FieldLabel, Input, Textarea } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 
+function displayName(fullName: unknown, email: string | undefined): string {
+  if (typeof fullName === 'string' && fullName.trim()) return fullName.trim()
+  if (email) return email.split('@')[0] ?? 'Member'
+  return 'Member'
+}
+
+function formatMemberSince(createdAt: string | undefined): string {
+  if (!createdAt) return '—'
+  return new Date(createdAt).toLocaleDateString(undefined, {
+    month: 'long',
+    year: 'numeric',
+  })
+}
+
 export default function AccountDashboardPage() {
-  const ids = useWishlistStore((s) => s.ids)
-  const wishProducts = products.filter((p) => ids.includes(p.id))
+  const { user, signOut } = useAuth()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const savedCount = useWishlistStore((state) => state.ids.length)
+  const [logoutOpen, setLogoutOpen] = useState(false)
+  const [logoutBusy, setLogoutBusy] = useState(false)
+
+  const ordersQuery = useQuery({
+    queryKey: ['customer', 'orders', 'detailed', user?.id],
+    queryFn: listCustomerOrdersDetailed,
+    enabled: Boolean(user?.id),
+  })
+
+  const addressesQuery = useQuery({
+    queryKey: ['customer', 'shipping-addresses', user?.id],
+    queryFn: listShippingAddresses,
+    enabled: Boolean(user?.id),
+  })
+
+  const userName = useMemo(
+    () => displayName(user?.user_metadata?.full_name, user?.email),
+    [user?.email, user?.user_metadata?.full_name],
+  )
+  const memberSince = formatMemberSince(user?.created_at)
+  const orders = ordersQuery.data ?? []
+  const recentOrders = orders.slice(0, 3)
+  const addressCount = addressesQuery.data?.length ?? 0
+
+  useEffect(() => {
+    if (!location.hash) return
+    const target = document.querySelector(location.hash)
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [location.hash, ordersQuery.isSuccess])
+
+  async function confirmLogout() {
+    setLogoutBusy(true)
+    try {
+      await signOut()
+      queryClient.clear()
+      toast.success('Signed out successfully.')
+      navigate(ROUTES.home, { replace: true })
+    } catch {
+      toast.error('Unable to sign out right now.')
+    } finally {
+      setLogoutBusy(false)
+      setLogoutOpen(false)
+    }
+  }
+
+  if (!user) {
+    return <DashboardSkeleton />
+  }
+
+  if (
+    ordersQuery.isLoading ||
+    ordersQuery.isFetching ||
+    addressesQuery.isLoading ||
+    addressesQuery.isFetching
+  ) {
+    return <DashboardSkeleton />
+  }
 
   return (
     <div className="pb-24">
-      <div className="border-b border-neutral-200 bg-neutral-50">
-        <Container className="py-14 md:py-16">
-          <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-neutral-500">Account</p>
-          <h1 className="mt-3 font-serif text-4xl text-neutral-950 md:text-5xl">Studio dashboard</h1>
-          <p className="mt-3 max-w-xl text-sm text-neutral-600">
-            Mock data for orders and addresses — swap with API responses when the backend lands.
-          </p>
-        </Container>
-      </div>
+      <DashboardHeader userName={userName} memberSince={memberSince} totalOrders={orders.length} />
 
       <Container className="py-12 md:py-16">
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[
-            { label: 'Name', value: mockUser.name },
-            { label: 'Email', value: mockUser.email },
-            { label: 'Phone', value: mockUser.phone },
-            { label: 'Member ID', value: mockUser.id.toUpperCase() },
-          ].map((row, i) => (
-            <motion.div
-              key={row.label}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="border border-neutral-200 bg-white p-6"
-            >
-              <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">{row.label}</p>
-              <p className="mt-2 text-sm font-medium text-neutral-950">{row.value}</p>
-            </motion.div>
-          ))}
-        </div>
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-start">
+          <AccountSidebar onLogout={() => setLogoutOpen(true)} />
 
-        <section className="mt-16">
-          <div className="flex items-end justify-between gap-4">
-            <h2 className="font-serif text-2xl text-neutral-950 md:text-3xl">Order history</h2>
-            <Link
-              to={ROUTES.shop}
-              className="text-[11px] font-medium uppercase tracking-[0.25em] text-neutral-600 underline-offset-8 hover:underline"
-            >
-              Continue shopping
-            </Link>
-          </div>
-          <div className="mt-8 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-neutral-200 text-[10px] uppercase tracking-[0.25em] text-neutral-500">
-                  <th className="pb-3 font-medium">Order</th>
-                  <th className="pb-3 font-medium">Date</th>
-                  <th className="pb-3 font-medium">Status</th>
-                  <th className="pb-3 font-medium">Items</th>
-                  <th className="pb-3 font-medium text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-neutral-200">
-                {mockOrders.map((o) => (
-                  <tr key={o.id} className="text-neutral-800">
-                    <td className="py-4 font-medium">{o.id}</td>
-                    <td className="py-4 text-neutral-600">{o.date}</td>
-                    <td className="py-4">
-                      <Badge className="border-neutral-800 text-neutral-800">{o.status}</Badge>
-                    </td>
-                    <td className="py-4 tabular-nums">{o.items}</td>
-                    <td className="py-4 text-right tabular-nums font-medium">{formatPrice(o.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section className="mt-20">
-          <h2 className="font-serif text-2xl text-neutral-950 md:text-3xl">Saved addresses</h2>
-          <div className="mt-8 grid gap-6 md:grid-cols-2">
-            {mockAddresses.map((a) => (
-              <div key={a.id} className="border border-neutral-200 p-6">
-                <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">{a.label}</p>
-                <p className="mt-3 text-sm leading-relaxed text-neutral-800">
-                  {a.line1}
-                  {a.line2 ? <><br />{a.line2}</> : null}
-                  <br />
-                  {a.city}, {a.region} {a.postal}
-                  <br />
-                  {a.country}
-                </p>
-                <button type="button" className="mt-4 text-[11px] uppercase tracking-[0.2em] text-neutral-500 hover:text-neutral-900">
-                  Edit (demo)
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="mt-20">
-          <div className="flex items-end justify-between gap-4">
-            <h2 className="font-serif text-2xl text-neutral-950 md:text-3xl">Wishlist</h2>
-            <Link to={`${ROUTES.shop}?wishlist=1`} className="text-[11px] font-medium uppercase tracking-[0.25em] text-neutral-600">
-              View in shop
-            </Link>
-          </div>
-          {wishProducts.length ? (
-            <ProductGrid products={wishProducts} className="mt-10" />
-          ) : (
-            <p className="mt-8 text-sm text-neutral-600">No saved pieces yet — tap the heart on a product card.</p>
-          )}
-        </section>
-
-        <section className="mt-20 border-t border-neutral-200 pt-16">
-          <h2 className="font-serif text-2xl text-neutral-950 md:text-3xl">Profile settings</h2>
-          <p className="mt-2 text-sm text-neutral-600">Form state is local-only for presentation.</p>
-          <form
-            className="mt-8 grid max-w-xl gap-6"
-            onSubmit={(e) => {
-              e.preventDefault()
-            }}
+          <motion.main
+            className="min-w-0 flex-1 space-y-10"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div>
-              <FieldLabel id="dn">Display name</FieldLabel>
-              <Input id="dn" defaultValue={mockUser.name} />
-            </div>
-            <div>
-              <FieldLabel id="em">Email</FieldLabel>
-              <Input id="em" type="email" defaultValue={mockUser.email} />
-            </div>
-            <div>
-              <FieldLabel id="bio">Notes</FieldLabel>
-              <Textarea id="bio" placeholder="Fit preferences, sizing notes…" />
-            </div>
-            <Button type="submit" variant="outline" className="w-fit">
-              Save changes (demo)
-            </Button>
-          </form>
-        </section>
+            <UserProfileCard
+              userName={userName}
+              email={user.email ?? ''}
+              memberSince={memberSince}
+              totalOrders={orders.length}
+              savedCount={savedCount}
+              addressCount={addressCount}
+            />
+
+            <section id="recent-orders" aria-labelledby="recent-orders-heading" className="space-y-6">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Recent orders</p>
+                  <h2 id="recent-orders-heading" className="mt-2 font-serif text-2xl text-neutral-950 md:text-3xl">
+                    Latest from your wardrobe
+                  </h2>
+                </div>
+                <Link
+                  to={ROUTES.orders}
+                  className="text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-600 underline-offset-4 transition-colors hover:text-neutral-950 hover:underline"
+                >
+                  View all orders
+                </Link>
+              </div>
+
+              {ordersQuery.isError ? (
+                <div className="rounded-sm border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
+                  Unable to load your orders right now.
+                </div>
+              ) : recentOrders.length ? (
+                <div className="space-y-4">
+                  {recentOrders.map((order) => (
+                    <OrderCard key={order.id} order={order} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  title="No orders yet"
+                  description="Start shopping to see your orders here."
+                  actionLabel="Explore the collection"
+                  icon={<HiOutlineShoppingBag className="h-5 w-5" aria-hidden />}
+                />
+              )}
+            </section>
+
+            <OrderHistoryTable orders={orders} />
+
+            <section aria-labelledby="account-shortcuts-heading" className="space-y-6">
+              <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Shortcuts</p>
+              <h2 id="account-shortcuts-heading" className="font-serif text-2xl text-neutral-950 md:text-3xl">
+                Keep your account organized
+              </h2>
+              <div className="grid gap-4 md:grid-cols-3">
+                <ShortcutCard
+                  to={ROUTES.profile}
+                  title="Saved addresses"
+                  description={
+                    addressCount
+                      ? `${addressCount} shipping location${addressCount === 1 ? '' : 's'} ready for checkout.`
+                      : 'Add a delivery address for faster checkout.'
+                  }
+                  icon={<HiOutlineMapPin className="h-5 w-5" aria-hidden />}
+                />
+                <ShortcutCard
+                  to={ROUTES.saved}
+                  title="Wishlist"
+                  description={
+                    savedCount
+                      ? `${savedCount} saved piece${savedCount === 1 ? '' : 's'} waiting in your list.`
+                      : 'Save pieces you love while you browse the collection.'
+                  }
+                  icon={<HiOutlineHeart className="h-5 w-5" aria-hidden />}
+                />
+                <ShortcutCard
+                  to={ROUTES.profile}
+                  title="Account settings"
+                  description="Update your profile details and default shipping preferences."
+                  icon={<HiOutlineSparkles className="h-5 w-5" aria-hidden />}
+                />
+              </div>
+            </section>
+
+            <section
+              aria-labelledby="account-logout-heading"
+              className="rounded-sm border border-neutral-200 bg-white p-6 shadow-sm sm:p-8"
+            >
+              <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Session</p>
+              <h2 id="account-logout-heading" className="mt-2 font-serif text-2xl text-neutral-950">
+                Sign out securely
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-600">
+                End your session on this device. You can sign back in any time with your Jeremy Fashion account.
+              </p>
+              <Button className="mt-6" variant="outline" onClick={() => setLogoutOpen(true)}>
+                Sign out
+              </Button>
+            </section>
+          </motion.main>
+        </div>
       </Container>
+
+      <LogoutModal
+        open={logoutOpen}
+        busy={logoutBusy}
+        onCancel={() => setLogoutOpen(false)}
+        onConfirm={() => void confirmLogout()}
+      />
     </div>
+  )
+}
+
+function ShortcutCard({
+  to,
+  title,
+  description,
+  icon,
+}: {
+  to: string
+  title: string
+  description: string
+  icon: ReactNode
+}) {
+  return (
+    <Link
+      to={to}
+      className="group rounded-sm border border-neutral-200 bg-white p-6 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950"
+    >
+      <div className="flex h-11 w-11 items-center justify-center rounded-full bg-neutral-100 text-neutral-700 transition-colors group-hover:bg-neutral-950 group-hover:text-white">
+        {icon}
+      </div>
+      <h3 className="mt-5 font-serif text-xl text-neutral-950">{title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-neutral-600">{description}</p>
+    </Link>
   )
 }

@@ -7,6 +7,19 @@ type WishlistState = {
   has: (productId: string) => boolean
 }
 
+function normalizeWishlistIds(ids: unknown): string[] {
+  if (!Array.isArray(ids)) return []
+  return [...new Set(ids.filter((id): id is string => typeof id === 'string' && id.length > 0))]
+}
+
+export function selectWishlistCount(state: Pick<WishlistState, 'ids'>) {
+  return state.ids.length
+}
+
+export function selectWishlistHas(productId: string) {
+  return (state: Pick<WishlistState, 'ids'>) => state.ids.includes(productId)
+}
+
 export const useWishlistStore = create<WishlistState>()(
   persist(
     (set, get) => ({
@@ -23,8 +36,18 @@ export const useWishlistStore = create<WishlistState>()(
     }),
     {
       name: 'noir-wishlist',
+      version: 1,
       storage: createJSONStorage(() => localStorage),
       partialize: (s) => ({ ids: s.ids }),
+      migrate: (persistedState) => {
+        const state = persistedState as { ids?: unknown }
+        return { ids: normalizeWishlistIds(state?.ids) }
+      },
+      merge: (persistedState, currentState) => ({
+        ...currentState,
+        ...(persistedState as Partial<WishlistState>),
+        ids: normalizeWishlistIds((persistedState as { ids?: unknown } | undefined)?.ids),
+      }),
     },
   ),
 )

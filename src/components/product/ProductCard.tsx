@@ -1,14 +1,12 @@
 import type { MouseEvent } from 'react'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { HiOutlineHeart, HiOutlineShoppingBag } from 'react-icons/hi2'
 
-import { ROUTES } from '../../constants'
 import type { Product } from '../../types'
 import { useCartStore } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
-import { useWishlistStore } from '../../store/wishlistStore'
+import { useWishlistStore, selectWishlistHas } from '../../store/wishlistStore'
 import { formatPrice } from '../../utils/formatPrice'
 import { cn } from '../../utils/cn'
 
@@ -22,21 +20,27 @@ type Props = {
 export function ProductCard({ product, className }: Props) {
   const [hover, setHover] = useState(false)
   const openCart = useUiStore((s) => s.openCart)
+  const openQuickView = useUiStore((s) => s.openQuickView)
   const addLine = useCartStore((s) => s.addLine)
   const toggleWish = useWishlistStore((s) => s.toggle)
-  const wishHas = useWishlistStore((s) => s.has(product.id))
+  const wishHas = useWishlistStore(selectWishlistHas(product.id))
 
-  const imgA = product.images[0]
-  const imgB = product.images[1] ?? product.images[0]
+  const images = product.images ?? []
+  const tags = product.tags ?? []
+  const sizes = product.sizes ?? []
+  const colors = product.colors ?? []
+  const imgA = images[0]
+  const imgB = images[1] ?? images[0]
+  const hasImage = Boolean(imgA)
   const price = product.salePrice ?? product.price
   const compare = product.salePrice ? product.price : null
 
   function quickAdd(e: MouseEvent<HTMLButtonElement>) {
     e.preventDefault()
     e.stopPropagation()
-    const size = product.sizes[0]
-    const color = product.colors[0].name
-    addLine(product.id, size, color, 1)
+    const size = sizes[0] ?? 'One Size'
+    const color = colors[0]?.name ?? 'Default'
+    addLine(product, size, color, 1)
     openCart()
   }
 
@@ -46,7 +50,9 @@ export function ProductCard({ product, className }: Props) {
     toggleWish(product.id)
   }
 
-  const href = ROUTES.product(product.slug)
+  function onOpenQuickView() {
+    openQuickView(product)
+  }
 
   return (
     <motion.article
@@ -59,29 +65,42 @@ export function ProductCard({ product, className }: Props) {
       onMouseLeave={() => setHover(false)}
     >
       <div className="relative">
-        <Link
-          to={href}
-          className="group/card block focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950"
-          aria-label={`View ${product.name}`}
+        <motion.div
+          role="button"
+          tabIndex={0}
+          onClick={onOpenQuickView}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault()
+              onOpenQuickView()
+            }
+          }}
+          className="group/card block w-full cursor-pointer text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-950"
+          aria-label={`Quick view ${product.name}`}
+          aria-haspopup="dialog"
         >
           <div className="relative aspect-[3/4] overflow-hidden bg-neutral-100">
-            <motion.img
-              src={imgA}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-              animate={{ opacity: hover ? 0 : 1 }}
-              transition={{ duration: 0.45 }}
-              loading="lazy"
-            />
-            <motion.img
-              src={imgB}
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover"
-              animate={{ opacity: hover ? 1 : 0 }}
-              transition={{ duration: 0.45 }}
-              loading="lazy"
-            />
-            {product.tags.includes('new') ? (
+            {hasImage ? (
+              <>
+                <motion.img
+                  src={imgA}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                  animate={{ opacity: hover ? 0 : 1, scale: hover ? 1.04 : 1 }}
+                  transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                  loading="lazy"
+                />
+                <motion.img
+                  src={imgB}
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover"
+                  animate={{ opacity: hover ? 1 : 0, scale: hover ? 1.04 : 1 }}
+                  transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                  loading="lazy"
+                />
+              </>
+            ) : null}
+            {tags.includes('new') ? (
               <span className="pointer-events-none absolute left-3 top-3">
                 <Badge>New</Badge>
               </span>
@@ -109,7 +128,7 @@ export function ProductCard({ product, className }: Props) {
           <div className="mt-4">
             <p className="text-sm font-medium text-neutral-950 group-hover/card:underline">{product.name}</p>
             <p className="mt-1 text-xs uppercase tracking-[0.2em] text-neutral-500">
-              {product.category.replace('-', ' ')}
+              {product.category?.replace('-', ' ') ?? 'Collection'}
             </p>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
@@ -118,7 +137,7 @@ export function ProductCard({ product, className }: Props) {
               <span className="text-xs tabular-nums text-neutral-400 line-through">{formatPrice(compare)}</span>
             ) : null}
           </div>
-        </Link>
+        </motion.div>
 
         <button
           type="button"

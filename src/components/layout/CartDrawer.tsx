@@ -3,9 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { HiOutlineTrash, HiOutlineXMark } from 'react-icons/hi2'
 
 import { ROUTES } from '../../constants'
-import { products } from '../../data/products'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
-import { useCartStore } from '../../store/cartStore'
+import { useCartStore, selectCartSubtotal } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
 import { formatPrice } from '../../utils/formatPrice'
 import { cn } from '../../utils/cn'
@@ -18,7 +17,7 @@ export function CartDrawer() {
   const lines = useCartStore((s) => s.lines)
   const updateQty = useCartStore((s) => s.updateQuantity)
   const removeLine = useCartStore((s) => s.removeLine)
-  const subtotal = useCartStore((s) => s.subtotal())
+  const subtotal = useCartStore(selectCartSubtotal)
   const navigate = useNavigate()
   useBodyScrollLock(open)
 
@@ -74,18 +73,17 @@ export function CartDrawer() {
               ) : (
                 <ul className="space-y-6">
                   {lines.map((line) => {
-                    const product = products.find((p) => p.id === line.productId)
-                    if (!product) return null
-                    const unit = product.salePrice ?? product.price
+                    const { snapshot } = line
+                    const unit = snapshot.unitPrice
                     return (
                       <li key={line.key} className="flex gap-4">
                         <Link
-                          to={ROUTES.product(product.slug)}
+                          to={ROUTES.product(snapshot.slug)}
                           onClick={() => setOpen(false)}
                           className="relative h-28 w-24 shrink-0 overflow-hidden bg-neutral-100"
                         >
                           <img
-                            src={product.images[0]}
+                            src={snapshot.image}
                             alt=""
                             className="h-full w-full object-cover"
                             loading="lazy"
@@ -93,11 +91,11 @@ export function CartDrawer() {
                         </Link>
                         <div className="min-w-0 flex-1">
                           <Link
-                            to={ROUTES.product(product.slug)}
+                            to={ROUTES.product(snapshot.slug)}
                             onClick={() => setOpen(false)}
                             className="font-medium text-neutral-900 hover:underline"
                           >
-                            {product.name}
+                            {snapshot.name}
                           </Link>
                           <p className="mt-1 text-xs text-neutral-500">
                             {line.colorName} / {line.size}

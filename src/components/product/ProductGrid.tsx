@@ -4,6 +4,8 @@ import { cn } from '../../utils/cn'
 import { ProductCard } from './ProductCard'
 
 export function ProductGrid({ products, className }: { products: Product[]; className?: string }) {
+  const list = products.filter(Boolean)
+
   return (
     <div
       className={cn(
@@ -11,7 +13,7 @@ export function ProductGrid({ products, className }: { products: Product[]; clas
         className,
       )}
     >
-      {products.map((p) => (
+      {list.map((p) => (
         <ProductCard key={p.id} product={p} />
       ))}
     </div>

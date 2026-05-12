@@ -14,9 +14,23 @@ type Props = {
   subtitle?: string
   products: Product[]
   cta?: { label: string; to: string }
+  loading?: boolean
 }
 
-export function ProductShowcase({ title, eyebrow, subtitle, products, cta }: Props) {
+function CardSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="aspect-[3/4] animate-pulse rounded bg-neutral-100" />
+      <div className="h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
+      <div className="h-3 w-1/3 animate-pulse rounded bg-neutral-100" />
+    </div>
+  )
+}
+
+export function ProductShowcase({ title, eyebrow, subtitle, products, cta, loading = false }: Props) {
+  const list = products ?? []
+  const showSkeleton = loading && list.length === 0
+
   return (
     <section className="py-20 md:py-28">
       <Container>
@@ -34,24 +48,40 @@ export function ProductShowcase({ title, eyebrow, subtitle, products, cta }: Pro
           ) : null}
         </div>
         <div className="mt-14 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-8">
-          {products.slice(0, 4).map((p, i) => (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-10%' }}
-              transition={{ delay: i * 0.06, duration: 0.45 }}
-            >
-              <ProductCard product={p} />
-            </motion.div>
-          ))}
+          {showSkeleton
+            ? Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
+            : list.slice(0, 4).map((p, i) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 16 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: '-10%' }}
+                  transition={{ delay: i * 0.06, duration: 0.45 }}
+                >
+                  <ProductCard product={p} />
+                </motion.div>
+              ))}
         </div>
+        {!loading && list.length === 0 ? (
+          <p className="mt-10 text-center text-sm text-neutral-500">
+            New pieces are dropping soon — check back shortly.
+          </p>
+        ) : null}
       </Container>
     </section>
   )
 }
 
-export function TrendingStrip({ products }: { products: Product[] }) {
+export function TrendingStrip({
+  products,
+  loading = false,
+}: {
+  products: Product[]
+  loading?: boolean
+}) {
+  const list = products ?? []
+  const showSkeleton = loading && list.length === 0
+
   return (
     <section className="border-y border-neutral-200 bg-neutral-50 py-16 md:py-24">
       <Container>
@@ -69,18 +99,24 @@ export function TrendingStrip({ products }: { products: Product[] }) {
           </p>
         </div>
         <div className="mt-12 flex gap-4 overflow-x-auto pb-2 md:gap-8 [scrollbar-width:none]">
-          {products.map((p, i) => (
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, x: 24 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.05, duration: 0.45 }}
-              className="w-[70vw] shrink-0 sm:w-[360px]"
-            >
-              <ProductCard product={p} />
-            </motion.div>
-          ))}
+          {showSkeleton
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="w-[70vw] shrink-0 sm:w-[360px]">
+                  <CardSkeleton />
+                </div>
+              ))
+            : list.map((p, i) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, x: 24 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.05, duration: 0.45 }}
+                  className="w-[70vw] shrink-0 sm:w-[360px]"
+                >
+                  <ProductCard product={p} />
+                </motion.div>
+              ))}
         </div>
         <div className="mt-10 text-center">
           <Link

@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 
@@ -5,23 +6,32 @@ import { CartDrawer } from '../components/layout/CartDrawer'
 import { Footer } from '../components/layout/Footer'
 import { MobileMenu } from '../components/layout/MobileMenu'
 import { Navbar } from '../components/layout/Navbar'
+import { ProductQuickViewModal } from '../components/product/ProductQuickViewModal'
 
 export function MainLayout() {
   const location = useLocation()
 
+  // Ensure premium-feeling navigation: don't preserve deep scroll positions between pages.
+  // Without this, navigating from a scrolled product grid can land the user "below" the new page content,
+  // which looks like a blank white screen until refresh resets scroll.
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [location.pathname])
+
   return (
-    <div className="min-h-svh bg-white text-neutral-900">
+    <div className="min-h-svh bg-[var(--surface-base)] text-[var(--text-primary)] transition-colors duration-500">
       <Navbar />
       <MobileMenu />
       <CartDrawer />
+      <ProductQuickViewModal />
       <main className="pt-28 lg:pt-[4.5rem]">
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false}>
           <motion.div
             key={location.pathname}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
           >
             <Outlet />
           </motion.div>

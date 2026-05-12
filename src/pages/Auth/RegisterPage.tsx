@@ -1,83 +1,137 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
+import { useAuth } from '../../context/AuthContext'
+import { isSupabaseConfigured } from '../../lib/supabase'
 
-import { Button } from '../../components/common/Button'
-import { FieldLabel, Input } from '../../components/common/Input'
-import { Container } from '../../components/layout/Container'
+import { AuthButton } from '../../components/auth/AuthButton'
+import { AuthInput } from '../../components/auth/AuthInput'
+import { AuthLayout } from '../../components/auth/AuthLayout'
+
+const MIN_PASSWORD = 8
+
+function validatePassword(pw: string): string | null {
+  if (pw.length < MIN_PASSWORD) return `Use at least ${MIN_PASSWORD} characters.`
+  if (!/[a-zA-Z]/.test(pw) || !/[0-9]/.test(pw)) return 'Include at least one letter and one number.'
+  return null
+}
 
 export default function RegisterPage() {
-  const [done, setDone] = useState(false)
+  const navigate = useNavigate()
+  const { user, loading, signUp } = useAuth()
+  const [busy, setBusy] = useState(false)
+  const [fieldError, setFieldError] = useState<string | null>(null)
 
-  function submit(e: React.FormEvent) {
+  if (!loading && user) {
+    return <Navigate to={ROUTES.account} replace />
+  }
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setDone(true)
+    setFieldError(null)
+    if (!isSupabaseConfigured) {
+      toast.error('Supabase is not configured.')
+      return
+    }
+    const fd = new FormData(e.currentTarget)
+    const first = String(fd.get('first') ?? '').trim()
+    const last = String(fd.get('last') ?? '').trim()
+    const email = String(fd.get('email') ?? '').trim()
+    const password = String(fd.get('password') ?? '')
+    const confirm = String(fd.get('confirm') ?? '')
+
+    if (password !== confirm) {
+      setFieldError('Passwords do not match.')
+      return
+    }
+    const pwErr = validatePassword(password)
+    if (pwErr) {
+      setFieldError(pwErr)
+      return
+    }
+
+    const fullName = [first, last].filter(Boolean).join(' ')
+    setBusy(true)
+    const { error, session } = await signUp({ email, password, fullName: fullName || email })
+    setBusy(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    if (session) {
+      toast.success('Account created — you are signed in.')
+      navigate(ROUTES.account, { replace: true })
+    } else {
+      toast.success('Check your email to confirm your account, then sign in.')
+      navigate(ROUTES.login, { replace: true })
+    }
   }
 
   return (
-    <div className="pb-24">
-      <Container className="py-16 md:py-24">
-        <div className="mx-auto max-w-md">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-neutral-500">Register</p>
-            <h1 className="mt-3 font-serif text-4xl text-neutral-950">Join the studio list</h1>
-            <p className="mt-3 text-sm text-neutral-600">Create a profile UI — backend provisioning comes later.</p>
-          </motion.div>
-
-          {done ? (
-            <p className="mt-10 text-sm text-emerald-700">Thanks — this is a static demo registration flow.</p>
-          ) : (
-            <form onSubmit={submit} className="mt-10 space-y-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <FieldLabel id="first">First name</FieldLabel>
-                  <Input id="first" name="first" autoComplete="given-name" required />
-                </div>
-                <div>
-                  <FieldLabel id="last">Last name</FieldLabel>
-                  <Input id="last" name="last" autoComplete="family-name" required />
-                </div>
-              </div>
-              <div>
-                <FieldLabel id="email">Email</FieldLabel>
-                <Input id="email" name="email" type="email" autoComplete="email" required />
-              </div>
-              <div>
-                <FieldLabel id="password">Password</FieldLabel>
-                <Input id="password" name="password" type="password" autoComplete="new-password" required />
-              </div>
-              <label className="flex items-start gap-2 text-xs text-neutral-600">
-                <input type="checkbox" required className="mt-1 h-4 w-4 rounded-none border-neutral-400" />I agree to the
-                terms and privacy policy (demo copy).
-              </label>
-              <Button type="submit" className="w-full">
-                Create account
-              </Button>
-            </form>
-          )}
-
-          <div className="mt-10 space-y-3">
-            <p className="text-center text-[10px] uppercase tracking-[0.25em] text-neutral-400">Or register with</p>
-            <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" className="w-full text-[10px]">
-                Google
-              </Button>
-              <Button type="button" variant="outline" className="w-full text-[10px]">
-                Apple
-              </Button>
-            </div>
+    <AuthLayout
+      eyebrow="Register"
+      title="Join the studio list"
+      subtitle={
+        isSupabaseConfigured
+          ? 'Create a Supabase Auth account and a public profile row for your membership.'
+          : 'Configure Supabase to enable registration.'
+      }
+      footer={
+        <p className="text-center text-sm text-neutral-500">
+          Already have an account?{' '}
+          <Link to={ROUTES.login} className="font-medium text-white underline-offset-4 hover:underline">
+            Sign in
+          </Link>
+        </p>
+      }
+    >
+      <form onSubmit={submit} className="space-y-5">
+        {fieldError ? (
+          <p className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{fieldError}</p>
+        ) : null}
+        <div className="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label htmlFor="reg-first" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+              First name
+            </label>
+            <AuthInput id="reg-first" name="first" autoComplete="given-name" required />
           </div>
-
-          <p className="mt-10 text-center text-sm text-neutral-600">
-            Already have an account?{' '}
-            <Link to={ROUTES.login} className="font-medium text-neutral-950 underline-offset-4 hover:underline">
-              Sign in
-            </Link>
-          </p>
+          <div>
+            <label htmlFor="reg-last" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+              Last name
+            </label>
+            <AuthInput id="reg-last" name="last" autoComplete="family-name" required />
+          </div>
         </div>
-      </Container>
-    </div>
+        <div>
+          <label htmlFor="reg-email" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+            Email
+          </label>
+          <AuthInput id="reg-email" name="email" type="email" autoComplete="email" required />
+        </div>
+        <div>
+          <label htmlFor="reg-password" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+            Password
+          </label>
+          <AuthInput id="reg-password" name="password" type="password" autoComplete="new-password" required />
+          <p className="mt-2 text-xs text-neutral-500">{MIN_PASSWORD}+ characters, letters and numbers.</p>
+        </div>
+        <div>
+          <label htmlFor="reg-confirm" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+            Confirm password
+          </label>
+          <AuthInput id="reg-confirm" name="confirm" type="password" autoComplete="new-password" required />
+        </div>
+        <label className="flex cursor-pointer items-start gap-2 text-xs text-neutral-400">
+          <input type="checkbox" required className="mt-1 h-4 w-4 rounded-none border-white/30 bg-white/5" />I agree to
+          the terms and privacy policy.
+        </label>
+        <AuthButton type="submit" disabled={busy || !isSupabaseConfigured}>
+          {busy ? 'Creating…' : 'Create account'}
+        </AuthButton>
+      </form>
+    </AuthLayout>
   )
 }

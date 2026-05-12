@@ -1,4 +1,8 @@
+import { getAdminBasePath } from '../lib/adminPortal'
+
 export const BRAND = 'JEREMY ATELIER'
+
+const adminBase = getAdminBasePath()
 
 export const ROUTES = {
   home: '/',
@@ -8,7 +12,24 @@ export const ROUTES = {
   checkout: '/checkout',
   login: '/login',
   register: '/register',
+  forgotPassword: '/forgot-password',
   account: '/account',
+  profile: '/profile',
+  orders: '/orders',
+  /** Saved pieces (auth); guests use shop wishlist filter locally */
+  saved: '/saved',
+  waitlist: '/waitlist',
+  /** Staff area — only mounted when VITE_ADMIN_PORTAL_ENABLED=true */
+  admin: adminBase,
+  adminLogin: `${adminBase}/login`,
+  adminProducts: `${adminBase}/products`,
+  adminCategories: `${adminBase}/categories`,
+  adminOrders: `${adminBase}/orders`,
+  adminWaitlist: `${adminBase}/waitlist`,
+  adminUsers: `${adminBase}/users`,
+  adminDiscounts: `${adminBase}/discounts`,
+  adminSettings: `${adminBase}/settings`,
+  adminSecurity: `${adminBase}/security`,
 } as const
 
 export const SORT_OPTIONS = [

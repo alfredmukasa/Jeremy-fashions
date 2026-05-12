@@ -1,12 +1,13 @@
-import { useLayoutEffect, useMemo, useState, useEffect } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { SORT_OPTIONS, type SortValue } from '../../constants'
-import { categories, products } from '../../data/products'
 import type { Product } from '../../types'
+import { useCategories, useProducts } from '../../hooks/useCatalog'
 import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore } from '../../store/wishlistStore'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import { productMatchesQuery } from '../../utils/productSearch'
 
 import { Container } from '../../components/layout/Container'
 import { SectionHeading } from '../../components/common/SectionHeading'
@@ -39,41 +40,51 @@ const defaultFilters: FilterState = {
   categories: [],
   genders: [],
   priceMin: 0,
-  priceMax: 900,
+  priceMax: 1000,
+}
+
+function ShopGridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-8 xl:grid-cols-4">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="space-y-3">
+          <div className="aspect-[3/4] animate-pulse rounded bg-neutral-100" />
+          <div className="h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
+          <div className="h-3 w-1/3 animate-pulse rounded bg-neutral-100" />
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function ShopPage() {
   const [searchParams] = useSearchParams()
-  const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
+  const queryParam = searchParams.get('q') ?? ''
+  const [queryState, setQueryState] = useState(() => ({ source: queryParam, value: queryParam }))
+  const query = queryState.source === queryParam ? queryState.value : queryParam
   const debounced = useDebouncedValue(query, 250)
   const [sort, setSort] = useState<SortValue>('featured')
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
+
+  const { data: products, loading: productsLoading, error: productsError } = useProducts()
+  const { data: categories } = useCategories()
+
   const wishIds = useWishlistStore((s) => s.ids)
   const filtersOpen = useUiStore((s) => s.shopFiltersOpen)
   const setFiltersOpen = useUiStore((s) => s.setShopFiltersOpen)
-
-  useEffect(() => {
-    const q = searchParams.get('q') ?? ''
-    const t = window.setTimeout(() => setQuery(q), 0)
-    return () => clearTimeout(t)
-  }, [searchParams])
-
-  useLayoutEffect(() => {
-    const cat = searchParams.get('category')
-    const id = requestAnimationFrame(() => {
-      setFilters((prev) => ({
-        ...prev,
-        categories: cat ? [cat] : [],
-      }))
-    })
-    return () => cancelAnimationFrame(id)
-  }, [searchParams])
-
+  const categoryParam = searchParams.get('category')
   const tagFilter = searchParams.get('tag')
   const wishOnly = searchParams.get('wishlist') === '1'
+  const activeFilters = useMemo(
+    () => ({
+      ...filters,
+      categories: categoryParam ? [categoryParam] : filters.categories,
+    }),
+    [categoryParam, filters],
+  )
 
   const filtered = useMemo(() => {
-    let list = products
+    let list = products ?? []
 
     if (wishOnly) {
       list = list.filter((p) => wishIds.includes(p.id))
@@ -83,33 +94,22 @@ export default function ShopPage() {
       list = list.filter((p) => p.tags.includes('new'))
     }
 
-    const q = debounced.trim().toLowerCase()
+    const q = debounced.trim()
     if (q) {
-      list = list.filter((p) => {
-        const hay = [
-          p.name,
-          p.description,
-          p.category,
-          p.slug.replaceAll('-', ' '),
-          ...p.tags,
-        ]
-          .join(' ')
-          .toLowerCase()
-        return hay.includes(q)
-      })
+      list = list.filter((product) => productMatchesQuery(product, q))
     }
 
-    if (filters.categories.length) {
-      list = list.filter((p) => filters.categories.includes(p.category))
+    if (activeFilters.categories.length) {
+      list = list.filter((p) => activeFilters.categories.includes(p.category))
     }
 
-    if (filters.genders.length) {
-      list = list.filter((p) => filters.genders.includes(p.gender))
+    if (activeFilters.genders.length) {
+      list = list.filter((p) => activeFilters.genders.includes(p.gender))
     }
 
     list = list.filter((p) => {
       const pr = effectivePrice(p)
-      return pr >= filters.priceMin && pr <= filters.priceMax
+      return pr >= activeFilters.priceMin && pr <= activeFilters.priceMax
     })
 
     if (sort !== 'featured') {
@@ -117,7 +117,15 @@ export default function ShopPage() {
     }
 
     return list
-  }, [debounced, filters, sort, tagFilter, wishIds, wishOnly])
+  }, [activeFilters, debounced, sort, tagFilter, wishIds, wishOnly, products])
+
+  const categoryOptions = useMemo(
+    () =>
+      (categories ?? []).map((c) => ({ slug: c.slug, name: c.name })),
+    [categories],
+  )
+
+  const showSkeleton = productsLoading && (!products || products.length === 0)
 
   return (
     <div className="pb-20">
@@ -126,7 +134,7 @@ export default function ShopPage() {
           <SectionHeading
             eyebrow="Shop"
             title="The collection."
-            subtitle="Filter by category, silhouette, and price — all pieces are in-stock for this demo experience."
+            subtitle="Filter by category, silhouette, and price — every piece is in stock for the studio experience."
           />
         </Container>
       </div>
@@ -136,8 +144,8 @@ export default function ShopPage() {
           <div className="max-w-md flex-1">
             <Input
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search by name, tag, or keyword"
+              onChange={(e) => setQueryState({ source: queryParam, value: e.target.value })}
+              placeholder="Search by name, category, tag, or SKU"
               className="bg-white"
             />
           </div>
@@ -169,17 +177,54 @@ export default function ShopPage() {
         <div className="mt-10 grid gap-10 lg:grid-cols-[240px_1fr]">
           <div className="hidden lg:block">
             <FilterSidebar
-              value={filters}
+              value={activeFilters}
               onChange={setFilters}
-              categoryOptions={categories.map((c) => ({ slug: c.slug, name: c.name }))}
+              categoryOptions={categoryOptions}
             />
           </div>
 
-          <div>
-            <p className="text-xs text-neutral-500">
-              {filtered.length} piece{filtered.length === 1 ? '' : 's'}
-            </p>
-            <ProductGrid products={filtered} className="mt-6" />
+          <div aria-busy={showSkeleton}>
+            {productsError ? (
+              <div className="rounded border border-neutral-200 bg-neutral-50 px-6 py-10 text-center">
+                <p className="text-sm font-medium text-neutral-900">We couldn&rsquo;t load the collection.</p>
+                <p className="mt-2 text-xs text-neutral-500">{productsError.message}</p>
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="mt-5 text-[11px] uppercase tracking-[0.25em] underline"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : showSkeleton ? (
+              <>
+                <p className="text-xs text-neutral-500">Loading collection…</p>
+                <div className="mt-6">
+                  <ShopGridSkeleton />
+                </div>
+              </>
+            ) : filtered.length === 0 ? (
+              <div className="rounded border border-dashed border-neutral-200 px-6 py-14 text-center">
+                <p className="text-sm font-medium text-neutral-900">No pieces match those filters.</p>
+                <p className="mt-2 text-xs text-neutral-500">
+                  Try widening your price range or clearing categories.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setFilters(defaultFilters)}
+                  className="mt-5 text-[11px] uppercase tracking-[0.25em] underline"
+                >
+                  Reset filters
+                </button>
+              </div>
+            ) : (
+              <>
+                <p className="text-xs text-neutral-500">
+                  {filtered.length} piece{filtered.length === 1 ? '' : 's'}
+                </p>
+                <ProductGrid products={filtered} className="mt-6" />
+              </>
+            )}
           </div>
         </div>
       </Container>
@@ -214,9 +259,9 @@ export default function ShopPage() {
           </div>
           <div className="mt-6">
             <FilterSidebar
-              value={filters}
+              value={activeFilters}
               onChange={setFilters}
-              categoryOptions={categories.map((c) => ({ slug: c.slug, name: c.name }))}
+              categoryOptions={categoryOptions}
             />
           </div>
         </div>

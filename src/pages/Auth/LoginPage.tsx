@@ -1,78 +1,110 @@
-import { Link } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
+import { useAuth } from '../../context/AuthContext'
+import { isSupabaseConfigured } from '../../lib/supabase'
 
-import { Button } from '../../components/common/Button'
-import { FieldLabel, Input } from '../../components/common/Input'
-import { Container } from '../../components/layout/Container'
+import { AuthButton } from '../../components/auth/AuthButton'
+import { AuthInput } from '../../components/auth/AuthInput'
+import { AuthLayout } from '../../components/auth/AuthLayout'
 
 export default function LoginPage() {
-  const [done, setDone] = useState(false)
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { user, loading, signIn } = useAuth()
+  const [busy, setBusy] = useState(false)
 
-  function submit(e: React.FormEvent) {
+  const from = (location.state as { from?: string } | null)?.from
+  const redirectTo =
+    from && from !== ROUTES.login && from !== ROUTES.register ? from : ROUTES.account
+
+  if (!loading && user) {
+    return <Navigate to={redirectTo} replace />
+  }
+
+  async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    setDone(true)
+    if (!isSupabaseConfigured) {
+      toast.error('Supabase is not configured.')
+      return
+    }
+    const fd = new FormData(e.currentTarget)
+    const email = String(fd.get('email') ?? '').trim()
+    const password = String(fd.get('password') ?? '')
+    setBusy(true)
+    const { error } = await signIn(email, password)
+    setBusy(false)
+    if (error) {
+      toast.error(error.message)
+      return
+    }
+    toast.success('Signed in')
+    navigate(redirectTo, { replace: true })
   }
 
   return (
-    <div className="pb-24">
-      <Container className="py-16 md:py-24">
-        <div className="mx-auto max-w-md">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-            <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-neutral-500">Sign in</p>
-            <h1 className="mt-3 font-serif text-4xl text-neutral-950">Welcome back</h1>
-            <p className="mt-3 text-sm text-neutral-600">Authentication is UI-only for this MVP — no credentials stored.</p>
-          </motion.div>
-
-          {done ? (
-            <p className="mt-10 text-sm text-emerald-700">Form submitted locally (demo). Wire to your auth API later.</p>
-          ) : (
-            <form onSubmit={submit} className="mt-10 space-y-6">
-              <div>
-                <FieldLabel id="email">Email</FieldLabel>
-                <Input id="email" name="email" type="email" autoComplete="email" required placeholder="you@domain.com" />
-              </div>
-              <div>
-                <FieldLabel id="password">Password</FieldLabel>
-                <Input id="password" name="password" type="password" autoComplete="current-password" required />
-              </div>
-              <div className="flex items-center justify-between text-xs">
-                <label className="flex items-center gap-2 text-neutral-600">
-                  <input type="checkbox" className="h-4 w-4 rounded-none border-neutral-400" />
-                  Remember
-                </label>
-                <Link to="#" className="text-neutral-500 underline-offset-4 hover:underline">
-                  Forgot password
-                </Link>
-              </div>
-              <Button type="submit" className="w-full">
-                Sign in
-              </Button>
-            </form>
-          )}
-
-          <div className="mt-10 space-y-3">
-            <p className="text-center text-[10px] uppercase tracking-[0.25em] text-neutral-400">Or continue with</p>
-            <div className="grid grid-cols-2 gap-3">
-              <Button type="button" variant="outline" className="w-full text-[10px]">
-                Google
-              </Button>
-              <Button type="button" variant="outline" className="w-full text-[10px]">
-                Apple
-              </Button>
-            </div>
+    <AuthLayout
+      eyebrow="Sign in"
+      title="Welcome back"
+      subtitle={
+        isSupabaseConfigured
+          ? 'Use your studio credentials. Sessions stay signed in across refreshes on this device.'
+          : 'Configure Supabase environment variables to enable live sign-in.'
+      }
+      footer={
+        <p className="text-center text-sm text-neutral-500">
+          New here?{' '}
+          <Link to={ROUTES.register} className="font-medium text-white underline-offset-4 hover:underline">
+            Create an account
+          </Link>
+        </p>
+      }
+    >
+      {loading ? (
+        <p className="text-sm text-neutral-500">Checking session…</p>
+      ) : (
+        <form onSubmit={submit} className="space-y-5">
+          <div>
+            <label htmlFor="login-email" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+              Email
+            </label>
+            <AuthInput
+              id="login-email"
+              name="email"
+              type="email"
+              autoComplete="email"
+              required
+              placeholder="you@domain.com"
+            />
           </div>
-
-          <p className="mt-10 text-center text-sm text-neutral-600">
-            New here?{' '}
-            <Link to={ROUTES.register} className="font-medium text-neutral-950 underline-offset-4 hover:underline">
-              Create an account
+          <div>
+            <label htmlFor="login-password" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+              Password
+            </label>
+            <AuthInput
+              id="login-password"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+            />
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-neutral-500">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input type="checkbox" name="remember" className="h-4 w-4 rounded-none border-white/30 bg-white/5" />
+              Remember this device
+            </label>
+            <Link to={ROUTES.forgotPassword} className="text-neutral-300 underline-offset-4 hover:underline">
+              Forgot password
             </Link>
-          </p>
-        </div>
-      </Container>
-    </div>
+          </div>
+          <AuthButton type="submit" disabled={busy || !isSupabaseConfigured}>
+            {busy ? 'Signing in…' : 'Sign in'}
+          </AuthButton>
+        </form>
+      )}
+    </AuthLayout>
   )
 }

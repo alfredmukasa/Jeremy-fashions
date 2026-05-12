@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
-import { products } from '../../data/products'
 import { useCartStore } from '../../store/cartStore'
 import { formatPrice } from '../../utils/formatPrice'
 
@@ -35,25 +34,24 @@ export default function CartPage() {
           <div className="grid gap-12 lg:grid-cols-[1fr_380px]">
             <ul className="divide-y divide-neutral-200 border-t border-neutral-200">
               {lines.map((line) => {
-                const product = products.find((p) => p.id === line.productId)
-                if (!product) return null
-                const unit = product.salePrice ?? product.price
+                const { snapshot } = line
+                const unit = snapshot.unitPrice
                 return (
                   <li key={line.key} className="flex flex-col gap-6 py-10 sm:flex-row">
                     <Link
-                      to={ROUTES.product(product.slug)}
+                      to={ROUTES.product(snapshot.slug)}
                       className="relative aspect-[3/4] w-full overflow-hidden bg-neutral-100 sm:h-44 sm:w-36 sm:shrink-0"
                     >
-                      <img src={product.images[0]} alt="" className="h-full w-full object-cover" loading="lazy" />
+                      <img src={snapshot.image} alt="" className="h-full w-full object-cover" loading="lazy" />
                     </Link>
                     <div className="flex flex-1 flex-col">
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <Link
-                            to={ROUTES.product(product.slug)}
+                            to={ROUTES.product(snapshot.slug)}
                             className="font-medium text-neutral-950 hover:underline"
                           >
-                            {product.name}
+                            {snapshot.name}
                           </Link>
                           <p className="mt-2 text-xs text-neutral-500">
                             {line.colorName} · Size {line.size}

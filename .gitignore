@@ -12,10 +12,23 @@ dist
 dist-ssr
 *.local
 
-# Environment
+# Environment & secrets (never commit real keys)
 .env
 .env.*
+.env.local
+.env.*.local
 !.env.example
+!**/.env.example
+
+# Deployment / platform local state
+.vercel
+
+# Credentials & key material
+*.pem
+*.key
+*.pfx
+*.p12
+secrets/
 
 # Editor directories and files
 .vscode/*

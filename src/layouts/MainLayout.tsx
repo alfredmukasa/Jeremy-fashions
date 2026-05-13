@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { CartDrawer } from '../components/layout/CartDrawer'
+import { AnnouncementBar } from '../components/layout/AnnouncementBar'
 import { Footer } from '../components/layout/Footer'
 import { MobileMenu } from '../components/layout/MobileMenu'
 import { Navbar } from '../components/layout/Navbar'
@@ -19,12 +20,13 @@ export function MainLayout() {
   }, [location.pathname])
 
   return (
-    <div className="min-h-svh bg-[var(--surface-base)] text-[var(--text-primary)] transition-colors duration-500">
+    <motion.div className="min-h-svh bg-[var(--surface-base)] text-[var(--text-primary)] transition-colors duration-500">
+      <AnnouncementBar />
       <Navbar />
       <MobileMenu />
       <CartDrawer />
       <ProductQuickViewModal />
-      <main className="pt-28 lg:pt-[4.5rem]">
+      <main className="pt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] lg:pt-[calc(var(--header-offset)+var(--announcement-height))]">
         <AnimatePresence initial={false}>
           <motion.div
             key={location.pathname}
@@ -38,6 +40,6 @@ export function MainLayout() {
         </AnimatePresence>
       </main>
       <Footer />
-    </div>
+    </motion.div>
   )
 }

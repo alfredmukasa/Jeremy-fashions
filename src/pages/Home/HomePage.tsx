@@ -31,11 +31,11 @@ export default function HomePage() {
         initial={{ opacity: 0 }}
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
-        className="border-b border-neutral-200 bg-white py-12"
+        className="border-b border-[var(--border-subtle)] bg-[var(--surface-elevated)] py-10"
       >
         <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-12">
-          <p className="text-center text-[11px] font-medium uppercase tracking-[0.4em] text-neutral-500">
-            Free shipping on orders over $250 · Extended returns · Studio concierge
+          <p className="text-center text-[11px] font-medium uppercase tracking-[0.4em] text-[var(--text-muted)]">
+            Extended returns · Studio concierge · Secure checkout
           </p>
         </div>
       </motion.section>

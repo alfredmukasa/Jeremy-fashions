@@ -65,13 +65,20 @@ export async function createPaymentIntent(
     })
   } catch {
     throw new PaymentApiError(
-      'Payment service is unreachable. Start the payment API with npm run dev:server.',
+      'Payment service is unreachable. Start the payment API with npm run dev:server or npm run dev:all.',
       503,
     )
   }
 
   const data = (await response.json().catch(() => ({}))) as { error?: string }
   if (!response.ok) {
+    if (response.status === 404) {
+      throw new PaymentApiError(
+        'Payment API route was not found. Start the payment API with npm run dev:server or npm run dev:all.',
+        503,
+      )
+    }
+
     throw new PaymentApiError(
       data.error ??
         (response.status === 503

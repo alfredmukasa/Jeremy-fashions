@@ -16,33 +16,60 @@ export function ProductGallery({ product }: Props) {
   const hasImage = Boolean(main)
 
   return (
-    <div className="space-y-4">
-      <motion.div
-        key={main ?? product.id}
-        initial={{ opacity: 0.85 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.35 }}
-        className="aspect-[3/4] overflow-hidden bg-neutral-100"
-      >
-        {hasImage ? <img src={main} alt={product.name} className="h-full w-full object-cover" loading="eager" /> : null}
-      </motion.div>
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="lg:sticky lg:top-[calc(var(--header-offset)+var(--announcement-height)+1.5rem)] lg:self-start"
+    >
+      <div className="group relative aspect-[3/4] overflow-hidden bg-[var(--surface-muted)]">
+        <motion.div
+          key={main ?? product.id}
+          initial={{ opacity: 0.88 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="h-full w-full"
+        >
+          {hasImage ? (
+            <img
+              src={main}
+              alt={product.name}
+              className="image-zoom h-full w-full object-cover"
+              loading="eager"
+            />
+          ) : null}
+        </motion.div>
+      </div>
+
       {images.length > 1 ? (
-        <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.4 }}
+          className="mt-4 grid grid-cols-4 gap-2 sm:grid-cols-5"
+        >
           {images.map((src, i) => (
             <button
               key={src}
               type="button"
               onClick={() => setSelection({ productId: product.id, index: i })}
               className={cn(
-                'aspect-square overflow-hidden border bg-neutral-50 transition',
-                i === index ? 'border-neutral-900' : 'border-transparent opacity-70 hover:opacity-100',
+                'group/thumb aspect-square overflow-hidden border bg-[var(--surface-muted)] transition duration-300',
+                i === index
+                  ? 'border-[var(--accent)] opacity-100'
+                  : 'border-transparent opacity-65 hover:opacity-100',
               )}
             >
-              <img src={src} alt="" className="h-full w-full object-cover" loading="lazy" />
+              <img
+                src={src}
+                alt=""
+                className="h-full w-full object-cover transition duration-500 group-hover/thumb:scale-105"
+                loading="lazy"
+              />
             </button>
           ))}
-        </div>
+        </motion.div>
       ) : null}
-    </div>
+    </motion.div>
   )
 }

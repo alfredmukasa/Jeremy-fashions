@@ -37,13 +37,13 @@ function PageFallback() {
   return (
     <div className="min-h-[70vh] px-4 py-12 sm:px-6 lg:px-12">
       <div className="mx-auto max-w-[1440px]">
-        <div className="h-3 w-40 animate-pulse rounded bg-neutral-200" />
+        <div className="h-3 w-40 skeleton-shimmer" />
         <div className="mt-10 grid gap-8 md:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="space-y-4">
-              <div className="aspect-[3/4] animate-pulse rounded bg-neutral-100" />
-              <div className="h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
-              <div className="h-3 w-1/3 animate-pulse rounded bg-neutral-100" />
+              <div className="aspect-[3/4] skeleton-shimmer" />
+              <div className="h-3 w-3/4 skeleton-shimmer" />
+              <div className="h-3 w-1/3 skeleton-shimmer" />
             </div>
           ))}
         </div>

@@ -57,7 +57,8 @@ export function Navbar() {
     <motion.header
       layout
       className={cn(
-        'fixed inset-x-0 top-0 z-40 transition-colors duration-500',
+        'fixed inset-x-0 z-40 transition-colors duration-500',
+        'top-[var(--announcement-height)]',
         isOverlay
           ? 'border-b border-white/15 bg-neutral-950/50 text-white shadow-[0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md'
           : isDark

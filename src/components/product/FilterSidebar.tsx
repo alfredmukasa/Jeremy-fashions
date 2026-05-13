@@ -43,17 +43,17 @@ export function FilterSidebar({ value, onChange, categoryOptions, className }: P
   return (
     <aside className={cn('space-y-10', className)}>
       <div>
-        <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Category</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-[var(--text-muted)]">Category</p>
         <div className="mt-4 space-y-2">
           {categoryOptions.map((c) => {
             const active = value.categories.includes(c.slug)
             return (
-              <label key={c.slug} className="flex cursor-pointer items-center gap-3 text-sm text-neutral-800">
+              <label key={c.slug} className="flex cursor-pointer items-center gap-3 text-sm text-[var(--text-primary)]">
                 <input
                   type="checkbox"
                   checked={active}
                   onChange={() => toggleCategory(c.slug)}
-                  className="h-4 w-4 rounded-none border-neutral-400 text-neutral-900 focus:ring-neutral-900"
+                  className="h-4 w-4 rounded-none border-[var(--border-strong)] text-[var(--accent)] focus:ring-[var(--accent)]"
                 />
                 <span>{c.name}</span>
               </label>
@@ -63,17 +63,17 @@ export function FilterSidebar({ value, onChange, categoryOptions, className }: P
       </div>
 
       <div>
-        <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Gender</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-[var(--text-muted)]">Gender</p>
         <div className="mt-4 space-y-2">
           {genders.map((g) => {
             const active = value.genders.includes(g.value)
             return (
-              <label key={g.value} className="flex cursor-pointer items-center gap-3 text-sm text-neutral-800">
+              <label key={g.value} className="flex cursor-pointer items-center gap-3 text-sm text-[var(--text-primary)]">
                 <input
                   type="checkbox"
                   checked={active}
                   onChange={() => toggleGender(g.value)}
-                  className="h-4 w-4 rounded-none border-neutral-400 text-neutral-900 focus:ring-neutral-900"
+                  className="h-4 w-4 rounded-none border-[var(--border-strong)] text-[var(--accent)] focus:ring-[var(--accent)]"
                 />
                 <span>{g.label}</span>
               </label>
@@ -83,10 +83,10 @@ export function FilterSidebar({ value, onChange, categoryOptions, className }: P
       </div>
 
       <div>
-        <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Price</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-[var(--text-muted)]">Price</p>
         <div className="mt-4 grid grid-cols-2 gap-3">
           <div>
-            <label className="text-xs text-neutral-500" htmlFor="min-p">
+            <label className="text-xs text-[var(--text-muted)]" htmlFor="min-p">
               Min
             </label>
             <input
@@ -98,11 +98,11 @@ export function FilterSidebar({ value, onChange, categoryOptions, className }: P
               onChange={(e) =>
                 onChange({ ...value, priceMin: Math.min(Number(e.target.value), value.priceMax) })
               }
-              className="mt-1 w-full border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+              className="mt-1 w-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-strong)]"
             />
           </div>
           <div>
-            <label className="text-xs text-neutral-500" htmlFor="max-p">
+            <label className="text-xs text-[var(--text-muted)]" htmlFor="max-p">
               Max
             </label>
             <input
@@ -114,7 +114,7 @@ export function FilterSidebar({ value, onChange, categoryOptions, className }: P
               onChange={(e) =>
                 onChange({ ...value, priceMax: Math.max(Number(e.target.value), value.priceMin) })
               }
-              className="mt-1 w-full border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900"
+              className="mt-1 w-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-strong)]"
             />
           </div>
         </div>

@@ -52,7 +52,7 @@ export function HeroSection() {
   const active = HERO_SLIDES[index]
 
   return (
-    <section className="relative isolate min-h-svh overflow-hidden bg-neutral-950 text-white">
+    <section className="relative isolate -mt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] min-h-svh overflow-hidden bg-neutral-950 text-white lg:-mt-[calc(var(--header-offset)+var(--announcement-height))]">
       <div className="absolute inset-0" aria-hidden>
         <AnimatePresence mode="sync">
           <motion.div

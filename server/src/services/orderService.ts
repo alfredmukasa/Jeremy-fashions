@@ -166,6 +166,20 @@ export async function attachPaymentIntent(db: SupabaseClient, orderId: string, p
   }
 }
 
+export async function clearOrderPaymentIntent(db: SupabaseClient, orderId: string) {
+  const { error } = await db
+    .from('orders')
+    .update({
+      stripe_payment_intent_id: null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', orderId)
+
+  if (error) {
+    throw new CheckoutError('Unable to reset checkout payment session.', 500)
+  }
+}
+
 type OrderPaymentRow = {
   id: string
   payment_status: string

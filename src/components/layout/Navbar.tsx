@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
@@ -27,6 +27,9 @@ const links = [
   { to: ROUTES.waitlist, label: 'Waitlist' },
 ]
 
+const SCROLL_THRESHOLD = 24
+const SCROLL_DELTA = 10
+
 export function Navbar() {
   const { user } = useAuth()
   const { appearanceMode } = useTheme()
@@ -34,6 +37,8 @@ export function Navbar() {
   const isHome = location.pathname === '/'
   const wishlistHref = user ? ROUTES.saved : `${ROUTES.shop}?wishlist=1`
   const [scrolled, setScrolled] = useState(false)
+  const [hidden, setHidden] = useState(false)
+  const lastScrollY = useRef(0)
   const cartCount = useCartStore(selectCartItemCount)
   const wishCount = useWishlistStore(selectWishlistCount)
   const openCart = useUiStore((s) => s.openCart)
@@ -43,8 +48,27 @@ export function Navbar() {
   const isDark = appearanceMode === 'dark'
 
   useEffect(() => {
-    if (!isHome) return
-    const onScroll = () => setScrolled(window.scrollY > 24)
+    lastScrollY.current = window.scrollY
+
+    const onScroll = () => {
+      const current = window.scrollY
+      const delta = current - lastScrollY.current
+
+      if (isHome) {
+        setScrolled(current > SCROLL_THRESHOLD)
+      }
+
+      if (current < 72) {
+        setHidden(false)
+      } else if (delta > SCROLL_DELTA) {
+        setHidden(true)
+      } else if (delta < -SCROLL_DELTA) {
+        setHidden(false)
+      }
+
+      lastScrollY.current = current
+    }
+
     const id = requestAnimationFrame(() => onScroll())
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => {
@@ -53,17 +77,24 @@ export function Navbar() {
     }
   }, [isHome, location.pathname])
 
+  useEffect(() => {
+    setHidden(false)
+    setScrolled(false)
+    lastScrollY.current = 0
+  }, [location.pathname])
+
   return (
     <motion.header
       layout
       className={cn(
-        'fixed inset-x-0 z-40 transition-colors duration-500',
+        'fixed inset-x-0 z-40 will-change-transform',
         'top-[var(--announcement-height)]',
+        hidden ? 'nav-hide' : 'nav-show',
         isOverlay
-          ? 'border-b border-white/15 bg-neutral-950/50 text-white shadow-[0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md'
+          ? 'border-b border-white/10 bg-neutral-950/40 text-white shadow-[0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl'
           : isDark
-            ? 'border-b border-[var(--border-subtle)] bg-[var(--surface-overlay)] text-[var(--text-primary)] backdrop-blur-md'
-            : 'border-b border-neutral-200/80 bg-white/90 text-neutral-900 backdrop-blur-md',
+            ? 'border-b border-[var(--border-subtle)] bg-[var(--surface-overlay)] text-[var(--text-primary)] backdrop-blur-xl'
+            : 'border-b border-[var(--border-subtle)] bg-[var(--surface-overlay)] text-[var(--text-primary)] backdrop-blur-xl shadow-[0_1px_0_rgba(0,0,0,0.04)]',
       )}
     >
       <Container>
@@ -75,8 +106,8 @@ export function Navbar() {
                 aria-label="Open menu"
                 onClick={() => setMobileOpen(true)}
                 className={cn(
-                  'inline-flex shrink-0 p-2 transition md:hidden',
-                  isOverlay ? 'text-white' : 'text-neutral-900',
+                  'inline-flex shrink-0 p-2 transition-opacity duration-300 hover:opacity-70 md:hidden',
+                  isOverlay ? 'text-white' : 'text-[var(--text-primary)]',
                 )}
               >
                 <HiOutlineBars3 className="h-6 w-6" />
@@ -84,24 +115,24 @@ export function Navbar() {
               <Link
                 to={ROUTES.home}
                 className={cn(
-                  'truncate font-serif text-lg tracking-[0.08em] sm:text-xl md:text-2xl',
-                  isOverlay ? 'text-white' : 'text-neutral-950',
+                  'truncate font-serif text-lg tracking-[0.1em] sm:text-xl md:text-2xl',
+                  isOverlay ? 'text-white' : 'text-[var(--text-primary)]',
                 )}
               >
                 {BRAND}
               </Link>
             </div>
 
-            <nav className="hidden items-center gap-8 md:flex lg:gap-10">
+            <nav className="hidden items-center gap-8 md:flex lg:gap-12">
               {links.map((l) => (
                 <NavLink
                   key={l.to}
                   to={l.to}
                   className={({ isActive }) =>
                     cn(
-                      'text-[11px] font-medium uppercase tracking-[0.28em] transition hover:opacity-70',
-                      isOverlay ? 'text-white' : 'text-neutral-800',
-                      isActive && !isOverlay && 'text-neutral-950',
+                      'text-[11px] font-medium uppercase tracking-[0.26em] transition-opacity duration-300 hover:opacity-60',
+                      isOverlay ? 'text-white' : 'text-[var(--text-secondary)]',
+                      isActive && !isOverlay && 'text-[var(--text-primary)]',
                     )
                   }
                 >
@@ -121,15 +152,20 @@ export function Navbar() {
                 to={wishlistHref}
                 aria-label={wishCount > 0 ? `Wishlist, ${wishCount} saved` : 'Wishlist'}
                 className={cn(
-                  'relative inline-flex shrink-0 p-2 transition hover:opacity-70',
-                  isOverlay ? 'text-white' : 'text-neutral-900',
+                  'relative inline-flex shrink-0 p-2 transition-opacity duration-300 hover:opacity-70',
+                  isOverlay ? 'text-white' : 'text-[var(--text-primary)]',
                 )}
               >
                 <HiOutlineHeart className="h-5 w-5" />
                 {wishCount > 0 ? (
                   <span
                     aria-hidden="true"
-                    className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center border border-white bg-neutral-950 px-1 text-[9px] font-semibold text-white"
+                    className={cn(
+                      'absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center px-1 text-[9px] font-semibold',
+                      isOverlay
+                        ? 'border border-white/30 bg-neutral-950 text-white'
+                        : 'border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-primary)]',
+                    )}
                   >
                     {wishCount}
                   </span>
@@ -141,8 +177,8 @@ export function Navbar() {
                   to={ROUTES.account}
                   aria-label="Account"
                   className={cn(
-                    'hidden shrink-0 p-2 transition hover:opacity-70 sm:inline-flex',
-                    isOverlay ? 'text-white' : 'text-neutral-900',
+                    'hidden shrink-0 p-2 transition-opacity duration-300 hover:opacity-70 sm:inline-flex',
+                    isOverlay ? 'text-white' : 'text-[var(--text-primary)]',
                   )}
                 >
                   <HiOutlineUser className="h-5 w-5" />
@@ -151,10 +187,10 @@ export function Navbar() {
                 <Link
                   to={ROUTES.login}
                   className={cn(
-                    'inline-flex shrink-0 items-center border px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.22em] transition hover:opacity-80 sm:px-4 sm:py-2 sm:text-[11px]',
+                    'inline-flex shrink-0 items-center border px-3 py-1.5 text-[10px] font-medium uppercase tracking-[0.22em] transition-all duration-300 hover:opacity-80 sm:px-4 sm:py-2 sm:text-[11px]',
                     isOverlay
-                      ? 'border-white/40 text-white hover:bg-white/10'
-                      : 'border-neutral-300 text-neutral-900 hover:border-neutral-950',
+                      ? 'border-white/35 text-white hover:bg-white/10'
+                      : 'border-[var(--border-strong)] text-[var(--text-primary)] hover:border-[var(--text-primary)]',
                   )}
                 >
                   Sign In
@@ -165,15 +201,20 @@ export function Navbar() {
                 aria-label={cartCount > 0 ? `Open cart, ${cartCount} items` : 'Open cart'}
                 onClick={openCart}
                 className={cn(
-                  'relative inline-flex shrink-0 p-2 transition hover:opacity-70',
-                  isOverlay ? 'text-white' : 'text-neutral-900',
+                  'relative inline-flex shrink-0 p-2 transition-opacity duration-300 hover:opacity-70',
+                  isOverlay ? 'text-white' : 'text-[var(--text-primary)]',
                 )}
               >
                 <HiOutlineShoppingBag className="h-5 w-5" />
                 {cartCount > 0 ? (
                   <span
                     aria-hidden="true"
-                    className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center border border-white bg-neutral-950 px-1 text-[9px] font-semibold text-white"
+                    className={cn(
+                      'absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center px-1 text-[9px] font-semibold',
+                      isOverlay
+                        ? 'border border-white/30 bg-neutral-950 text-white'
+                        : 'border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-primary)]',
+                    )}
                   >
                     {cartCount}
                   </span>

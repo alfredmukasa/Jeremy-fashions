@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
 
 import { ROUTES } from '../../constants'
 import { Button } from '../common/Button'
@@ -25,10 +25,12 @@ const HERO_SLIDES = [
   },
 ] as const
 
-const SLIDE_MS = 5200
+const SLIDE_MS = 6800
 
 export function HeroSection() {
   const [index, setIndex] = useState(0)
+  const { scrollY } = useScroll()
+  const bgOpacity = useTransform(scrollY, [0, 400, 800], [1, 0.35, 0])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -52,47 +54,48 @@ export function HeroSection() {
   const active = HERO_SLIDES[index]
 
   return (
-    <section className="relative isolate -mt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] min-h-svh overflow-hidden bg-neutral-950 text-white lg:-mt-[calc(var(--header-offset)+var(--announcement-height))]">
-      <div className="absolute inset-0" aria-hidden>
-        <AnimatePresence mode="sync">
-          <motion.div
-            key={active.src}
-            initial={{ opacity: 0, scale: 1.06 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 1.35, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0"
-          >
-            <img
-              src={active.src}
-              alt=""
-              className="h-full w-full object-cover"
-              loading={index === 0 ? 'eager' : 'lazy'}
-              fetchPriority={index === 0 ? 'high' : 'auto'}
-              decoding="async"
-            />
-          </motion.div>
-        </AnimatePresence>
+    <section className="relative isolate -mt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] text-white lg:-mt-[calc(var(--header-offset)+var(--announcement-height))]">
+      {/* Sticky background — stays fixed in viewport while content scrolls over it */}
+      <div
+        aria-hidden
+        className="pointer-events-none sticky top-0 z-0 -mb-[100svh] h-[100svh] w-full overflow-hidden"
+      >
+        <motion.div
+          style={{ opacity: bgOpacity }}
+          className="hero-fixed-bg absolute inset-0 bg-neutral-950"
+        >
+          <AnimatePresence mode="sync">
+            <motion.div
+              key={active.src}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-0"
+            >
+              <img
+                src={active.src}
+                alt=""
+                className="h-full w-full object-cover"
+                loading={index === 0 ? 'eager' : 'lazy'}
+                fetchPriority={index === 0 ? 'high' : 'auto'}
+                decoding="async"
+              />
+            </motion.div>
+          </AnimatePresence>
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.1),transparent_50%)]" />
+          <motion.div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-transparent" />
+        </motion.div>
       </div>
 
-      <motion.div
-        aria-hidden
-        className="absolute inset-0 bg-gradient-to-t from-black via-black/55 to-black/25"
-        initial={false}
-        animate={{ opacity: 1 }}
-      />
-      <motion.div
-        aria-hidden
-        className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.08),transparent_55%)]"
-        initial={false}
-        animate={{ opacity: 1 }}
-      />
-
-      <Container className="relative flex min-h-svh flex-col justify-end pb-20 pt-32 md:pb-28">
+      {/* Foreground copy + CTAs */}
+      <Container className="relative z-[2] flex min-h-[100svh] flex-col justify-end pb-24 pt-36 md:pb-32">
         <motion.p
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="text-[11px] font-medium uppercase tracking-[0.45em] text-white/80"
         >
           Season 06 — Monochrome Study
@@ -100,7 +103,7 @@ export function HeroSection() {
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, delay: 0.05 }}
+          transition={{ duration: 0.75, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
           className="mt-6 max-w-4xl font-serif text-[clamp(2.6rem,6vw,4.75rem)] font-normal leading-[0.95] tracking-tight"
         >
           Silence reads louder than a logo.

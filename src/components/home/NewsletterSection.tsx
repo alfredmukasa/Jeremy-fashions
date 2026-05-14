@@ -15,13 +15,17 @@ export function NewsletterSection() {
   }
 
   return (
-    <section className="border-y border-neutral-200 bg-neutral-950 py-20 text-white md:py-28">
+    <section className="home-section relative overflow-hidden border-y border-[var(--border-subtle)] bg-[var(--text-primary)] text-[var(--accent-contrast)]">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.06),transparent_55%)]"
+      />
       <Container>
-        <div className="grid gap-10 md:grid-cols-2 md:items-center">
+        <div className="relative grid gap-12 md:grid-cols-2 md:items-center md:gap-16">
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-white/60">Newsletter</p>
-            <h3 className="mt-4 font-serif text-4xl tracking-tight md:text-5xl">Private drops. No noise.</h3>
-            <p className="mt-4 text-sm text-white/70">
+            <p className="eyebrow text-white/55">Newsletter</p>
+            <h3 className="display-serif mt-5 text-[clamp(2rem,4vw,3.25rem)]">Private drops. No noise.</h3>
+            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-white/65">
               Studio notes, limited releases, and early access — sent sparingly.
             </p>
           </div>
@@ -30,7 +34,8 @@ export function NewsletterSection() {
             initial={{ opacity: 0, y: 8 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="space-y-4"
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="space-y-5"
           >
             <Input
               type="email"
@@ -38,12 +43,14 @@ export function NewsletterSection() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email address"
-              className="border-white/20 bg-transparent text-white placeholder:text-white/40"
+              className="rounded-full border-white/20 bg-white/5 px-5 text-white placeholder:text-white/35 focus:border-white/40"
             />
             <Button type="submit" variant="inverse" className="w-full md:w-auto">
               {sent ? 'Subscribed' : 'Join the list'}
             </Button>
-            {sent ? <p className="text-xs text-emerald-300">Thank you — this is a UI demo only.</p> : null}
+            {sent ? (
+              <p className="text-xs tracking-wide text-white/55">Thank you — this is a UI demo only.</p>
+            ) : null}
           </motion.form>
         </div>
       </Container>

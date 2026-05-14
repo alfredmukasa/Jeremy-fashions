@@ -26,7 +26,7 @@ export function Button({ variant = 'primary', className, children, type = 'butto
     <button
       type={type}
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-none px-6 py-3 text-[11px] font-medium uppercase tracking-[0.22em] transition-all duration-300 ease-[var(--motion-ease)]',
+        'inline-flex items-center justify-center gap-2 rounded-full px-7 py-3.5 text-[11px] font-medium uppercase tracking-[0.2em] transition-all duration-300 ease-[var(--motion-ease)]',
         styles[variant],
         className,
       )}

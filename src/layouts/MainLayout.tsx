@@ -8,9 +8,12 @@ import { Footer } from '../components/layout/Footer'
 import { MobileMenu } from '../components/layout/MobileMenu'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductQuickViewModal } from '../components/product/ProductQuickViewModal'
+import { ROUTES } from '../constants'
+import { cn } from '../utils/cn'
 
 export function MainLayout() {
   const location = useLocation()
+  const isHome = location.pathname === ROUTES.home
 
   // Ensure premium-feeling navigation: don't preserve deep scroll positions between pages.
   // Without this, navigating from a scrolled product grid can land the user "below" the new page content,
@@ -20,7 +23,12 @@ export function MainLayout() {
   }, [location.pathname])
 
   return (
-    <motion.div className="min-h-svh bg-[var(--surface-base)] text-[var(--text-primary)] transition-colors duration-500">
+    <motion.div
+      className={cn(
+        'min-h-svh text-[var(--text-primary)] transition-colors duration-500',
+        !isHome && 'bg-[var(--surface-base)]',
+      )}
+    >
       <AnnouncementBar />
       <Navbar />
       <MobileMenu />

@@ -229,9 +229,6 @@ export function ProductCard({ product, className }: Props) {
                       <p className="line-clamp-2 font-serif text-[1.05rem] leading-snug tracking-[-0.02em] text-white">
                         {product.name}
                       </p>
-                      <p className="text-[9px] font-medium uppercase tracking-[0.22em] text-white/72">
-                        {categoryLabel}
-                      </p>
                       <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-0.5">
                         <span className="text-sm font-medium tabular-nums tracking-wide text-white">
                           {formatPrice(price)}

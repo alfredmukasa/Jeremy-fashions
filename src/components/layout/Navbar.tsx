@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import {
-  HiOutlineBars3,
-  HiOutlineHeart,
-  HiOutlineShoppingBag,
-  HiOutlineUser,
-} from 'react-icons/hi2'
+import { HiOutlineBars3, HiOutlineHeart, HiOutlineShoppingBag, HiOutlineUser } from 'react-icons/hi2'
 
 import { BRAND, ROUTES } from '../../constants'
 import { useAuth } from '../../context/AuthContext'
+import { useWaitlistMode } from '../../context/WaitlistModeContext'
 import { useCartStore, selectCartItemCount } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore, selectWishlistCount } from '../../store/wishlistStore'
@@ -24,7 +20,6 @@ import { Container } from './Container'
 const links = [
   { to: ROUTES.shop, label: 'Shop' },
   { to: `${ROUTES.shop}?tag=new`, label: 'New' },
-  { to: ROUTES.waitlist, label: 'Waitlist' },
 ]
 
 const SCROLL_THRESHOLD = 24
@@ -33,8 +28,9 @@ const SCROLL_DELTA = 10
 export function Navbar() {
   const { user } = useAuth()
   const { appearanceMode } = useTheme()
+  const { waitlistMode } = useWaitlistMode()
   const location = useLocation()
-  const isHome = location.pathname === '/'
+  const isHome = location.pathname === ROUTES.home && !waitlistMode
   const wishlistHref = user ? ROUTES.saved : `${ROUTES.shop}?wishlist=1`
   const [scrolled, setScrolled] = useState(false)
   const [hidden, setHidden] = useState(false)
@@ -44,7 +40,8 @@ export function Navbar() {
   const openCart = useUiStore((s) => s.openCart)
   const setMobileOpen = useUiStore((s) => s.setMobileNavOpen)
 
-  const isOverlay = isHome && !scrolled
+  const isWaitlistLanding = waitlistMode && location.pathname === ROUTES.waitlist
+  const isOverlay = (isHome && !scrolled) || isWaitlistLanding
   const isDark = appearanceMode === 'dark'
 
   useEffect(() => {
@@ -54,7 +51,7 @@ export function Navbar() {
       const current = window.scrollY
       const delta = current - lastScrollY.current
 
-      if (isHome) {
+      if (isHome || isWaitlistLanding) {
         setScrolled(current > SCROLL_THRESHOLD)
       }
 
@@ -75,12 +72,14 @@ export function Navbar() {
       cancelAnimationFrame(id)
       window.removeEventListener('scroll', onScroll)
     }
-  }, [isHome, location.pathname])
+  }, [isHome, isWaitlistLanding, location.pathname])
 
   useEffect(() => {
-    setHidden(false)
-    setScrolled(false)
-    lastScrollY.current = 0
+    queueMicrotask(() => {
+      setHidden(false)
+      setScrolled(false)
+      lastScrollY.current = 0
+    })
   }, [location.pathname])
 
   return (
@@ -113,7 +112,7 @@ export function Navbar() {
                 <HiOutlineBars3 className="h-6 w-6" />
               </button>
               <Link
-                to={ROUTES.home}
+                to={waitlistMode ? ROUTES.waitlist : ROUTES.home}
                 className={cn(
                   'truncate font-serif text-lg tracking-[0.1em] sm:text-xl md:text-2xl',
                   isOverlay ? 'text-white' : 'text-[var(--text-primary)]',
@@ -124,55 +123,65 @@ export function Navbar() {
             </div>
 
             <nav className="hidden items-center gap-8 md:flex lg:gap-12">
-              {links.map((l) => (
-                <NavLink
-                  key={l.to}
-                  to={l.to}
-                  className={({ isActive }) =>
-                    cn(
-                      'text-[11px] font-medium uppercase tracking-[0.26em] transition-opacity duration-300 hover:opacity-60',
-                      isOverlay ? 'text-white' : 'text-[var(--text-secondary)]',
-                      isActive && !isOverlay && 'text-[var(--text-primary)]',
-                    )
-                  }
-                >
-                  {l.label}
-                </NavLink>
-              ))}
+              {!waitlistMode
+                ? links.map((l) => (
+                    <NavLink
+                      key={l.to}
+                      to={l.to}
+                      className={({ isActive }) =>
+                        cn(
+                          'text-[11px] font-medium uppercase tracking-[0.26em] transition-opacity duration-300 hover:opacity-60',
+                          isOverlay ? 'text-white' : 'text-[var(--text-secondary)]',
+                          isActive && !isOverlay && 'text-[var(--text-primary)]',
+                        )
+                      }
+                    >
+                      {l.label}
+                    </NavLink>
+                  ))
+                : (
+                    <span className="text-[10px] font-medium uppercase tracking-[0.35em] text-white/55">
+                      Private access
+                    </span>
+                  )}
             </nav>
 
             <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:gap-2 md:max-w-none md:flex-[1.2] md:gap-3">
-              <ProductSearchField
-                key={location.pathname === ROUTES.shop ? location.search : 'global'}
-                overlay={isOverlay}
-                className="hidden max-w-md lg:flex"
-              />
+              {!waitlistMode ? (
+                <ProductSearchField
+                  key={location.pathname === ROUTES.shop ? location.search : 'global'}
+                  overlay={isOverlay}
+                  className="hidden max-w-md lg:flex"
+                />
+              ) : null}
 
-              <Link
-                to={wishlistHref}
-                aria-label={wishCount > 0 ? `Wishlist, ${wishCount} saved` : 'Wishlist'}
-                className={cn(
-                  'relative inline-flex shrink-0 p-2 transition-opacity duration-300 hover:opacity-70',
-                  isOverlay ? 'text-white' : 'text-[var(--text-primary)]',
-                )}
-              >
-                <HiOutlineHeart className="h-5 w-5" />
-                {wishCount > 0 ? (
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center px-1 text-[9px] font-semibold',
-                      isOverlay
-                        ? 'border border-white/30 bg-neutral-950 text-white'
-                        : 'border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-primary)]',
-                    )}
-                  >
-                    {wishCount}
-                  </span>
-                ) : null}
-              </Link>
+              {!waitlistMode ? (
+                <Link
+                  to={wishlistHref}
+                  aria-label={wishCount > 0 ? `Wishlist, ${wishCount} saved` : 'Wishlist'}
+                  className={cn(
+                    'relative inline-flex shrink-0 p-2 transition-opacity duration-300 hover:opacity-70',
+                    isOverlay ? 'text-white' : 'text-[var(--text-primary)]',
+                  )}
+                >
+                  <HiOutlineHeart className="h-5 w-5" />
+                  {wishCount > 0 ? (
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center px-1 text-[9px] font-semibold',
+                        isOverlay
+                          ? 'border border-white/30 bg-neutral-950 text-white'
+                          : 'border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-primary)]',
+                      )}
+                    >
+                      {wishCount}
+                    </span>
+                  ) : null}
+                </Link>
+              ) : null}
               <ThemeToggle overlay={isOverlay} />
-              {user ? (
+              {!waitlistMode && user ? (
                 <Link
                   to={ROUTES.account}
                   aria-label="Account"
@@ -183,7 +192,8 @@ export function Navbar() {
                 >
                   <HiOutlineUser className="h-5 w-5" />
                 </Link>
-              ) : (
+              ) : null}
+              {!waitlistMode && !user ? (
                 <Link
                   to={ROUTES.login}
                   className={cn(
@@ -195,39 +205,43 @@ export function Navbar() {
                 >
                   Sign In
                 </Link>
-              )}
-              <button
-                type="button"
-                aria-label={cartCount > 0 ? `Open cart, ${cartCount} items` : 'Open cart'}
-                onClick={openCart}
-                className={cn(
-                  'relative inline-flex shrink-0 p-2 transition-opacity duration-300 hover:opacity-70',
-                  isOverlay ? 'text-white' : 'text-[var(--text-primary)]',
-                )}
-              >
-                <HiOutlineShoppingBag className="h-5 w-5" />
-                {cartCount > 0 ? (
-                  <span
-                    aria-hidden="true"
-                    className={cn(
-                      'absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center px-1 text-[9px] font-semibold',
-                      isOverlay
-                        ? 'border border-white/30 bg-neutral-950 text-white'
-                        : 'border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-primary)]',
-                    )}
-                  >
-                    {cartCount}
-                  </span>
-                ) : null}
-              </button>
+              ) : null}
+              {!waitlistMode ? (
+                <button
+                  type="button"
+                  aria-label={cartCount > 0 ? `Open cart, ${cartCount} items` : 'Open cart'}
+                  onClick={openCart}
+                  className={cn(
+                    'relative inline-flex shrink-0 p-2 transition-opacity duration-300 hover:opacity-70',
+                    isOverlay ? 'text-white' : 'text-[var(--text-primary)]',
+                  )}
+                >
+                  <HiOutlineShoppingBag className="h-5 w-5" />
+                  {cartCount > 0 ? (
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        'absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center px-1 text-[9px] font-semibold',
+                        isOverlay
+                          ? 'border border-white/30 bg-neutral-950 text-white'
+                          : 'border border-[var(--border-subtle)] bg-[var(--surface-elevated)] text-[var(--text-primary)]',
+                      )}
+                    >
+                      {cartCount}
+                    </span>
+                  ) : null}
+                </button>
+              ) : null}
             </div>
           </div>
 
-          <ProductSearchField
-            key={location.pathname === ROUTES.shop ? location.search : 'global-mobile'}
-            overlay={isOverlay}
-            className="mt-2 pb-3 lg:hidden"
-          />
+          {!waitlistMode ? (
+            <ProductSearchField
+              key={location.pathname === ROUTES.shop ? location.search : 'global-mobile'}
+              overlay={isOverlay}
+              className="mt-2 pb-3 lg:hidden"
+            />
+          ) : null}
         </div>
       </Container>
     </motion.header>

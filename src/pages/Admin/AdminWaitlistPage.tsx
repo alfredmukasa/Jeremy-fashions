@@ -49,19 +49,20 @@ function AdminWaitlistContent() {
         !needle ||
         row.full_name.toLowerCase().includes(needle) ||
         row.email.toLowerCase().includes(needle) ||
-        (row.phone ?? '').toLowerCase().includes(needle)
+        (row.instagram ?? '').toLowerCase().includes(needle)
       return matchesStatus && matchesSearch
     })
   }, [search, statusFilter, waitlistQuery.data])
 
   function exportCsv() {
-    const header = ['joined', 'name', 'email', 'phone', 'product_id', 'status']
+    const header = ['joined', 'name', 'email', 'phone', 'instagram', 'product_id', 'status']
     const lines = rows.map((row) =>
       [
         row.created_at,
         row.full_name,
         row.email,
         row.phone ?? '',
+        row.instagram ?? '',
         row.interested_product ?? '',
         row.status,
       ]
@@ -114,6 +115,7 @@ function AdminWaitlistContent() {
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Phone</th>
+              <th className="px-4 py-3 font-medium">Instagram</th>
               <th className="px-4 py-3 font-medium">Product id</th>
               <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
@@ -128,6 +130,7 @@ function AdminWaitlistContent() {
                 <td className="px-4 py-3 font-medium text-neutral-900">{row.full_name}</td>
                 <td className="px-4 py-3 text-neutral-600">{row.email}</td>
                 <td className="px-4 py-3 text-neutral-600">{row.phone ?? '—'}</td>
+                <td className="max-w-[140px] truncate px-4 py-3 text-neutral-600">{row.instagram ?? '—'}</td>
                 <td className="max-w-[120px] truncate px-4 py-3 font-mono text-xs text-neutral-500">
                   {row.interested_product ?? '—'}
                 </td>

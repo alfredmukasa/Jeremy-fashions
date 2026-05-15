@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet, useLocation, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 
 import { CartDrawer } from '../components/layout/CartDrawer'
@@ -9,11 +9,24 @@ import { MobileMenu } from '../components/layout/MobileMenu'
 import { Navbar } from '../components/layout/Navbar'
 import { ProductQuickViewModal } from '../components/product/ProductQuickViewModal'
 import { ROUTES } from '../constants'
+import { useWaitlistMode } from '../context/WaitlistModeContext'
 import { cn } from '../utils/cn'
+
+function WaitlistLayoutBoot() {
+  return (
+    <div className="flex min-h-svh flex-col items-center justify-center bg-neutral-950 px-6 text-center">
+      <div className="h-px w-16 bg-white/30" aria-hidden />
+      <p className="mt-6 text-[10px] font-medium uppercase tracking-[0.4em] text-white/55">Jeremy Atelier</p>
+      <p className="mt-3 text-sm text-white/45">Loading…</p>
+    </div>
+  )
+}
 
 export function MainLayout() {
   const location = useLocation()
+  const { waitlistMode, ready } = useWaitlistMode()
   const isHome = location.pathname === ROUTES.home
+  const isWaitlist = location.pathname === ROUTES.waitlist
 
   // Ensure premium-feeling navigation: don't preserve deep scroll positions between pages.
   // Without this, navigating from a scrolled product grid can land the user "below" the new page content,
@@ -22,11 +35,20 @@ export function MainLayout() {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
   }, [location.pathname])
 
+  if (!ready) {
+    return <WaitlistLayoutBoot />
+  }
+
+  if (waitlistMode && !isWaitlist) {
+    return <Navigate to={ROUTES.waitlist} replace />
+  }
+
   return (
     <motion.div
       className={cn(
         'min-h-svh text-[var(--text-primary)] transition-colors duration-500',
-        !isHome && 'bg-[var(--surface-base)]',
+        !isHome && !isWaitlist && 'bg-[var(--surface-base)]',
+        isWaitlist && waitlistMode && 'bg-neutral-950',
       )}
     >
       <AnnouncementBar />

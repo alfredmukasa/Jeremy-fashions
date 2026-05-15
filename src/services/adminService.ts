@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { ProductAttributes } from '../types'
 import type { ProductRow } from './mappers'
+import { GLOBAL_SETTINGS_ROW_ID } from './globalSettingsService'
 
 const PRODUCT_COLUMNS =
   'id, created_at, title, slug, description, price, compare_price, category, brand, ' +
@@ -37,6 +38,7 @@ export type AdminWaitlistRow = {
   full_name: string
   email: string
   phone: string | null
+  instagram: string | null
   interested_product: string | null
   status: string
   discount_code_sent: boolean
@@ -208,7 +210,7 @@ export async function adminListWaitlist(): Promise<AdminWaitlistRow[]> {
   const client = requireClient()
   const { data, error } = await client
     .from('waitlist')
-    .select('id, created_at, full_name, email, phone, interested_product, status, discount_code_sent')
+    .select('id, created_at, full_name, email, phone, instagram, interested_product, status, discount_code_sent')
     .order('created_at', { ascending: false })
 
   if (error) throw new Error(error.message)
@@ -419,6 +421,28 @@ export async function adminUpsertSiteSetting(key: string, value: Record<string, 
     value,
     updated_at: new Date().toISOString(),
   })
+
+  if (error) throw new Error(error.message)
+}
+
+export async function adminGetWaitlistMode(): Promise<boolean> {
+  const client = requireClient()
+  const { data, error } = await client
+    .from('global_settings')
+    .select('waitlist_mode')
+    .eq('id', GLOBAL_SETTINGS_ROW_ID)
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  return Boolean(data?.waitlist_mode)
+}
+
+export async function adminSetWaitlistMode(enabled: boolean): Promise<void> {
+  const client = requireClient()
+  const { error } = await client
+    .from('global_settings')
+    .update({ waitlist_mode: enabled, updated_at: new Date().toISOString() })
+    .eq('id', GLOBAL_SETTINGS_ROW_ID)
 
   if (error) throw new Error(error.message)
 }

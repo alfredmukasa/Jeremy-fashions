@@ -56,6 +56,7 @@ export type WaitlistEntry = {
   fullName: string
   email: string
   phone?: string
+  instagram?: string
   interestedProductId?: string
 }
 

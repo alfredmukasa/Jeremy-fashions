@@ -8,6 +8,8 @@ import { ROUTES } from './constants'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { WaitlistModeProvider } from './context/WaitlistModeContext'
+import { WaitlistPublicGate } from './components/waitlist/WaitlistPublicGate'
 import { ProtectedRoute } from './routes/ProtectedRoute'
 import { isAdminPortalMounted } from './lib/adminPortal'
 import { queryClient } from './lib/queryClient'
@@ -67,6 +69,7 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
+          <WaitlistModeProvider>
           <AuthProvider>
           <ThemeProvider>
           <Toaster
@@ -95,9 +98,30 @@ export default function App() {
                 <Route path={`${ROUTES.admin}/*`} element={page(adminLazy.Shell)} />
               </>
             ) : null}
-            <Route path={ROUTES.login} element={page(LoginPage)} />
-            <Route path={ROUTES.register} element={page(RegisterPage)} />
-            <Route path={ROUTES.forgotPassword} element={page(ForgotPasswordPage)} />
+            <Route
+              path={ROUTES.login}
+              element={
+                <WaitlistPublicGate>
+                  {page(LoginPage)}
+                </WaitlistPublicGate>
+              }
+            />
+            <Route
+              path={ROUTES.register}
+              element={
+                <WaitlistPublicGate>
+                  {page(RegisterPage)}
+                </WaitlistPublicGate>
+              }
+            />
+            <Route
+              path={ROUTES.forgotPassword}
+              element={
+                <WaitlistPublicGate>
+                  {page(ForgotPasswordPage)}
+                </WaitlistPublicGate>
+              }
+            />
             <Route element={<MainLayout />}>
               <Route path={ROUTES.home} element={page(HomePage)} />
               <Route path={ROUTES.shop} element={page(ShopPage)} />
@@ -116,6 +140,7 @@ export default function App() {
           </Routes>
           </ThemeProvider>
           </AuthProvider>
+          </WaitlistModeProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>

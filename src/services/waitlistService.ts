@@ -29,6 +29,7 @@ export async function joinWaitlist(entry: WaitlistEntry): Promise<WaitlistResult
     full_name: fullName,
     email,
     phone,
+    instagram: entry.instagram?.trim() || null,
     interested_product: entry.interestedProductId ?? null,
   }
 

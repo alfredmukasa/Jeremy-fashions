@@ -7,35 +7,43 @@ import { ThemeToggle } from '../common/ThemeToggle'
 import { ProductSearchField } from '../search/ProductSearchField'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
+import { useWaitlistMode } from '../../context/WaitlistModeContext'
 import { useUiStore } from '../../store/uiStore'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
-
-const publicItems = [
-  { to: ROUTES.home, label: 'Home' },
-  { to: ROUTES.shop, label: 'Shop' },
-  { to: `${ROUTES.shop}?tag=new`, label: 'New arrivals' },
-  { to: ROUTES.waitlist, label: 'Waitlist' },
-]
 
 export function MobileMenu() {
   const open = useUiStore((s) => s.mobileNavOpen)
   const setOpen = useUiStore((s) => s.setMobileNavOpen)
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
+  const { waitlistMode } = useWaitlistMode()
   const { canPersistTheme } = useTheme()
   useBodyScrollLock(open)
 
-  const authItems = user
-    ? [
-        { to: ROUTES.account, label: 'Account' },
-        { to: ROUTES.saved, label: 'Saved' },
-        { to: ROUTES.orders, label: 'Orders' },
-        { to: ROUTES.profile, label: 'Profile' },
-      ]
+  const publicItems = waitlistMode
+    ? []
     : [
-        { to: ROUTES.login, label: 'Sign In' },
-        { to: ROUTES.register, label: 'Register' },
+        { to: ROUTES.home, label: 'Home' },
+        { to: ROUTES.shop, label: 'Shop' },
+        { to: `${ROUTES.shop}?tag=new`, label: 'New arrivals' },
       ]
+
+  const authItems =
+    waitlistMode && user
+      ? []
+      : user
+        ? [
+            { to: ROUTES.account, label: 'Account' },
+            { to: ROUTES.saved, label: 'Saved' },
+            { to: ROUTES.orders, label: 'Orders' },
+            { to: ROUTES.profile, label: 'Profile' },
+          ]
+        : waitlistMode
+          ? []
+          : [
+              { to: ROUTES.login, label: 'Sign In' },
+              { to: ROUTES.register, label: 'Register' },
+            ]
 
   const items = [...publicItems, ...authItems]
 
@@ -74,7 +82,13 @@ export function MobileMenu() {
               </div>
             </div>
             <div className="border-b border-[var(--border-subtle)] px-6 py-4">
-              <ProductSearchField placeholder="Search collection" onNavigate={() => setOpen(false)} />
+              {!waitlistMode ? (
+                <ProductSearchField placeholder="Search collection" onNavigate={() => setOpen(false)} />
+              ) : (
+                <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
+                  The boutique is paused while we prepare the next release. Request access below.
+                </p>
+              )}
             </div>
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-6 py-8">
               {items.map((it, i) => (
@@ -104,7 +118,7 @@ export function MobileMenu() {
                     type="button"
                     onClick={() => {
                       setOpen(false)
-                      void signOut().then(() => navigate(ROUTES.home))
+                      void signOut().then(() => navigate(waitlistMode ? ROUTES.waitlist : ROUTES.home))
                     }}
                     className="w-full border border-[var(--border-subtle)] py-4 text-[12px] font-medium uppercase tracking-[0.3em] text-[var(--text-primary)]"
                   >

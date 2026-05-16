@@ -22,6 +22,7 @@ const CheckoutPage = lazy(() => import('./pages/Checkout/CheckoutPage'))
 const LoginPage = lazy(() => import('./pages/Auth/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/Auth/RegisterPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/Auth/ForgotPasswordPage'))
+const AuthCallbackPage = lazy(() => import('./pages/Auth/AuthCallbackPage'))
 const AccountDashboardPage = lazy(() => import('./pages/Account/AccountDashboardPage'))
 const OrdersPage = lazy(() => import('./pages/Account/OrdersPage'))
 const ProfilePage = lazy(() => import('./pages/Account/ProfilePage'))
@@ -122,6 +123,7 @@ export default function App() {
                 </WaitlistPublicGate>
               }
             />
+            <Route path={ROUTES.authCallback} element={page(AuthCallbackPage)} />
             <Route element={<MainLayout />}>
               <Route path={ROUTES.home} element={page(HomePage)} />
               <Route path={ROUTES.shop} element={page(ShopPage)} />

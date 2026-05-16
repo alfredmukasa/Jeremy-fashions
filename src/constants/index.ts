@@ -13,6 +13,7 @@ export const ROUTES = {
   login: '/login',
   register: '/register',
   forgotPassword: '/forgot-password',
+  authCallback: '/auth/callback',
   account: '/account',
   profile: '/profile',
   orders: '/orders',

@@ -9,6 +9,8 @@ import {
 } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 
+import { ROUTES } from '../constants'
+import { getAuthCallbackUrl } from '../lib/authRedirect'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 type SignInResult = { error: Error | null }
@@ -29,6 +31,26 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const path = window.location.pathname
+    if (path === ROUTES.authCallback) return
+
+    const params = new URLSearchParams(window.location.search)
+    const hash = window.location.hash.replace(/^#/, '')
+    const hashParams = hash ? new URLSearchParams(hash) : null
+    const hasCode = params.has('code')
+    const hasImplicit = hashParams?.has('access_token') ?? false
+    const hasAuthError = params.has('error') && params.has('error_description')
+
+    if (hasCode || hasImplicit || hasAuthError) {
+      const target = new URL(getAuthCallbackUrl())
+      params.forEach((value, key) => target.searchParams.set(key, value))
+      if (hash) target.hash = hash
+      window.location.replace(target.toString())
+    }
+  }, [])
 
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) {
@@ -75,7 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase.auth.signUp({
         email: args.email,
         password: args.password,
-        options: { data: { full_name: args.fullName } },
+        options: {
+          data: { full_name: args.fullName },
+          emailRedirectTo: getAuthCallbackUrl({ type: 'signup' }),
+        },
       })
       return {
         error: error ? new Error(error.message) : null,
@@ -94,8 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) {
       return { error: new Error('Supabase is not configured.') }
     }
-    const base = import.meta.env.BASE_URL === '/' ? '' : import.meta.env.BASE_URL.replace(/\/$/, '')
-    const redirectTo = `${window.location.origin}${base}/login`
+    const redirectTo = getAuthCallbackUrl({ type: 'recovery', next: '/login?reset=1' })
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
     return { error: error ? new Error(error.message) : null }
   }, [])

@@ -22,11 +22,11 @@ type Props = {
 
 const overlayEase = [0.22, 1, 0.36, 1] as const
 
-const footerMotion = {
+const revealMotion = {
   initial: { opacity: 0, y: 10 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
-  transition: { duration: 0.32, ease: overlayEase },
+  exit: { opacity: 0, y: 8 },
+  transition: { duration: 0.3, ease: overlayEase },
 }
 
 function formatCategory(category?: string) {
@@ -53,8 +53,9 @@ export function ProductCard({ product, className }: Props) {
   const compare = product.salePrice ? product.price : null
   const soldOut = product.stock === 0
   const categoryLabel = formatCategory(product.category)
-  const showActionState = hover && !coarsePointer
-  const showMobileCta = coarsePointer
+  const isNew = tags.includes('new')
+  const showHoverChrome = hover && !coarsePointer
+  const showImageAlt = showHoverChrome && hasImage && imgB !== imgA
 
   useEffect(() => {
     const media = window.matchMedia('(hover: none), (pointer: coarse)')
@@ -89,7 +90,7 @@ export function ProductCard({ product, className }: Props) {
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <motion.div className="relative" initial={false} style={{ transform: 'translateZ(0)' }}>
+      <div className="relative" style={{ transform: 'translateZ(0)' }}>
         <div
           role="button"
           tabIndex={0}
@@ -110,165 +111,117 @@ export function ProductCard({ product, className }: Props) {
               'shadow-[var(--shadow-soft)] transition-[box-shadow] duration-500',
               'group-hover/product:shadow-[var(--shadow-lift)]',
             )}
-            style={{ transform: 'translateZ(0)' }}
           >
             {hasImage ? (
               <>
                 <motion.img
                   src={imgA}
                   alt=""
-                  className="absolute inset-0 h-full w-full object-cover will-change-transform"
-                  animate={{ opacity: showActionState ? 0 : 1, scale: showActionState ? 1.04 : 1 }}
-                  transition={{ duration: 0.55, ease: overlayEase }}
+                  className="absolute inset-0 h-full w-full object-cover will-change-[opacity,transform]"
+                  animate={{ opacity: showImageAlt ? 0 : 1, scale: showHoverChrome ? 1.03 : 1 }}
+                  transition={{ duration: 0.5, ease: overlayEase }}
                   loading="lazy"
                 />
                 <motion.img
                   src={imgB}
                   alt=""
-                  className="absolute inset-0 h-full w-full object-cover will-change-transform"
-                  animate={{ opacity: showActionState ? 1 : 0, scale: showActionState ? 1.04 : 1 }}
-                  transition={{ duration: 0.55, ease: overlayEase }}
+                  className="absolute inset-0 h-full w-full object-cover will-change-[opacity,transform]"
+                  animate={{ opacity: showImageAlt ? 1 : 0, scale: showHoverChrome ? 1.03 : 1 }}
+                  transition={{ duration: 0.5, ease: overlayEase }}
                   loading="lazy"
                 />
               </>
             ) : null}
 
             <motion.div
-              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent"
-              animate={{ opacity: showActionState ? 0.72 : 0.42 }}
-              transition={{ duration: 0.38, ease: overlayEase }}
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent"
+              animate={{ opacity: showHoverChrome ? 0.55 : 0.2 }}
+              transition={{ duration: 0.35, ease: overlayEase }}
             />
 
-            {tags.includes('new') ? (
-              <span className="pointer-events-none absolute left-3 top-3 z-20">
-                <Badge>New</Badge>
-              </span>
-            ) : null}
+            <AnimatePresence>
+              {showHoverChrome && isNew ? (
+                <motion.span
+                  key="new-badge"
+                  className="pointer-events-none absolute left-3 top-3 z-20"
+                  {...revealMotion}
+                >
+                  <Badge>New</Badge>
+                </motion.span>
+              ) : null}
+            </AnimatePresence>
 
-            <motion.div
-              className="absolute right-3 top-3 z-20 flex items-center gap-1.5 rounded-full border border-white/20 bg-white/78 px-2 py-1.5 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.28)] backdrop-blur-md"
-              initial={false}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, ease: overlayEase }}
+            <button
+              type="button"
+              aria-label={wishHas ? 'Remove from wishlist' : 'Add to wishlist'}
+              onClick={onWishlistClick}
+              className={cn(
+                'absolute right-3 top-3 z-20 rounded-full border border-white/20 bg-white/80 p-2 shadow-[0_8px_24px_-12px_rgba(0,0,0,0.28)] backdrop-blur-md transition-colors duration-300',
+                wishHas ? 'text-neutral-900' : 'text-neutral-500 hover:text-neutral-900',
+              )}
             >
-              <span className="max-w-[7.5rem] truncate px-1.5 text-[9px] font-medium uppercase tracking-[0.2em] text-neutral-700">
-                {categoryLabel}
-              </span>
-              <span className="h-3 w-px shrink-0 bg-neutral-300/80" aria-hidden />
-              <button
-                type="button"
-                aria-label={wishHas ? 'Remove from wishlist' : 'Add to wishlist'}
-                onClick={onWishlistClick}
-                className={cn(
-                  'pointer-events-auto rounded-full p-1.5 transition-colors duration-300',
-                  wishHas ? 'text-neutral-900' : 'text-neutral-500 hover:text-neutral-900',
-                )}
-              >
-                <HiOutlineHeart className={cn('h-3.5 w-3.5', wishHas && 'fill-neutral-900')} />
-              </button>
-            </motion.div>
+              <HiOutlineHeart className={cn('h-3.5 w-3.5', wishHas && 'fill-neutral-900')} />
+            </button>
 
-            <motion.div
-              className="absolute inset-x-0 bottom-0 z-10 px-4 pb-4 pt-10"
-              initial={false}
-            >
-              <AnimatePresence mode="wait" initial={false}>
-                {showActionState ? (
-                  <motion.div
-                    key="action"
-                    className="flex items-end justify-between gap-3"
-                    {...footerMotion}
-                  >
-                    <motion.div
-                      className="min-w-0"
-                      initial={false}
-                      animate={{ opacity: 1 }}
+            <AnimatePresence>
+              {showHoverChrome ? (
+                <motion.div
+                  key="quick-add"
+                  className="absolute inset-x-0 bottom-0 z-10 flex justify-center px-4 pb-4"
+                  {...revealMotion}
+                >
+                  {soldOut ? (
+                    <Link
+                      to={`${ROUTES.waitlist}?product=${product.slug}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="pointer-events-auto inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-4 py-2.5 text-[9px] font-medium uppercase tracking-[0.22em] text-white backdrop-blur-sm transition-colors duration-300 hover:bg-white/22"
                     >
-                      <motion.div
-                        className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5"
-                        initial={false}
-                      >
-                        <span className="text-sm font-medium tabular-nums tracking-wide text-white">
-                          {formatPrice(price)}
-                        </span>
-                        {compare ? (
-                          <span className="text-xs tabular-nums text-white/55 line-through">
-                            {formatPrice(compare)}
-                          </span>
-                        ) : null}
-                      </motion.div>
-                    </motion.div>
-
-                    <div className="pointer-events-auto shrink-0">
-                      {soldOut ? (
-                        <Link
-                          to={`${ROUTES.waitlist}?product=${product.slug}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-3.5 py-2 text-[9px] font-medium uppercase tracking-[0.22em] text-white backdrop-blur-sm transition-colors duration-300 hover:bg-white/22"
-                        >
-                          Join the waiting list
-                        </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={quickAdd}
-                          className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-3.5 py-2 text-[9px] font-medium uppercase tracking-[0.22em] text-white backdrop-blur-sm transition-colors duration-300 hover:bg-white/22"
-                        >
-                          Quick add
-                        </button>
-                      )}
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="default"
-                    className="space-y-2"
-                    {...footerMotion}
-                  >
-                    <motion.div className="space-y-1.5">
-                      <p className="line-clamp-2 font-serif text-[1.05rem] leading-snug tracking-[-0.02em] text-white">
-                        {product.name}
-                      </p>
-                      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 pt-0.5">
-                        <span className="text-sm font-medium tabular-nums tracking-wide text-white">
-                          {formatPrice(price)}
-                        </span>
-                        {compare ? (
-                          <span className="text-xs tabular-nums text-white/55 line-through">
-                            {formatPrice(compare)}
-                          </span>
-                        ) : null}
-                      </div>
-                    </motion.div>
-
-                    {showMobileCta ? (
-                      <div className="pointer-events-auto flex justify-end pt-1">
-                        {soldOut ? (
-                          <Link
-                            to={`${ROUTES.waitlist}?product=${product.slug}`}
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-3.5 py-2 text-[9px] font-medium uppercase tracking-[0.22em] text-white backdrop-blur-sm"
-                          >
-                            Join the waiting list
-                          </Link>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={quickAdd}
-                            className="inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-3.5 py-2 text-[9px] font-medium uppercase tracking-[0.22em] text-white backdrop-blur-sm"
-                          >
-                            Quick add
-                          </button>
-                        )}
-                      </div>
-                    ) : null}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.div>
+                      Join the waiting list
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={quickAdd}
+                      className="pointer-events-auto inline-flex items-center justify-center rounded-full border border-white/35 bg-white/12 px-4 py-2.5 text-[9px] font-medium uppercase tracking-[0.22em] text-white backdrop-blur-sm transition-colors duration-300 hover:bg-white/22"
+                    >
+                      Quick add
+                    </button>
+                  )}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </motion.div>
         </div>
-      </motion.div>
+      </div>
+
+      <div className="pointer-events-none mt-3 space-y-1 px-0.5">
+        <div className="flex items-start justify-between gap-3">
+          <p className="line-clamp-2 min-w-0 font-serif text-[1.02rem] leading-snug tracking-[-0.02em] text-[var(--text-primary)]">
+            {product.name}
+          </p>
+          <button
+            type="button"
+            tabIndex={-1}
+            aria-hidden
+            className={cn(
+              'pointer-events-auto -mr-0.5 shrink-0 rounded-full p-1.5 text-neutral-400 transition-colors duration-300 lg:hidden',
+              wishHas && 'text-neutral-900',
+            )}
+            onClick={onWishlistClick}
+          >
+            <HiOutlineHeart className={cn('h-4 w-4', wishHas && 'fill-neutral-900')} />
+          </button>
+        </div>
+        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+          <span className="text-sm font-medium tabular-nums tracking-wide text-[var(--text-primary)]">
+            {formatPrice(price)}
+          </span>
+          {compare ? (
+            <span className="text-xs tabular-nums text-neutral-400 line-through">{formatPrice(compare)}</span>
+          ) : null}
+        </div>
+        <p className="text-[9px] font-medium uppercase tracking-[0.2em] text-neutral-400">{categoryLabel}</p>
+      </div>
     </article>
   )
 }

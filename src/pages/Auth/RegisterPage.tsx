@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
 import { useAuth } from '../../context/AuthContext'
+import { friendlyAuthError } from '../../lib/authErrors'
 import { isSupabaseConfigured } from '../../lib/supabase'
 
 import { AuthButton } from '../../components/auth/AuthButton'
@@ -57,7 +58,7 @@ export default function RegisterPage() {
     const { error, session } = await signUp({ email, password, fullName: fullName || email })
     setBusy(false)
     if (error) {
-      toast.error(error.message)
+      toast.error(friendlyAuthError(error.message))
       return
     }
     if (session) {

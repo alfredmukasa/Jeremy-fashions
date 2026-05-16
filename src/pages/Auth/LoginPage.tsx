@@ -1,9 +1,10 @@
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
 import { useAuth } from '../../context/AuthContext'
+import { friendlyAuthError } from '../../lib/authErrors'
 import { isSupabaseConfigured } from '../../lib/supabase'
 
 import { AuthButton } from '../../components/auth/AuthButton'
@@ -13,8 +14,26 @@ import { AuthLayout } from '../../components/auth/AuthLayout'
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
+  const [searchParams, setSearchParams] = useSearchParams()
   const { user, loading, signIn } = useAuth()
   const [busy, setBusy] = useState(false)
+
+  const [notice, setNotice] = useState<'confirmed' | 'reset' | null>(null)
+
+  useEffect(() => {
+    const confirmed = searchParams.get('confirmed') === '1'
+    const reset = searchParams.get('reset') === '1'
+    if (confirmed) {
+      setNotice('confirmed')
+      toast.success('Your email has been confirmed successfully. Sign in to continue.')
+    } else if (reset) {
+      setNotice('reset')
+      toast.success('You can now choose a new password from your profile settings.')
+    }
+    if (confirmed || reset) {
+      setSearchParams({}, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const from = (location.state as { from?: string } | null)?.from
   const redirectTo =
@@ -37,7 +56,7 @@ export default function LoginPage() {
     const { error } = await signIn(email, password)
     setBusy(false)
     if (error) {
-      toast.error(error.message)
+      toast.error(friendlyAuthError(error.message))
       return
     }
     toast.success('Signed in')
@@ -66,6 +85,16 @@ export default function LoginPage() {
         <p className="text-sm text-neutral-500">Checking session…</p>
       ) : (
         <form onSubmit={submit} className="space-y-5">
+          {notice === 'confirmed' ? (
+            <p className="border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+              Your email has been confirmed successfully. Sign in below.
+            </p>
+          ) : null}
+          {notice === 'reset' ? (
+            <p className="border border-white/15 bg-white/5 px-4 py-3 text-sm text-neutral-300">
+              Password reset link accepted. Sign in, then update your password in profile settings.
+            </p>
+          ) : null}
           <div>
             <label htmlFor="login-email" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
               Email

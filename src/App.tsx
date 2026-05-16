@@ -1,6 +1,8 @@
 import { Suspense, lazy, type ElementType, type ReactElement } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+
+import { AdminLegacyRedirect } from './routes/AdminLegacyRedirect'
 import { Toaster } from 'react-hot-toast'
 
 import { MainLayout } from './layouts/MainLayout'
@@ -95,6 +97,7 @@ export default function App() {
           <Routes>
             {adminLazy ? (
               <>
+                <Route path="/admin/*" element={<AdminLegacyRedirect />} />
                 <Route path={ROUTES.adminLogin} element={page(adminLazy.Login)} />
                 <Route path={`${ROUTES.admin}/*`} element={page(adminLazy.Shell)} />
               </>

@@ -20,7 +20,7 @@ export const ROUTES = {
   /** Saved pieces (auth); guests use shop wishlist filter locally */
   saved: '/saved',
   waitlist: '/waitlist',
-  /** Staff area — only mounted when VITE_ADMIN_PORTAL_ENABLED=true */
+  /** Staff area — default /jeremy-admin; also reachable via /admin (redirect) */
   admin: adminBase,
   adminLogin: `${adminBase}/login`,
   adminProducts: `${adminBase}/products`,

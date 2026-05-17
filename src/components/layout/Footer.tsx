@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion } from 'framer-motion'
-import { FaInstagram, FaPinterestP, FaTiktok, FaWhatsapp } from 'react-icons/fa6'
 import { HiOutlineChevronUp } from 'react-icons/hi2'
 
+import { DEFAULT_FOOTER_SOCIAL_LINKS } from '../../constants/siteContent'
 import { BRAND, ROUTES } from '../../constants'
+import { fetchPublicSiteContent, FOOTER_SOCIAL_ICONS } from '../../services/siteContentService'
 import { cn } from '../../utils/cn'
 
 const helpNavLinks = [
@@ -12,13 +14,6 @@ const helpNavLinks = [
   { label: 'Contact', to: ROUTES.account },
   { label: 'Terms', to: '#' },
   { label: 'Search', to: `${ROUTES.shop}?focus=search` },
-]
-
-const social = [
-  { href: 'https://wa.me/', label: 'WhatsApp', icon: FaWhatsapp },
-  { href: 'https://instagram.com', label: 'Instagram', icon: FaInstagram },
-  { href: 'https://tiktok.com', label: 'TikTok', icon: FaTiktok },
-  { href: 'https://pinterest.com', label: 'Pinterest', icon: FaPinterestP },
 ]
 
 function FooterHelp() {
@@ -71,6 +66,15 @@ function FooterHelp() {
 }
 
 export function Footer() {
+  const siteContentQuery = useQuery({
+    queryKey: ['public', 'site-content'],
+    queryFn: fetchPublicSiteContent,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const social =
+    siteContentQuery.data?.footerSocialLinks ?? [...DEFAULT_FOOTER_SOCIAL_LINKS]
+
   return (
     <footer className="relative z-[2] isolate mt-20 bg-[var(--surface-base)] md:mt-28">
       <motion.div layout className="px-2 pb-3 sm:px-3 md:px-4 md:pb-5">
@@ -86,18 +90,21 @@ export function Footer() {
               layout
               className="flex min-w-0 items-center justify-start gap-2.5 max-[359px]:justify-center sm:gap-3 md:justify-self-start"
             >
-              {social.map(({ href, label, icon: Icon }) => (
-                <a
-                  key={label}
-                  href={href}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={label}
-                  className="shrink-0 text-[var(--footer-fg)] transition-opacity hover:opacity-55"
-                >
-                  <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px] md:h-5 md:w-5" />
-                </a>
-              ))}
+              {social.map(({ href, label, icon }) => {
+                const Icon = FOOTER_SOCIAL_ICONS[icon] ?? FOOTER_SOCIAL_ICONS.instagram
+                return (
+                  <a
+                    key={`${label}-${href}`}
+                    href={href}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={label}
+                    className="shrink-0 text-[var(--footer-fg)] transition-opacity hover:opacity-55"
+                  >
+                    <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px] md:h-5 md:w-5" />
+                  </a>
+                )
+              })}
             </motion.div>
 
             <Link

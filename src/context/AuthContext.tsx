@@ -61,12 +61,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let cancelled = false
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled) {
-        setSession(data.session ?? null)
+    void (async () => {
+      const { data } = await supabase.auth.getSession()
+      if (cancelled) return
+
+      const cached = data.session ?? null
+      if (!cached) {
+        setSession(null)
         setLoading(false)
+        return
       }
-    })
+
+      const { data: userData, error } = await supabase.auth.getUser()
+      if (cancelled) return
+
+      if (error || !userData.user) {
+        await supabase.auth.signOut()
+        setSession(null)
+      } else {
+        setSession(cached)
+      }
+      setLoading(false)
+    })()
 
     const {
       data: { subscription },

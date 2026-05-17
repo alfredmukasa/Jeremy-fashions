@@ -4,7 +4,7 @@ import { Link, Navigate, useLocation } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
 import { isSupabaseConfigured, supabase } from '../../lib/supabase'
-import { isAdminUser } from '../../lib/adminAuth'
+import { isAdminUser, isEmailAllowedForAdmin } from '../../lib/adminAuth'
 
 import { Button } from '../common/Button'
 import { Container } from '../layout/Container'
@@ -65,7 +65,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
     return <Navigate to={ROUTES.adminLogin} replace state={{ from: location.pathname }} />
   }
 
-  if (!isAdminUser(session.user)) {
+  if (!isAdminUser(session.user) || !isEmailAllowedForAdmin(session.user.email)) {
     return (
       <div className="min-h-svh pb-24">
         <Container className="py-16 md:py-20">

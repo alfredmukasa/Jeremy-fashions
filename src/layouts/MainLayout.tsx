@@ -8,7 +8,6 @@ import { AnnouncementBar } from '../components/layout/AnnouncementBar'
 import { Footer } from '../components/layout/Footer'
 import { MobileMenu } from '../components/layout/MobileMenu'
 import { Navbar } from '../components/layout/Navbar'
-import { ProductQuickViewModal } from '../components/product/ProductQuickViewModal'
 import { ROUTES } from '../constants'
 import { useWaitlistMode } from '../context/WaitlistModeContext'
 import { cn } from '../utils/cn'
@@ -50,7 +49,6 @@ export function MainLayout() {
       <Navbar />
       <MobileMenu />
       <CartDrawer />
-      <ProductQuickViewModal />
       <main
         className={cn(
           isHome

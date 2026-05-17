@@ -1,8 +1,10 @@
 import type { MouseEvent } from 'react'
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { HiOutlineHeart, HiOutlinePlus } from 'react-icons/hi2'
 
+import { ROUTES } from '../../constants'
 import type { Product } from '../../types'
 import { useCartStore } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
@@ -22,7 +24,6 @@ export function ProductCard({ product, className }: Props) {
   const [imageIndex, setImageIndex] = useState(0)
   const [coarsePointer, setCoarsePointer] = useState(false)
   const openCart = useUiStore((s) => s.openCart)
-  const openQuickView = useUiStore((s) => s.openQuickView)
   const addLine = useCartStore((s) => s.addLine)
   const toggleWish = useWishlistStore((s) => s.toggle)
   const wishHas = useWishlistStore(selectWishlistHas(product.id))
@@ -63,29 +64,16 @@ export function ProductCard({ product, className }: Props) {
     toggleWish(product.id)
   }
 
-  function onOpenQuickView() {
-    openQuickView(product)
-  }
-
   return (
     <article
       className={cn('group/product relative', className)}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
     >
-      <motion.div
-        role="button"
-        tabIndex={0}
-        onClick={onOpenQuickView}
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault()
-            onOpenQuickView()
-          }
-        }}
-        className="block w-full cursor-pointer text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
+      <Link
+        to={ROUTES.product(product.slug)}
+        className="block w-full text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
         aria-label={`View ${product.name}`}
-        aria-haspopup="dialog"
       >
         <div className="relative aspect-[3/4] overflow-hidden bg-neutral-100">
           {hasImage ? (
@@ -175,7 +163,7 @@ export function ProductCard({ product, className }: Props) {
             ) : null}
           </p>
         </div>
-      </motion.div>
+      </Link>
     </article>
   )
 }

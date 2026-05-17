@@ -19,6 +19,7 @@ export type AdminPermission =
   | 'users.manage'
   | 'discounts.manage'
   | 'settings.manage'
+  | 'site_content.manage'
   | 'security.view'
   | 'admins.manage'
 
@@ -32,6 +33,7 @@ const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     'users.manage',
     'discounts.manage',
     'settings.manage',
+    'site_content.manage',
     'security.view',
     'admins.manage',
   ],
@@ -42,7 +44,7 @@ const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     'discounts.manage',
   ],
   ORDER_MANAGER: ['dashboard.view', 'orders.manage'],
-  CONTENT_MANAGER: ['dashboard.view', 'products.manage', 'categories.manage'],
+  CONTENT_MANAGER: ['dashboard.view', 'products.manage', 'categories.manage', 'site_content.manage'],
   SUPPORT_ADMIN: ['dashboard.view', 'waitlist.manage', 'users.manage', 'orders.manage'],
 }
 

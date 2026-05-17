@@ -4,7 +4,6 @@ import { HiOutlineXMark } from 'react-icons/hi2'
 
 import { BRAND, ROUTES } from '../../constants'
 import { ThemeToggle } from '../common/ThemeToggle'
-import { ProductSearchField } from '../search/ProductSearchField'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useWaitlistMode } from '../../context/WaitlistModeContext'
@@ -88,15 +87,13 @@ export function MobileMenu() {
                 </button>
               </div>
             </div>
-            <div className="border-b border-[var(--border-subtle)] px-6 py-4">
-              {!waitlistMode ? (
-                <ProductSearchField placeholder="Search collection" onNavigate={() => setOpen(false)} />
-              ) : (
+            {waitlistMode ? (
+              <div className="border-b border-[var(--border-subtle)] px-6 py-4">
                 <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
                   The boutique is paused while we prepare the next release. Request access below.
                 </p>
-              )}
-            </div>
+              </div>
+            ) : null}
             <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-6 py-8">
               {items.map((it, i) => (
                 <motion.div

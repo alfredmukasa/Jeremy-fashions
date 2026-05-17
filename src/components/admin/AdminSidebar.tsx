@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { FiGrid, FiLayers, FiPackage, FiPercent, FiSettings, FiShield, FiShoppingBag, FiUsers, FiUserCheck } from 'react-icons/fi'
+import { FiGrid, FiImage, FiLayers, FiPackage, FiPercent, FiSettings, FiShield, FiShoppingBag, FiUsers, FiUserCheck } from 'react-icons/fi'
 
 import { ROUTES } from '../../constants'
 import { hasAdminPermission, type AdminPermission } from '../../lib/adminPermissions'
@@ -20,6 +20,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: ROUTES.adminWaitlist, label: 'Waitlist', icon: FiUserCheck, permission: 'waitlist.manage' },
   { to: ROUTES.adminUsers, label: 'Users', icon: FiUsers, permission: 'users.manage' },
   { to: ROUTES.adminDiscounts, label: 'Discounts', icon: FiPercent, permission: 'discounts.manage' },
+  { to: ROUTES.adminSiteContent, label: 'Site content', icon: FiImage, permission: 'site_content.manage' },
   { to: ROUTES.adminSettings, label: 'Settings', icon: FiSettings, permission: 'settings.manage' },
   { to: ROUTES.adminSecurity, label: 'Security', icon: FiShield, permission: 'security.view' },
 ]

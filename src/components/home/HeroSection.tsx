@@ -1,46 +1,45 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
 
+import { DEFAULT_HERO_SLIDES } from '../../constants/siteContent'
 import { ROUTES } from '../../constants'
+import { fetchPublicSiteContent } from '../../services/siteContentService'
 import { Button } from '../common/Button'
 import { Container } from '../layout/Container'
-
-const HERO_SLIDES = [
-  {
-    src: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=3840&q=85',
-    alt: 'Editorial fashion in a luxury retail setting',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=3840&q=85',
-    alt: 'Monochrome outerwear styled for the season',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=3840&q=85',
-    alt: 'Runway-inspired tailoring in motion',
-  },
-  {
-    src: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=3840&q=85',
-    alt: 'Dark luxury fashion portrait',
-  },
-] as const
 
 const SLIDE_MS = 6800
 
 export function HeroSection() {
+  const siteContentQuery = useQuery({
+    queryKey: ['public', 'site-content'],
+    queryFn: fetchPublicSiteContent,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const heroSlides = useMemo(
+    () => siteContentQuery.data?.heroSlides ?? [...DEFAULT_HERO_SLIDES],
+    [siteContentQuery.data?.heroSlides],
+  )
+
   const [index, setIndex] = useState(0)
   const { scrollY } = useScroll()
   const bgOpacity = useTransform(scrollY, [0, 400, 800], [1, 0.35, 0])
 
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setIndex((current) => (current + 1) % HERO_SLIDES.length)
-    }, SLIDE_MS)
-    return () => window.clearInterval(id)
-  }, [])
+  const slideIndex = heroSlides.length > 0 ? index % heroSlides.length : 0
 
   useEffect(() => {
-    const next = HERO_SLIDES[(index + 1) % HERO_SLIDES.length]
+    if (heroSlides.length === 0) return
+    const id = window.setInterval(() => {
+      setIndex((current) => (current + 1) % heroSlides.length)
+    }, SLIDE_MS)
+    return () => window.clearInterval(id)
+  }, [heroSlides])
+
+  useEffect(() => {
+    if (heroSlides.length === 0) return
+    const next = heroSlides[(slideIndex + 1) % heroSlides.length]
     const link = document.createElement('link')
     link.rel = 'preload'
     link.as = 'image'
@@ -49,9 +48,10 @@ export function HeroSection() {
     return () => {
       document.head.removeChild(link)
     }
-  }, [index])
+  }, [slideIndex, heroSlides])
 
-  const active = HERO_SLIDES[index]
+  const active = heroSlides[slideIndex] ?? heroSlides[0]
+  if (!active) return null
 
   return (
     <section className="relative z-[1] isolate -mt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] text-white lg:-mt-[calc(var(--header-offset)+var(--announcement-height))]">
@@ -76,8 +76,8 @@ export function HeroSection() {
                 src={active.src}
                 alt=""
                 className="h-full w-full object-cover"
-                loading={index === 0 ? 'eager' : 'lazy'}
-                fetchPriority={index === 0 ? 'high' : 'auto'}
+                loading={slideIndex === 0 ? 'eager' : 'lazy'}
+                fetchPriority={slideIndex === 0 ? 'high' : 'auto'}
                 decoding="async"
               />
             </motion.div>
@@ -137,11 +137,11 @@ export function HeroSection() {
         </motion.div>
 
         <motion.div className="mt-12 flex items-center gap-3" aria-hidden>
-          {HERO_SLIDES.map((slide, slideIndex) => (
+          {heroSlides.map((slide, i) => (
             <span
-              key={slide.src}
+              key={`${slide.src}-${i}`}
               className={`h-px transition-all duration-500 ${
-                slideIndex === index ? 'w-10 bg-white' : 'w-6 bg-white/35'
+                i === slideIndex ? 'w-10 bg-white' : 'w-6 bg-white/35'
               }`}
             />
           ))}

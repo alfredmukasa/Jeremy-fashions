@@ -1,12 +1,19 @@
 import type { FormEvent, KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { useEffect, useId, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { HiOutlineMagnifyingGlass, HiOutlineXMark } from 'react-icons/hi2'
 
 import { ROUTES } from '../../constants'
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
+import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useProductSearch } from '../../hooks/useProductSearch'
 import { formatPrice } from '../../utils/formatPrice'
 import { cn } from '../../utils/cn'
+
+const MOBILE_SEARCH_MQ = '(max-width: 767px)'
+const motionEase = [0.22, 1, 0.36, 1] as const
 
 type Props = {
   overlay?: boolean
@@ -49,7 +56,11 @@ export function ProductSearchField({
   })
 
   const isIcon = variant === 'icon'
-  const panelUsesOverlay = overlay && (!isIcon || !expanded)
+  const isMobile = useMediaQuery(MOBILE_SEARCH_MQ)
+  const mobileOverlayActive = isIcon && expanded && isMobile
+  const panelUsesOverlay = overlay && (!isIcon || !expanded || mobileOverlayActive)
+
+  useBodyScrollLock(mobileOverlayActive)
 
   useEffect(() => {
     return () => {
@@ -62,15 +73,20 @@ export function ProductSearchField({
   useEffect(() => {
     if (!isIcon || !expanded) return
 
-    const onPointerDown = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
         setExpanded(false)
         closePanel()
       }
     }
 
-    const onEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+    if (isMobile) {
+      document.addEventListener('keydown', onEscape)
+      return () => document.removeEventListener('keydown', onEscape)
+    }
+
+    const onPointerDown = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
         setExpanded(false)
         closePanel()
       }
@@ -82,7 +98,7 @@ export function ProductSearchField({
       document.removeEventListener('mousedown', onPointerDown)
       document.removeEventListener('keydown', onEscape)
     }
-  }, [isIcon, expanded])
+  }, [isIcon, expanded, isMobile])
 
   useEffect(() => {
     if (isIcon && expanded) {
@@ -174,49 +190,64 @@ export function ProductSearchField({
 
   const fieldClass = cn(
     'relative flex min-w-0 flex-1 items-center gap-2',
-    isIcon && expanded
-      ? cn('border px-3 py-2', overlay ? 'border-white/30 bg-neutral-950/90' : 'border-neutral-200 bg-white')
-      : cn('border-b pb-2', overlay ? 'border-white/40' : 'border-neutral-300'),
+    mobileOverlayActive
+      ? cn(
+          'border-b px-4 py-3',
+          panelUsesOverlay ? 'border-white/20 bg-neutral-950/95' : 'border-neutral-200 bg-white',
+        )
+      : isIcon && expanded
+        ? cn('border px-3 py-2', overlay ? 'border-white/30 bg-neutral-950/90' : 'border-neutral-200 bg-white')
+        : cn('border-b pb-2', overlay ? 'border-white/40' : 'border-neutral-300'),
     fieldClassName,
   )
 
   const inputClass = cn(
     'min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-neutral-400',
-    overlay && !isIcon ? 'text-white placeholder:text-white/50' : 'text-neutral-900',
+    overlay && (!isIcon || mobileOverlayActive)
+      ? 'text-white placeholder:text-white/50'
+      : 'text-neutral-900',
     inputClassName,
   )
 
   const iconClass = cn(
     'h-4 w-4 shrink-0',
-    overlay && !isIcon ? 'text-white/80' : 'text-neutral-500',
+    overlay && (!isIcon || mobileOverlayActive) ? 'text-white/80' : 'text-neutral-500',
     iconClassName,
   )
 
+  const iconTrigger = (
+    <button
+      type="button"
+      aria-label="Search collection"
+      aria-expanded={expanded}
+      onClick={() => (expanded ? collapseIconSearch() : setExpanded(true))}
+      className={cn(
+        'inline-flex shrink-0 p-2 transition-opacity duration-300 hover:opacity-70',
+        overlay ? 'text-white' : 'text-neutral-900',
+        expanded && 'opacity-100',
+        className,
+      )}
+    >
+      <HiOutlineMagnifyingGlass className="h-5 w-5" />
+    </button>
+  )
+
   if (isIcon && !expanded) {
-    return (
-      <button
-        type="button"
-        aria-label="Search collection"
-        onClick={() => setExpanded(true)}
-        className={cn(
-          'inline-flex shrink-0 p-2 transition-opacity duration-300 hover:opacity-70',
-          overlay ? 'text-white' : 'text-neutral-900',
-          className,
-        )}
-      >
-        <HiOutlineMagnifyingGlass className="h-5 w-5" />
-      </button>
-    )
+    return iconTrigger
   }
 
-  return (
+  const searchForm = (
     <form
       ref={rootRef}
       onSubmit={onSubmit}
       className={cn(
         'relative min-w-0',
-        isIcon && expanded ? 'absolute right-0 top-full z-50 mt-2 w-[min(100vw-2rem,22rem)] sm:w-72' : 'flex-1',
-        className,
+        mobileOverlayActive
+          ? 'w-full'
+          : isIcon && expanded
+            ? 'absolute right-0 top-full z-50 mt-2 w-[min(100vw-2rem,22rem)] sm:w-72'
+            : 'flex-1',
+        !mobileOverlayActive && className,
       )}
       role="search"
     >
@@ -250,7 +281,10 @@ export function ProductSearchField({
             type="button"
             aria-label="Close search"
             onClick={collapseIconSearch}
-            className="inline-flex shrink-0 p-0.5 text-neutral-500 transition-opacity hover:opacity-70"
+            className={cn(
+              'inline-flex shrink-0 p-0.5 transition-opacity hover:opacity-70',
+              panelUsesOverlay ? 'text-white/70' : 'text-neutral-500',
+            )}
           >
             <HiOutlineXMark className="h-4 w-4" />
           </button>
@@ -260,7 +294,9 @@ export function ProductSearchField({
       {showPanel ? (
         <div
           className={cn(
-            'absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden border shadow-lg',
+            mobileOverlayActive
+              ? 'max-h-[min(50vh,20rem)] overflow-hidden border-b shadow-lg'
+              : 'absolute left-0 right-0 top-[calc(100%+0.5rem)] z-50 overflow-hidden border shadow-lg',
             panelUsesOverlay
               ? 'border-white/15 bg-neutral-950 text-white'
               : 'border-neutral-200 bg-white text-neutral-900',
@@ -347,4 +383,45 @@ export function ProductSearchField({
       ) : null}
     </form>
   )
+
+  if (mobileOverlayActive) {
+    return (
+      <>
+        {iconTrigger}
+        {typeof document !== 'undefined'
+          ? createPortal(
+              <AnimatePresence>
+                {expanded ? (
+                  <>
+                    <motion.button
+                      type="button"
+                      aria-label="Close search"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{ duration: 0.25, ease: motionEase }}
+                      className="fixed inset-0 z-[45] bg-black/40 backdrop-blur-[2px] md:hidden"
+                      onClick={collapseIconSearch}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.32, ease: motionEase }}
+                      className="fixed inset-x-0 z-[50] md:hidden"
+                      style={{ top: 'calc(var(--announcement-height) + var(--header-offset))' }}
+                    >
+                      {searchForm}
+                    </motion.div>
+                  </>
+                ) : null}
+              </AnimatePresence>,
+              document.body,
+            )
+          : null}
+      </>
+    )
+  }
+
+  return searchForm
 }

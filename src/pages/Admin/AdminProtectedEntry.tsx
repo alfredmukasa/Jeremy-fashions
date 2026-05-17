@@ -13,6 +13,7 @@ const AdminWaitlistPage = lazy(() => import('./AdminWaitlistPage'))
 const AdminUsersPage = lazy(() => import('./AdminUsersPage'))
 const AdminDiscountsPage = lazy(() => import('./AdminDiscountsPage'))
 const AdminSettingsPage = lazy(() => import('./AdminSettingsPage'))
+const AdminSiteContentPage = lazy(() => import('./AdminSiteContentPage'))
 const AdminSecurityPage = lazy(() => import('./AdminSecurityPage'))
 
 function DashboardFallback() {
@@ -37,6 +38,7 @@ export default function AdminProtectedEntry() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="discounts" element={<AdminDiscountsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
+            <Route path="site-content" element={<AdminSiteContentPage />} />
             <Route path="security" element={<AdminSecurityPage />} />
             <Route path="*" element={<Navigate to={ROUTES.admin} replace />} />
           </Route>

@@ -30,6 +30,7 @@ export const ROUTES = {
   adminUsers: `${adminBase}/users`,
   adminDiscounts: `${adminBase}/discounts`,
   adminSettings: `${adminBase}/settings`,
+  adminSiteContent: `${adminBase}/site-content`,
   adminSecurity: `${adminBase}/security`,
 } as const
 

@@ -1,31 +1,75 @@
+import { useEffect, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 
-import { ROUTES } from '../../constants'
+import { DEFAULT_TOP_BANNER } from '../../constants/siteContent'
 import { useWaitlistMode } from '../../context/WaitlistModeContext'
+import { fetchPublicSiteContent } from '../../services/siteContentService'
+
+function BannerLink({ href, children }: { href: string; children: ReactNode }) {
+  const className = 'underline-offset-2 transition hover:underline'
+  const isExternal = /^https?:\/\//i.test(href)
+
+  if (isExternal) {
+    return (
+      <a href={href} className={className} target="_blank" rel="noopener noreferrer">
+        {children}
+      </a>
+    )
+  }
+
+  const to = href.startsWith('/') ? href : `/${href}`
+  return (
+    <Link to={to} className={className}>
+      {children}
+    </Link>
+  )
+}
 
 export function AnnouncementBar() {
   const { waitlistMode } = useWaitlistMode()
+  const siteContentQuery = useQuery({
+    queryKey: ['public', 'site-content'],
+    queryFn: fetchPublicSiteContent,
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const topBanner = siteContentQuery.data?.topBanner ?? DEFAULT_TOP_BANNER
+  const showWaitlistMessage = waitlistMode
+  const showPromoBanner = !waitlistMode && topBanner.enabled
+  const visible = showWaitlistMessage || showPromoBanner
+
+  useEffect(() => {
+    document.documentElement.style.setProperty('--announcement-height', visible ? '2rem' : '0')
+  }, [visible])
+
+  if (!visible) {
+    return null
+  }
 
   return (
     <motion.div
       className="fixed inset-x-0 top-0 z-50 border-b border-neutral-200 bg-[#ececec] text-neutral-950"
       style={{ minHeight: 'var(--announcement-height)' }}
     >
-      <div className="mx-auto flex h-[var(--announcement-height)] max-w-[1440px] items-center justify-center px-4 sm:px-6 lg:px-12">
-        {waitlistMode ? (
+      <motion.div className="mx-auto flex h-[var(--announcement-height)] max-w-[1440px] items-center justify-center px-4 sm:px-6 lg:px-12">
+        {showWaitlistMessage ? (
           <p className="text-center text-[9px] font-medium uppercase tracking-[0.14em] text-neutral-950 sm:text-[10px]">
             A private chapter is opening — join the charter list for first access.
           </p>
         ) : (
           <p className="text-center text-[9px] font-medium uppercase tracking-[0.14em] text-neutral-950 sm:text-[10px]">
-            Free shipping on orders over $250 ·{' '}
-            <Link to={ROUTES.shop} className="underline-offset-2 transition hover:underline">
-              Shop now
-            </Link>
+            {topBanner.text}
+            {topBanner.linkHref && topBanner.linkLabel ? (
+              <>
+                {' · '}
+                <BannerLink href={topBanner.linkHref}>{topBanner.linkLabel}</BannerLink>
+              </>
+            ) : null}
           </p>
         )}
-      </div>
+      </motion.div>
     </motion.div>
   )
 }

@@ -72,7 +72,7 @@ export function MobileMenu() {
                 linkTo={waitlistMode ? ROUTES.waitlist : ROUTES.home}
                 onClick={() => setOpen(false)}
                 variant="dark"
-                size="sm"
+                size="md"
               />
               <div className="flex items-center gap-1">
                 {canPersistTheme ? <ThemeToggle /> : null}

@@ -1,5 +1,21 @@
 export const SITE_SETTING_KEY_HERO_SLIDES = 'hero_slides'
 export const SITE_SETTING_KEY_FOOTER_SOCIAL = 'footer_social'
+export const SITE_SETTING_KEY_TOP_BANNER = 'top_banner'
+
+export type TopBanner = {
+  enabled: boolean
+  text: string
+  linkHref?: string
+  linkLabel?: string
+}
+
+/** Default announcement bar above the navbar. */
+export const DEFAULT_TOP_BANNER: TopBanner = {
+  enabled: true,
+  text: 'Free shipping on orders over $250',
+  linkHref: '/shop',
+  linkLabel: 'Shop now',
+}
 
 export type HeroSlide = {
   src: string

@@ -9,15 +9,18 @@ import { FieldLabel, Input } from '../../components/common/Input'
 import {
   DEFAULT_FOOTER_SOCIAL_LINKS,
   DEFAULT_HERO_SLIDES,
+  DEFAULT_TOP_BANNER,
   FOOTER_SOCIAL_ICON_OPTIONS,
   SITE_SETTING_KEY_FOOTER_SOCIAL,
   SITE_SETTING_KEY_HERO_SLIDES,
+  SITE_SETTING_KEY_TOP_BANNER,
   type FooterSocialLink,
   type HeroSlide,
+  type TopBanner,
 } from '../../constants/siteContent'
 import { adminGetSiteSettings, adminUpsertSiteSetting } from '../../services/adminService'
 import { uploadProductImageFiles } from '../../services/productImageService'
-import { footerSocialPayload, heroSlidesPayload } from '../../services/siteContentService'
+import { footerSocialPayload, heroSlidesPayload, topBannerPayload } from '../../services/siteContentService'
 
 function parseHeroFromSettings(raw: Record<string, unknown> | undefined): HeroSlide[] {
   const value = raw?.[SITE_SETTING_KEY_HERO_SLIDES]
@@ -64,6 +67,26 @@ function parseSocialFromSettings(raw: Record<string, unknown> | undefined): Foot
   return parsed.length > 0 ? parsed : [...DEFAULT_FOOTER_SOCIAL_LINKS]
 }
 
+function parseTopBannerFromSettings(raw: Record<string, unknown> | undefined): TopBanner {
+  const value = raw?.[SITE_SETTING_KEY_TOP_BANNER]
+  if (!value || typeof value !== 'object') return { ...DEFAULT_TOP_BANNER }
+  const enabled = (value as { enabled?: unknown }).enabled
+  const text = (value as { text?: unknown }).text
+  const linkHref = (value as { linkHref?: unknown }).linkHref
+  const linkLabel = (value as { linkLabel?: unknown }).linkLabel
+  if (typeof enabled !== 'boolean' || typeof text !== 'string' || !text.trim()) {
+    return { ...DEFAULT_TOP_BANNER }
+  }
+  const banner: TopBanner = { enabled, text: text.trim() }
+  if (typeof linkHref === 'string' && linkHref.trim()) {
+    banner.linkHref = linkHref.trim()
+    if (typeof linkLabel === 'string' && linkLabel.trim()) {
+      banner.linkLabel = linkLabel.trim()
+    }
+  }
+  return banner
+}
+
 export default function AdminSiteContentPage() {
   return (
     <RequireAdminPermission permission="site_content.manage">
@@ -84,12 +107,18 @@ function AdminSiteContentContent() {
     () => parseSocialFromSettings(settingsQuery.data),
     [settingsQuery.data],
   )
+  const persistedTopBanner = useMemo(
+    () => parseTopBannerFromSettings(settingsQuery.data),
+    [settingsQuery.data],
+  )
 
   const [heroDraft, setHeroDraft] = useState<HeroSlide[] | null>(null)
   const [socialDraft, setSocialDraft] = useState<FooterSocialLink[] | null>(null)
+  const [topBannerDraft, setTopBannerDraft] = useState<TopBanner | null>(null)
 
   const heroSlides = heroDraft ?? persistedHero
   const socialLinks = socialDraft ?? persistedSocial
+  const topBanner = topBannerDraft ?? persistedTopBanner
 
   const saveHeroMutation = useMutation({
     mutationFn: () =>
@@ -141,6 +170,27 @@ function AdminSiteContentContent() {
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Reset failed'),
   })
 
+  const saveTopBannerMutation = useMutation({
+    mutationFn: () => adminUpsertSiteSetting(SITE_SETTING_KEY_TOP_BANNER, topBannerPayload(topBanner)),
+    onSuccess: () => {
+      toast.success('Announcement bar saved')
+      setTopBannerDraft(null)
+      void invalidateSiteContent(queryClient)
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Save failed'),
+  })
+
+  const resetTopBannerMutation = useMutation({
+    mutationFn: () =>
+      adminUpsertSiteSetting(SITE_SETTING_KEY_TOP_BANNER, topBannerPayload({ ...DEFAULT_TOP_BANNER })),
+    onSuccess: () => {
+      toast.success('Announcement bar reset to defaults')
+      setTopBannerDraft(null)
+      void invalidateSiteContent(queryClient)
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Reset failed'),
+  })
+
   function updateHero(next: HeroSlide[]) {
     setHeroDraft(next)
   }
@@ -149,12 +199,37 @@ function AdminSiteContentContent() {
     setSocialDraft(next)
   }
 
+  function updateTopBanner(next: TopBanner) {
+    setTopBannerDraft(next)
+  }
+
+  function saveTopBanner() {
+    if (topBanner.enabled && !topBanner.text.trim()) {
+      toast.error('Message is required when the bar is enabled')
+      return
+    }
+    if (topBanner.linkHref?.trim() && !topBanner.linkLabel?.trim()) {
+      toast.error('Link label is required when a link URL is set')
+      return
+    }
+    saveTopBannerMutation.mutate()
+  }
+
   return (
     <div className="space-y-10">
       <AdminPageHeader
         eyebrow="Storefront"
         title="Site content"
-        description="Hero backgrounds and footer social links. Layout on the live site stays unchanged."
+        description="Hero backgrounds, top announcement bar, and footer social links."
+      />
+
+      <TopBannerEditor
+        banner={topBanner}
+        onChange={updateTopBanner}
+        onSave={saveTopBanner}
+        onReset={() => resetTopBannerMutation.mutate()}
+        saving={saveTopBannerMutation.isPending}
+        resetting={resetTopBannerMutation.isPending}
       />
 
       <HeroSlidesEditor
@@ -181,6 +256,115 @@ function AdminSiteContentContent() {
 function invalidateSiteContent(queryClient: ReturnType<typeof useQueryClient>) {
   void queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] })
   void queryClient.invalidateQueries({ queryKey: ['public', 'site-content'] })
+}
+
+function TopBannerEditor({
+  banner,
+  onChange,
+  onSave,
+  onReset,
+  saving,
+  resetting,
+}: {
+  banner: TopBanner
+  onChange: (banner: TopBanner) => void
+  onSave: () => void
+  onReset: () => void
+  saving: boolean
+  resetting: boolean
+}) {
+  return (
+    <section className="space-y-4 border border-neutral-200 bg-white p-6">
+      <div>
+        <h2 className="font-serif text-xl text-neutral-900">Top announcement bar</h2>
+        <p className="mt-1 text-sm text-neutral-600">
+          Slim promo strip above the navigation. When off, the bar is hidden with no layout gap.
+          Waitlist mode still shows its own message.
+        </p>
+      </div>
+
+      <label className="flex cursor-pointer items-center gap-3 text-sm text-neutral-800">
+        <input
+          type="checkbox"
+          checked={banner.enabled}
+          onChange={(e) => onChange({ ...banner, enabled: e.target.checked })}
+          className="h-4 w-4 rounded-none border-neutral-400"
+        />
+        Show announcement bar on the storefront
+      </label>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="md:col-span-2">
+          <FieldLabel id="top-banner-text">Message</FieldLabel>
+          <Input
+            id="top-banner-text"
+            value={banner.text}
+            onChange={(e) => onChange({ ...banner, text: e.target.value })}
+            placeholder="Free shipping on orders over $250"
+            disabled={!banner.enabled}
+          />
+        </div>
+        <div>
+          <FieldLabel id="top-banner-link">Link URL (optional)</FieldLabel>
+          <Input
+            id="top-banner-link"
+            value={banner.linkHref ?? ''}
+            onChange={(e) =>
+              onChange({
+                ...banner,
+                linkHref: e.target.value.trim() ? e.target.value : undefined,
+              })
+            }
+            placeholder="/shop or https://…"
+            disabled={!banner.enabled}
+          />
+        </div>
+        <div>
+          <FieldLabel id="top-banner-link-label">Link label (optional)</FieldLabel>
+          <Input
+            id="top-banner-link-label"
+            value={banner.linkLabel ?? ''}
+            onChange={(e) =>
+              onChange({
+                ...banner,
+                linkLabel: e.target.value.trim() ? e.target.value : undefined,
+              })
+            }
+            placeholder="Shop now"
+            disabled={!banner.enabled || !banner.linkHref}
+          />
+        </div>
+      </div>
+
+      <div className="rounded border border-neutral-100 bg-neutral-50 px-4 py-3">
+        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Preview</p>
+        <p className="mt-2 text-center text-[9px] font-medium uppercase tracking-[0.14em] text-neutral-950 sm:text-[10px]">
+          {banner.enabled ? (
+            <>
+              {banner.text.trim() || 'Your message'}
+              {banner.linkHref && banner.linkLabel ? (
+                <>
+                  {' · '}
+                  <span className="underline">{banner.linkLabel}</span>
+                </>
+              ) : null}
+            </>
+          ) : (
+            <span className="text-neutral-400">Bar hidden on storefront</span>
+          )}
+        </p>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <Button type="button" onClick={onSave} disabled={saving}>
+          {saving ? 'Saving…' : 'Save announcement bar'}
+        </Button>
+        <Button type="button" variant="outline" onClick={onReset} disabled={resetting}>
+          Reset to defaults
+        </Button>
+      </div>
+    </section>
+  )
 }
 
 function HeroSlidesEditor({

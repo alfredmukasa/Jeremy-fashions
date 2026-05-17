@@ -6,7 +6,6 @@ import { HiOutlineChevronUp } from 'react-icons/hi2'
 
 import { DEFAULT_FOOTER_SOCIAL_LINKS } from '../../constants/siteContent'
 import { ROUTES } from '../../constants'
-import { BrandLogo } from '../common/BrandLogo'
 import { fetchPublicSiteContent, FOOTER_SOCIAL_ICONS } from '../../services/siteContentService'
 import { cn } from '../../utils/cn'
 
@@ -85,11 +84,11 @@ export function Footer() {
         >
           <motion.div
             layout
-            className="grid grid-cols-3 items-center gap-x-2 gap-y-3 rounded-[var(--footer-radius)] bg-[var(--footer-bg)] px-3 py-3 text-[var(--footer-fg)] min-[360px]:gap-x-3 min-[360px]:px-4 min-[360px]:py-3.5 sm:px-6 sm:py-3.5 md:grid-cols-[1fr_auto_1fr] md:gap-4 md:px-10 md:py-4 max-[359px]:grid-cols-1 max-[359px]:justify-items-center max-[359px]:gap-y-2.5 max-[359px]:py-4"
+            className="grid grid-cols-2 items-center gap-x-2 gap-y-3 rounded-[var(--footer-radius)] bg-[var(--footer-bg)] px-3 py-3 text-[var(--footer-fg)] min-[360px]:gap-x-3 min-[360px]:px-4 min-[360px]:py-3.5 sm:px-6 sm:py-3.5 md:gap-4 md:px-10 md:py-4"
           >
             <motion.div
               layout
-              className="flex min-w-0 items-center justify-start gap-2.5 max-[359px]:justify-center sm:gap-3 md:justify-self-start"
+              className="flex min-w-0 items-center justify-start gap-2.5 sm:gap-3"
             >
               {social.map(({ href, label, icon }) => {
                 const Icon = FOOTER_SOCIAL_ICONS[icon] ?? FOOTER_SOCIAL_ICONS.instagram
@@ -108,14 +107,7 @@ export function Footer() {
               })}
             </motion.div>
 
-            <BrandLogo
-              linkTo={ROUTES.home}
-              variant="dark"
-              size="sm"
-              className="min-w-0 justify-self-center max-[359px]:order-first"
-            />
-
-            <motion.div className="min-w-0 justify-self-end max-[359px]:w-full max-[359px]:flex max-[359px]:justify-center">
+            <motion.div className="min-w-0 justify-self-end">
               <FooterHelp />
             </motion.div>
           </motion.div>

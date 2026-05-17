@@ -162,7 +162,7 @@ export function Navbar() {
             <BrandLogo
               linkTo={waitlistMode ? ROUTES.waitlist : ROUTES.home}
               variant={isOverlay ? 'light' : 'dark'}
-              size="sm"
+              size="md"
             />
             {!waitlistMode ? (
               <span

@@ -99,6 +99,7 @@ export function mapProductRow(row: ProductRow): Product {
 
   return {
     id: row.id,
+    createdAt: row.created_at,
     name: row.title,
     slug: row.slug,
     description: row.description ?? '',

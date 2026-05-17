@@ -6,3 +6,9 @@ export function formatPrice(amount: number, currency = 'USD') {
     maximumFractionDigits: 2,
   }).format(amount)
 }
+
+/** Mertra-style: `78.00 CAD` */
+export function formatPriceMertra(amount: number, currency = 'CAD') {
+  const value = amount.toFixed(2)
+  return `${value} ${currency}`
+}

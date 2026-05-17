@@ -22,7 +22,7 @@ export function ProductGallery({ product }: Props) {
       transition={{ duration: 0.5 }}
       className="lg:sticky lg:top-[calc(var(--header-offset)+var(--announcement-height)+1.5rem)] lg:self-start"
     >
-      <div className="group relative aspect-[3/4] overflow-hidden bg-[var(--surface-muted)]">
+      <div className="group relative aspect-[3/4] overflow-hidden bg-[var(--surface-muted)] shadow-[var(--shadow-soft)]">
         <motion.div
           key={main ?? product.id}
           initial={{ opacity: 0.88 }}

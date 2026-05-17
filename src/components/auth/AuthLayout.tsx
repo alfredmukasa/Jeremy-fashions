@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 
-import { BRAND, ROUTES } from '../../constants'
-import { cn } from '../../utils/cn'
+import { ROUTES } from '../../constants'
+import { BrandLogo } from '../common/BrandLogo'
 
 type AuthLayoutProps = {
   title: string
@@ -28,12 +27,13 @@ export function AuthLayout({ title, subtitle, eyebrow, children, footer }: AuthL
             }}
           />
           <div className="relative flex h-full flex-col justify-end p-12 xl:p-16">
-            <Link
-              to={ROUTES.home}
-              className="absolute left-12 top-12 text-[11px] font-medium uppercase tracking-[0.35em] text-white/80 transition hover:text-white xl:left-16 xl:top-16"
-            >
-              {BRAND}
-            </Link>
+            <BrandLogo
+              linkTo={ROUTES.home}
+              variant="light"
+              size="md"
+              showWordmark
+              className="absolute left-12 top-12 xl:left-16 xl:top-16"
+            />
             <p className="font-['Space_Grotesk',var(--font-sans)] text-xs font-medium uppercase tracking-[0.35em] text-white/50">
               Atelier access
             </p>
@@ -49,14 +49,13 @@ export function AuthLayout({ title, subtitle, eyebrow, children, footer }: AuthL
         </div>
 
         <div className="flex flex-col justify-center px-6 py-14 sm:px-10 lg:px-14 xl:px-20">
-          <Link
-            to={ROUTES.home}
-            className={cn(
-              'mb-10 text-[11px] font-medium uppercase tracking-[0.35em] text-neutral-500 transition hover:text-neutral-200 lg:hidden',
-            )}
-          >
-            ← {BRAND}
-          </Link>
+          <BrandLogo
+            linkTo={ROUTES.home}
+            variant="light"
+            size="sm"
+            showWordmark
+            className="mb-10 lg:hidden"
+          />
           {eyebrow ? (
             <p className="font-['Space_Grotesk',var(--font-sans)] text-[10px] font-medium uppercase tracking-[0.35em] text-neutral-500">
               {eyebrow}

@@ -9,7 +9,7 @@ export function ProductGrid({ products, className }: { products: Product[]; clas
   return (
     <div
       className={cn(
-        'grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-8 lg:grid-cols-3 xl:grid-cols-4',
+        'grid grid-cols-2 product-grid-gap md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4',
         className,
       )}
     >

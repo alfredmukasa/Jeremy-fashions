@@ -12,6 +12,7 @@ import { useProducts } from '../../hooks/useCatalog'
 import { joinWaitlist } from '../../services/waitlistService'
 import type { Product } from '../../types'
 
+import { BrandLogo } from '../../components/common/BrandLogo'
 import { Button } from '../../components/common/Button'
 import { Container } from '../../components/layout/Container'
 import { FieldLabel, Input } from '../../components/common/Input'
@@ -208,7 +209,8 @@ export default function WaitlistPage() {
         <div className="border-b border-neutral-200 bg-neutral-50 dark:border-[var(--border-subtle)] dark:bg-[var(--surface-muted)]">
           <Container className="py-16 md:py-20">
             <div className="max-w-2xl">
-              <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-neutral-500">Waitlist</p>
+              <BrandLogo variant="dark" size="md" showWordmark className="mb-6" />
+              <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-[var(--text-muted)]">Waitlist</p>
               <h1 className="mt-4 font-serif text-4xl tracking-[0.04em] text-neutral-950 dark:text-[var(--text-primary)] md:text-5xl">
                 Reserve early access.
               </h1>
@@ -356,7 +358,7 @@ export default function WaitlistPage() {
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="max-w-3xl"
           >
-            <p className="text-[10px] font-medium uppercase tracking-[0.42em] text-white/55">Jeremy Atelier</p>
+            <BrandLogo variant="light" size="md" showWordmark className="opacity-90" />
             <h1 className="mt-5 font-serif text-[clamp(2.4rem,6vw,4.25rem)] leading-[1.02] tracking-[0.02em]">
               New silhouettes are returning — quietly, and by invitation.
             </h1>

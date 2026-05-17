@@ -1,39 +1,23 @@
-import { useMemo, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { HiOutlineArrowUturnLeft } from 'react-icons/hi2'
 
-import { SORT_OPTIONS, type SortValue } from '../../constants'
+import { ROUTES, SORT_OPTIONS, type SortValue } from '../../constants'
 import type { Product } from '../../types'
 import { useCategories, useProducts } from '../../hooks/useCatalog'
 import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore } from '../../store/wishlistStore'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { productMatchesQuery } from '../../utils/productSearch'
+import { isNewArrival, sortProducts } from '../../utils/productSort'
 
 import { Container } from '../../components/layout/Container'
-import { SectionHeading } from '../../components/common/SectionHeading'
 import { FilterSidebar, type FilterState } from '../../components/product/FilterSidebar'
 import { ProductGrid } from '../../components/product/ProductGrid'
-import { Input } from '../../components/common/Input'
 import { cn } from '../../utils/cn'
 
 function effectivePrice(p: Product) {
   return p.salePrice ?? p.price
-}
-
-function sortProducts(list: Product[], sort: SortValue) {
-  const next = [...list]
-  switch (sort) {
-    case 'price-asc':
-      return next.sort((a, b) => effectivePrice(a) - effectivePrice(b))
-    case 'price-desc':
-      return next.sort((a, b) => effectivePrice(b) - effectivePrice(a))
-    case 'rating':
-      return next.sort((a, b) => b.rating - a.rating)
-    case 'newest':
-      return next.sort((a, b) => b.id.localeCompare(a.id))
-    default:
-      return next
-  }
 }
 
 const defaultFilters: FilterState = {
@@ -43,14 +27,17 @@ const defaultFilters: FilterState = {
   priceMax: 1000,
 }
 
+const PER_PAGE = 24
+
 function ShopGridSkeleton() {
   return (
-    <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-8 xl:grid-cols-4">
+    <div className="grid grid-cols-2 product-grid-gap md:grid-cols-3 lg:grid-cols-4">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="space-y-3">
-          <div className="aspect-[3/4] animate-pulse rounded bg-neutral-100" />
-          <div className="h-3 w-3/4 animate-pulse rounded bg-neutral-100" />
-          <div className="h-3 w-1/3 animate-pulse rounded bg-neutral-100" />
+        <div key={i} className="space-y-2">
+          <div className="aspect-[3/4] skeleton-shimmer bg-[var(--surface-muted)]" />
+          <div className="mx-auto h-1 w-8 skeleton-shimmer" />
+          <div className="h-3 w-full skeleton-shimmer" />
+          <div className="h-3 w-1/3 skeleton-shimmer" />
         </div>
       ))}
     </div>
@@ -58,13 +45,15 @@ function ShopGridSkeleton() {
 }
 
 export default function ShopPage() {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const queryParam = searchParams.get('q') ?? ''
   const [queryState, setQueryState] = useState(() => ({ source: queryParam, value: queryParam }))
   const query = queryState.source === queryParam ? queryState.value : queryParam
   const debounced = useDebouncedValue(query, 250)
-  const [sort, setSort] = useState<SortValue>('featured')
+  const [sort, setSort] = useState<SortValue>('newest')
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [filters, setFilters] = useState<FilterState>(defaultFilters)
+  const [page, setPage] = useState(1)
 
   const { data: products, loading: productsLoading, error: productsError } = useProducts()
   const { data: categories } = useCategories()
@@ -74,7 +63,13 @@ export default function ShopPage() {
   const setFiltersOpen = useUiStore((s) => s.setShopFiltersOpen)
   const categoryParam = searchParams.get('category')
   const tagFilter = searchParams.get('tag')
+  const focusSearch = searchParams.get('focus') === 'search'
   const wishOnly = searchParams.get('wishlist') === '1'
+
+  useEffect(() => {
+    if (!focusSearch) return
+    searchInputRef.current?.focus()
+  }, [focusSearch])
   const activeFilters = useMemo(
     () => ({
       ...filters,
@@ -91,7 +86,7 @@ export default function ShopPage() {
     }
 
     if (tagFilter === 'new') {
-      list = list.filter((p) => p.tags.includes('new'))
+      list = list.filter(isNewArrival)
     }
 
     const q = debounced.trim()
@@ -112,57 +107,54 @@ export default function ShopPage() {
       return pr >= activeFilters.priceMin && pr <= activeFilters.priceMax
     })
 
-    if (sort !== 'featured') {
-      list = sortProducts(list, sort)
-    }
-
-    return list
+    return sortProducts(list, sort)
   }, [activeFilters, debounced, sort, tagFilter, wishIds, wishOnly, products])
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE))
+  const currentPage = Math.min(page, totalPages)
+  const paged = filtered.slice((currentPage - 1) * PER_PAGE, currentPage * PER_PAGE)
+
   const categoryOptions = useMemo(
-    () =>
-      (categories ?? []).map((c) => ({ slug: c.slug, name: c.name })),
+    () => (categories ?? []).map((c) => ({ slug: c.slug, name: c.name })),
     [categories],
   )
 
   const showSkeleton = productsLoading && (!products || products.length === 0)
 
-  return (
-    <div className="pb-20">
-      <div className="border-b border-neutral-200 bg-neutral-50">
-        <Container className="py-16 md:py-20">
-          <SectionHeading
-            eyebrow="Shop"
-            title="The collection."
-            subtitle="Filter by category, silhouette, and price — every piece is in stock for the studio experience."
-          />
-        </Container>
-      </div>
+  const pageTitle =
+    tagFilter === 'new' ? 'New arrivals' : wishOnly ? 'Saved pieces' : categoryParam ? categoryParam.replace(/-/g, ' ') : 'Shop all'
 
-      <Container className="py-10 md:py-14">
-        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-md flex-1">
-            <Input
-              value={query}
-              onChange={(e) => setQueryState({ source: queryParam, value: e.target.value })}
-              placeholder="Search by name, category, tag, or SKU"
-              className="bg-white"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-3">
+  return (
+    <div className="pb-8">
+      <Container className="pt-8 md:pt-12">
+        <h1 className="shop-title-mertra text-center">{pageTitle}</h1>
+
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+          <Link
+            to={ROUTES.home}
+            className="inline-flex items-center gap-2 rounded-full bg-[var(--surface-muted)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-primary)] transition hover:opacity-70"
+          >
+            <HiOutlineArrowUturnLeft className="h-3.5 w-3.5" />
+            Back home
+          </Link>
+
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <button
               type="button"
-              className="inline-flex items-center border border-neutral-900 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.25em] md:hidden"
               onClick={() => setFiltersOpen(true)}
+              className="rounded-md bg-[var(--surface-muted)] px-4 py-2.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-primary)] transition hover:opacity-70"
             >
               Filters
             </button>
-            <label className="flex items-center gap-2 text-[10px] uppercase tracking-[0.25em] text-neutral-600">
+            <label className="flex items-center gap-2 rounded-md bg-[var(--surface-muted)] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--text-secondary)]">
               Sort
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value as SortValue)}
-                className="border border-neutral-300 bg-white px-3 py-2 text-xs font-medium text-neutral-900"
+                onChange={(e) => {
+                  setSort(e.target.value as SortValue)
+                  setPage(1)
+                }}
+                className="border-0 bg-transparent py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--text-primary)] outline-none"
               >
                 {SORT_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -174,65 +166,110 @@ export default function ShopPage() {
           </div>
         </div>
 
-        <div className="mt-10 grid gap-10 lg:grid-cols-[240px_1fr]">
-          <div className="hidden lg:block">
-            <FilterSidebar
-              value={activeFilters}
-              onChange={setFilters}
-              categoryOptions={categoryOptions}
+        {query || debounced || focusSearch ? (
+          <div className="mt-6">
+            <input
+              ref={searchInputRef}
+              type="search"
+              value={query}
+              onChange={(e) => {
+                setQueryState({ source: queryParam, value: e.target.value })
+                setPage(1)
+                const next = new URLSearchParams(searchParams)
+                const v = e.target.value.trim()
+                if (v) next.set('q', v)
+                else next.delete('q')
+                setSearchParams(next, { replace: true })
+              }}
+              placeholder="Search collection"
+              className="w-full max-w-md border border-[var(--border-subtle)] bg-white px-4 py-3 text-sm outline-none transition focus:border-[var(--accent)]"
             />
           </div>
+        ) : null}
 
-          <div aria-busy={showSkeleton}>
-            {productsError ? (
-              <div className="rounded border border-neutral-200 bg-neutral-50 px-6 py-10 text-center">
-                <p className="text-sm font-medium text-neutral-900">We couldn&rsquo;t load the collection.</p>
-                <p className="mt-2 text-xs text-neutral-500">{productsError.message}</p>
-                <button
-                  type="button"
-                  onClick={() => window.location.reload()}
-                  className="mt-5 text-[11px] uppercase tracking-[0.25em] underline"
+        <div className="mt-10" aria-busy={showSkeleton}>
+          {productsError ? (
+            <div className="border border-[var(--border-subtle)] bg-[var(--surface-muted)] px-6 py-12 text-center">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--text-primary)]">
+                Couldn&rsquo;t load the collection
+              </p>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">{productsError.message}</p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-6 text-[10px] font-semibold uppercase tracking-[0.24em] underline"
+              >
+                Retry
+              </button>
+            </div>
+          ) : showSkeleton ? (
+            <ShopGridSkeleton />
+          ) : filtered.length === 0 ? (
+            <div className="py-20 text-center">
+              <p className="text-sm font-semibold uppercase tracking-[0.2em]">No pieces match</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setFilters(defaultFilters)
+                  setPage(1)
+                }}
+                className="mt-4 text-[10px] uppercase tracking-[0.24em] underline"
+              >
+                Reset filters
+              </button>
+            </div>
+          ) : (
+            <>
+              <ProductGrid products={paged} />
+
+              {totalPages > 1 ? (
+                <nav
+                  aria-label="Pagination"
+                  className="mt-14 flex flex-wrap items-center justify-center gap-4 text-[11px] font-medium uppercase tracking-[0.2em]"
                 >
-                  Retry
-                </button>
-              </div>
-            ) : showSkeleton ? (
-              <>
-                <p className="text-xs text-neutral-500">Loading collection…</p>
-                <div className="mt-6">
-                  <ShopGridSkeleton />
-                </div>
-              </>
-            ) : filtered.length === 0 ? (
-              <div className="rounded border border-dashed border-neutral-200 px-6 py-14 text-center">
-                <p className="text-sm font-medium text-neutral-900">No pieces match those filters.</p>
-                <p className="mt-2 text-xs text-neutral-500">
-                  Try widening your price range or clearing categories.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setFilters(defaultFilters)}
-                  className="mt-5 text-[11px] uppercase tracking-[0.25em] underline"
-                >
-                  Reset filters
-                </button>
-              </div>
-            ) : (
-              <>
-                <p className="text-xs text-neutral-500">
-                  {filtered.length} piece{filtered.length === 1 ? '' : 's'}
-                </p>
-                <ProductGrid products={filtered} className="mt-6" />
-              </>
-            )}
-          </div>
+                  <button
+                    type="button"
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    className="text-[var(--text-muted)] transition enabled:hover:text-[var(--text-primary)] disabled:opacity-30"
+                  >
+                    [ Prev ]
+                  </button>
+                  {Array.from({ length: Math.min(totalPages, 5) }).map((_, i) => {
+                    const n = i + 1
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setPage(n)}
+                        className={cn(
+                          'min-w-[1.25rem] transition',
+                          n === currentPage ? 'text-[var(--text-primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]',
+                        )}
+                      >
+                        {n}
+                      </button>
+                    )
+                  })}
+                  {totalPages > 5 ? <span className="text-[var(--text-muted)]">…</span> : null}
+                  <button
+                    type="button"
+                    disabled={currentPage >= totalPages}
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    className="text-[var(--text-muted)] transition enabled:hover:text-[var(--text-primary)] disabled:opacity-30"
+                  >
+                    [ Next ]
+                  </button>
+                </nav>
+              ) : null}
+            </>
+          )}
         </div>
       </Container>
 
-      {/* Mobile filter drawer */}
       <div
         className={cn(
-          'fixed inset-0 z-[60] lg:hidden',
+          'fixed inset-0 z-[60]',
           filtersOpen ? 'pointer-events-auto' : 'pointer-events-none',
         )}
       >
@@ -247,20 +284,27 @@ export default function ShopPage() {
         />
         <div
           className={cn(
-            'absolute left-0 top-0 h-full w-[min(420px,92%)] overflow-y-auto bg-white p-6 shadow-2xl transition-transform',
+            'absolute left-0 top-0 flex h-full w-[min(420px,100%)] flex-col bg-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
             filtersOpen ? 'translate-x-0' : '-translate-x-full',
           )}
         >
-          <div className="flex items-center justify-between border-b border-neutral-200 pb-4">
-            <p className="font-medium uppercase tracking-[0.2em]">Filters</p>
-            <button type="button" className="text-sm text-neutral-600" onClick={() => setFiltersOpen(false)}>
+          <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-6 py-5">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em]">Refine</p>
+            <button
+              type="button"
+              className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]"
+              onClick={() => setFiltersOpen(false)}
+            >
               Close
             </button>
           </div>
-          <div className="mt-6">
+          <div className="flex-1 overflow-y-auto px-6 py-6">
             <FilterSidebar
               value={activeFilters}
-              onChange={setFilters}
+              onChange={(next) => {
+                setFilters(next)
+                setPage(1)
+              }}
               categoryOptions={categoryOptions}
             />
           </div>

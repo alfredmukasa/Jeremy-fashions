@@ -41,6 +41,8 @@ export type Product = {
   featured?: boolean
   brand?: string
   sku?: string
+  /** ISO timestamp from Supabase `created_at` when available */
+  createdAt?: string
 }
 
 export type Category = {

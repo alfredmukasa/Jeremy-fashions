@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 
 import type { Gender } from '../../types'
 import { cn } from '../../utils/cn'
@@ -23,6 +23,49 @@ const genders: { value: Gender; label: string }[] = [
   { value: 'unisex', label: 'Unisex' },
 ]
 
+function FilterPill({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean
+  label: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        'rounded-full border px-3.5 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition duration-200',
+        active
+          ? 'border-[var(--text-primary)] bg-[var(--text-primary)] text-white'
+          : 'border-[var(--border-subtle)] bg-[var(--surface-muted)]/40 text-[var(--text-secondary)] hover:border-[var(--text-primary)] hover:text-[var(--text-primary)]',
+      )}
+    >
+      {label}
+    </button>
+  )
+}
+
+function FilterSection({
+  title,
+  children,
+  className,
+}: {
+  title: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <section className={cn('border-b border-[var(--border-subtle)] pb-8 last:border-0 last:pb-0', className)}>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-[var(--text-primary)]">{title}</p>
+      <div className="mt-4">{children}</div>
+    </section>
+  )
+}
+
 export function FilterSidebar({ value, onChange, categoryOptions, className }: Props) {
   const bounds = useMemo(() => ({ min: 0, max: 900 }), [])
 
@@ -40,85 +83,97 @@ export function FilterSidebar({ value, onChange, categoryOptions, className }: P
     onChange({ ...value, genders: [...set] })
   }
 
+  const activeCount =
+    value.categories.length + value.genders.length + (value.priceMin > 0 || value.priceMax < 1000 ? 1 : 0)
+
   return (
-    <aside className={cn('space-y-10', className)}>
-      <div>
-        <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-[var(--text-muted)]">Category</p>
-        <div className="mt-4 space-y-2">
-          {categoryOptions.map((c) => {
-            const active = value.categories.includes(c.slug)
-            return (
-              <label key={c.slug} className="flex cursor-pointer items-center gap-3 text-sm text-[var(--text-primary)]">
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={() => toggleCategory(c.slug)}
-                  className="h-4 w-4 rounded-none border-[var(--border-strong)] text-[var(--accent)] focus:ring-[var(--accent)]"
-                />
-                <span>{c.name}</span>
-              </label>
-            )
-          })}
-        </div>
-      </div>
+    <aside className={cn('space-y-8', className)}>
+      {activeCount > 0 ? (
+        <button
+          type="button"
+          onClick={() =>
+            onChange({
+              categories: [],
+              genders: [],
+              priceMin: 0,
+              priceMax: 1000,
+            })
+          }
+          className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)] underline-offset-4 transition hover:text-[var(--text-primary)] hover:underline"
+        >
+          Clear all ({activeCount})
+        </button>
+      ) : null}
 
-      <div>
-        <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-[var(--text-muted)]">Gender</p>
-        <div className="mt-4 space-y-2">
-          {genders.map((g) => {
-            const active = value.genders.includes(g.value)
-            return (
-              <label key={g.value} className="flex cursor-pointer items-center gap-3 text-sm text-[var(--text-primary)]">
-                <input
-                  type="checkbox"
-                  checked={active}
-                  onChange={() => toggleGender(g.value)}
-                  className="h-4 w-4 rounded-none border-[var(--border-strong)] text-[var(--accent)] focus:ring-[var(--accent)]"
-                />
-                <span>{g.label}</span>
-              </label>
-            )
-          })}
-        </div>
-      </div>
+      {categoryOptions.length > 0 ? (
+        <FilterSection title="Category">
+          <div className="flex flex-wrap gap-2">
+            {categoryOptions.map((c) => (
+              <FilterPill
+                key={c.slug}
+                label={c.name}
+                active={value.categories.includes(c.slug)}
+                onClick={() => toggleCategory(c.slug)}
+              />
+            ))}
+          </div>
+        </FilterSection>
+      ) : null}
 
-      <div>
-        <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-[var(--text-muted)]">Price</p>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs text-[var(--text-muted)]" htmlFor="min-p">
-              Min
-            </label>
-            <input
-              id="min-p"
-              type="number"
-              min={bounds.min}
-              max={bounds.max}
-              value={value.priceMin}
-              onChange={(e) =>
-                onChange({ ...value, priceMin: Math.min(Number(e.target.value), value.priceMax) })
-              }
-              className="mt-1 w-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-strong)]"
+      <FilterSection title="Gender">
+        <div className="flex flex-wrap gap-2">
+          {genders.map((g) => (
+            <FilterPill
+              key={g.value}
+              label={g.label}
+              active={value.genders.includes(g.value)}
+              onClick={() => toggleGender(g.value)}
             />
-          </div>
-          <div>
-            <label className="text-xs text-[var(--text-muted)]" htmlFor="max-p">
-              Max
-            </label>
-            <input
-              id="max-p"
-              type="number"
-              min={bounds.min}
-              max={bounds.max}
-              value={value.priceMax}
-              onChange={(e) =>
-                onChange({ ...value, priceMax: Math.max(Number(e.target.value), value.priceMin) })
-              }
-              className="mt-1 w-full border border-[var(--border-subtle)] bg-[var(--surface-elevated)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--border-strong)]"
-            />
-          </div>
+          ))}
         </div>
-      </div>
+      </FilterSection>
+
+      <FilterSection title="Price range">
+        <div className="rounded-lg border border-[var(--border-subtle)] bg-[var(--surface-muted)]/30 p-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]" htmlFor="min-p">
+                Min
+              </label>
+              <input
+                id="min-p"
+                type="number"
+                min={bounds.min}
+                max={bounds.max}
+                value={value.priceMin}
+                onChange={(e) =>
+                  onChange({ ...value, priceMin: Math.min(Number(e.target.value) || 0, value.priceMax) })
+                }
+                className="mt-2 w-full border-0 border-b border-[var(--border-subtle)] bg-transparent px-0 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-primary)]"
+              />
+            </div>
+            <div>
+              <label className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[var(--text-muted)]" htmlFor="max-p">
+                Max
+              </label>
+              <input
+                id="max-p"
+                type="number"
+                min={bounds.min}
+                max={bounds.max}
+                value={value.priceMax}
+                onChange={(e) =>
+                  onChange({ ...value, priceMax: Math.max(Number(e.target.value) || 0, value.priceMin) })
+                }
+                className="mt-2 w-full border-0 border-b border-[var(--border-subtle)] bg-transparent px-0 py-2 text-sm text-[var(--text-primary)] outline-none focus:border-[var(--text-primary)]"
+              />
+            </div>
+          </div>
+          <p className="mt-3 text-[9px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
+            ${value.priceMin} – ${value.priceMax}
+          </p>
+        </div>
+      </FilterSection>
     </aside>
   )
 }

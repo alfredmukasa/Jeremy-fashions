@@ -4,7 +4,7 @@ import type { Category, Product } from '../types'
 import { mapCategoryRow, mapProductRow, type CategoryRow, type ProductRow } from './mappers'
 
 const PRODUCT_COLUMNS =
-  'id, title, slug, description, price, compare_price, category, brand, ' +
+  'id, created_at, title, slug, description, price, compare_price, category, brand, ' +
   'stock_quantity, featured, rating, image_url, gallery_images, tags, sku, ' +
   'status, gender, sizes, colors, attributes'
 

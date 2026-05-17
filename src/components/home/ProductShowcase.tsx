@@ -5,7 +5,6 @@ import { ROUTES } from '../../constants'
 import type { Product } from '../../types'
 
 import { Container } from '../layout/Container'
-import { SectionHeading } from '../common/SectionHeading'
 import { ProductCard } from '../product/ProductCard'
 
 type Props = {
@@ -15,39 +14,79 @@ type Props = {
   products: Product[]
   cta?: { label: string; to: string }
   loading?: boolean
+  /** Mertra-style compact header (title + pill CTA only) */
+  mertraHeader?: boolean
 }
 
 function CardSkeleton() {
   return (
     <div className="space-y-4">
-      <div className="aspect-[3/4] skeleton-shimmer rounded-[var(--radius-card)]" />
+      <div className="aspect-[3/4] skeleton-shimmer bg-neutral-100" />
       <div className="h-3 w-3/4 skeleton-shimmer rounded" />
       <div className="h-3 w-1/3 skeleton-shimmer rounded" />
     </div>
   )
 }
 
-export function ProductShowcase({ title, eyebrow, subtitle, products, cta, loading = false }: Props) {
+function MertraSectionHeader({
+  title,
+  cta,
+}: {
+  title: string
+  cta?: { label: string; to: string }
+}) {
+  return (
+    <div className="mb-6 flex items-center justify-between gap-4 md:mb-8">
+      <h2 className="section-title-mertra">{title}</h2>
+      {cta ? (
+        <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
+          <Link to={cta.to} className="btn-view-all-pill shrink-0">
+            {cta.label}
+          </Link>
+        </motion.div>
+      ) : null}
+    </div>
+  )
+}
+
+export function ProductShowcase({
+  title,
+  eyebrow,
+  subtitle,
+  products,
+  cta,
+  loading = false,
+  mertraHeader = true,
+}: Props) {
   const list = products ?? []
   const showSkeleton = loading && list.length === 0
+  const ctaLabel = cta?.label ?? 'View all'
 
   return (
     <section className="home-section">
       <Container>
-        <div className="flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
-          <SectionHeading eyebrow={eyebrow} title={title} subtitle={subtitle} />
-          {cta ? (
-            <motion.div initial={{ opacity: 0 }} whileInView={{ opacity: 1 }} viewport={{ once: true }}>
+        {mertraHeader ? (
+          <MertraSectionHeader title={title} cta={cta ? { ...cta, label: ctaLabel } : undefined} />
+        ) : (
+          <motion.div className="mb-8 flex flex-col gap-8 md:flex-row md:items-end md:justify-between">
+            <div className="max-w-2xl">
+              {eyebrow ? <p className="eyebrow mb-4">{eyebrow}</p> : null}
+              <h2 className="display-serif text-[clamp(2rem,4vw,3.25rem)] text-[var(--text-primary)]">{title}</h2>
+              {subtitle ? (
+                <p className="mt-5 max-w-lg text-[15px] leading-relaxed text-[var(--text-secondary)]">{subtitle}</p>
+              ) : null}
+            </div>
+            {cta ? (
               <Link to={cta.to} className="text-link whitespace-nowrap">
-                {cta.label}
+                {ctaLabel}
               </Link>
-            </motion.div>
-          ) : null}
-        </div>
-        <div className="mt-10 grid grid-cols-2 gap-5 sm:gap-6 md:grid-cols-4 md:gap-8">
+            ) : null}
+          </motion.div>
+        )}
+        <motion.div className="grid grid-cols-2 product-grid-gap md:grid-cols-4">
           {showSkeleton
-            ? Array.from({ length: 4 }).map((_, i) => <CardSkeleton key={i} />)
-            : list.slice(0, 4).map((p, i) => (
+            ? Array.from({ length: 8 }).map((_, i) => <CardSkeleton key={i} />)
+            : list.map((p, i) => (
                 <motion.div
                   key={p.id}
                   initial={{ opacity: 0, y: 12 }}
@@ -58,7 +97,7 @@ export function ProductShowcase({ title, eyebrow, subtitle, products, cta, loadi
                   <ProductCard product={p} />
                 </motion.div>
               ))}
-        </div>
+        </motion.div>
         {!loading && list.length === 0 ? (
           <p className="mt-10 text-center text-sm text-[var(--text-muted)]">
             New pieces are dropping soon — check back shortly.
@@ -82,21 +121,11 @@ export function TrendingStrip({
   return (
     <section className="home-section border-y border-[var(--border-subtle)] bg-[var(--surface-muted)]">
       <Container>
-        <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-xl">
-            <p className="eyebrow">Trending now</p>
-            <h3 className="display-serif mt-3 text-3xl text-[var(--text-primary)] md:text-4xl">
-              Quiet bestsellers
-            </h3>
-          </div>
-          <p className="max-w-md text-sm leading-relaxed text-[var(--text-secondary)]">
-            Pieces moving fast this week — elevated basics with precise proportions and enduring fabric.
-          </p>
-        </div>
-        <div className="scrollbar-hide mt-12 flex gap-5 overflow-x-auto pb-2 md:gap-8">
+        <MertraSectionHeader title="Trending now" cta={{ label: 'View all', to: ROUTES.shop }} />
+        <div className="scrollbar-hide flex gap-5 overflow-x-auto pb-2 md:gap-8">
           {showSkeleton
             ? Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="w-[70vw] shrink-0 sm:w-[320px]">
+                <div key={i} className="w-[44vw] shrink-0 sm:w-[280px]">
                   <CardSkeleton />
                 </div>
               ))
@@ -107,16 +136,11 @@ export function TrendingStrip({
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.05, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                  className="w-[70vw] shrink-0 sm:w-[320px]"
+                  className="w-[44vw] shrink-0 sm:w-[280px]"
                 >
                   <ProductCard product={p} />
                 </motion.div>
               ))}
-        </div>
-        <div className="mt-10 text-center">
-          <Link to={ROUTES.shop} className="text-link">
-            View all products
-          </Link>
         </div>
       </Container>
     </section>

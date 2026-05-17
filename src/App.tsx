@@ -5,6 +5,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AdminLegacyRedirect } from './routes/AdminLegacyRedirect'
 import { Toaster } from 'react-hot-toast'
 
+import { BrandLoader } from './components/common/BrandLoader'
 import { MainLayout } from './layouts/MainLayout'
 import { ROUTES } from './constants'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
@@ -39,22 +40,7 @@ const adminLazy = isAdminPortalMounted()
   : null
 
 function PageFallback() {
-  return (
-    <div className="min-h-[70vh] px-4 py-12 sm:px-6 lg:px-12">
-      <div className="mx-auto max-w-[1440px]">
-        <div className="h-3 w-40 skeleton-shimmer" />
-        <div className="mt-10 grid gap-8 md:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="space-y-4">
-              <div className="aspect-[3/4] skeleton-shimmer" />
-              <div className="h-3 w-3/4 skeleton-shimmer" />
-              <div className="h-3 w-1/3 skeleton-shimmer" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  )
+  return <BrandLoader className="min-h-[70vh]" variant="dark" label="Loading collection" />
 }
 
 function page(Component: ElementType): ReactElement {

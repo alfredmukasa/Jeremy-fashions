@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Outlet, useLocation, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 
+import { BrandLoader } from '../components/common/BrandLoader'
 import { CartDrawer } from '../components/layout/CartDrawer'
 import { AnnouncementBar } from '../components/layout/AnnouncementBar'
 import { Footer } from '../components/layout/Footer'
@@ -13,13 +14,7 @@ import { useWaitlistMode } from '../context/WaitlistModeContext'
 import { cn } from '../utils/cn'
 
 function WaitlistLayoutBoot() {
-  return (
-    <div className="flex min-h-svh flex-col items-center justify-center bg-neutral-950 px-6 text-center">
-      <div className="h-px w-16 bg-white/30" aria-hidden />
-      <p className="mt-6 text-[10px] font-medium uppercase tracking-[0.4em] text-white/55">Jeremy Atelier</p>
-      <p className="mt-3 text-sm text-white/45">Loading…</p>
-    </div>
-  )
+  return <BrandLoader fullScreen label="Preparing your experience" />
 }
 
 export function MainLayout() {
@@ -56,7 +51,13 @@ export function MainLayout() {
       <MobileMenu />
       <CartDrawer />
       <ProductQuickViewModal />
-      <main className="pt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] lg:pt-[calc(var(--header-offset)+var(--announcement-height))]">
+      <main
+        className={cn(
+          isHome
+            ? 'overflow-x-visible pt-0'
+            : 'pt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] lg:pt-[calc(var(--header-offset)+var(--announcement-height))]',
+        )}
+      >
         <AnimatePresence initial={false}>
           <motion.div
             key={location.pathname}

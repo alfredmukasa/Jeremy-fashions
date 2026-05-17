@@ -14,9 +14,9 @@
   :root,
   [data-theme='light'] {
     color-scheme: light;
-    --surface-base: #f7f6f3;
+    --surface-base: #ffffff;
     --surface-elevated: #ffffff;
-    --surface-muted: #efede8;
+    --surface-muted: #f4f4f4;
     --surface-overlay: rgba(255, 255, 255, 0.94);
     --text-primary: #1a1a1a;
     --text-secondary: #5a5a5a;
@@ -24,7 +24,7 @@
     --border-subtle: rgba(26, 26, 26, 0.07);
     --border-strong: rgba(26, 26, 26, 0.13);
     --accent: #1a1a1a;
-    --accent-contrast: #f7f6f3;
+    --accent-contrast: #ffffff;
     --selection-bg: #1a1a1a;
     --selection-fg: #f7f6f3;
     --shadow-soft: 0 12px 40px -12px rgba(26, 26, 26, 0.1);
@@ -37,9 +37,77 @@
     --space-home-section-top: clamp(1.75rem, 3vw, 2.5rem);
     --space-home-section-bottom: clamp(3rem, 5vw, 4.5rem);
     --space-content-x: clamp(1rem, 4vw, 3rem);
-    --header-offset: 4.5rem;
-    --announcement-height: 2.25rem;
-    --radius-card: 1rem;
+    --header-offset: 3rem;
+    --announcement-height: 2rem;
+    --hero-radius-bottom: 1.5rem;
+    --hero-min-height-mobile: min(52vh, 26rem);
+    --hero-min-height-desktop: min(78vh, 40rem);
+    --radius-card: 0.125rem;
+    --radius-pill: 9999px;
+    --grid-gap: clamp(0.65rem, 1.5vw, 1.25rem);
+    --footer-radius: 9999px;
+    --footer-bg: #e8e8e8;
+    --footer-bg-elevated: #ffffff;
+    --footer-fg: #1a1a1a;
+    --footer-fg-muted: rgba(26, 26, 26, 0.45);
+    --footer-border: rgba(26, 26, 26, 0.1);
+  }
+
+  .product-title-mertra {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.35;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+  }
+
+  .product-price-mertra {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--text-primary);
+  }
+
+  .section-title-mertra {
+    font-family: var(--font-display);
+    font-size: clamp(0.8125rem, 2.8vw, 0.9375rem);
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-primary);
+  }
+
+  .btn-view-all-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-pill);
+    background: #0a0a0a;
+    padding: 0.5rem 1rem;
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #ffffff;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+  }
+
+  .btn-view-all-pill:hover {
+    opacity: 0.82;
+  }
+
+  .shop-title-mertra {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 4vw, 2.5rem);
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-primary);
   }
 
   [data-theme='dark'] {
@@ -182,11 +250,38 @@
     display: none;
   }
 
+  .brand-logo {
+    image-rendering: -webkit-optimize-contrast;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
   .hero-fixed-bg {
     transform: translateZ(0);
     backface-visibility: hidden;
     will-change: transform, opacity;
     transition: opacity 0.6s var(--motion-ease);
+  }
+
+  .product-grid-gap {
+    gap: var(--grid-gap);
+  }
+
+  .btn-luxury {
+    letter-spacing: 0.22em;
+    transition:
+      opacity var(--motion-fast) var(--motion-ease),
+      transform var(--motion-fast) var(--motion-ease),
+      background-color var(--motion-fast) var(--motion-ease),
+      border-color var(--motion-fast) var(--motion-ease);
+  }
+
+  .btn-luxury:hover:not(:disabled) {
+    opacity: 0.88;
+  }
+
+  .btn-luxury:active:not(:disabled) {
+    transform: scale(0.99);
   }
 
   .nav-hide {

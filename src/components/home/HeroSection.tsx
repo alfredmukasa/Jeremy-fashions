@@ -54,9 +54,8 @@ export function HeroSection() {
   const active = HERO_SLIDES[index]
 
   return (
-    <section className="relative isolate -mt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] text-white lg:-mt-[calc(var(--header-offset)+var(--announcement-height))]">
-      {/* Sticky background — stays fixed in viewport while content scrolls over it */}
-      <div
+    <section className="relative z-[1] isolate -mt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] text-white lg:-mt-[calc(var(--header-offset)+var(--announcement-height))]">
+      <motion.div
         aria-hidden
         className="pointer-events-none sticky top-0 z-0 -mb-[100svh] h-[100svh] w-full overflow-hidden"
       >
@@ -84,13 +83,12 @@ export function HeroSection() {
             </motion.div>
           </AnimatePresence>
 
-          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.1),transparent_50%)]" />
+          <motion.div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
+          <motion.div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.1),transparent_50%)]" />
           <motion.div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-transparent" />
         </motion.div>
-      </div>
+      </motion.div>
 
-      {/* Foreground copy + CTAs */}
       <Container className="relative z-[2] flex min-h-[100svh] flex-col justify-end pb-24 pt-36 md:pb-32">
         <motion.p
           initial={{ opacity: 0, y: 12 }}
@@ -138,7 +136,7 @@ export function HeroSection() {
           </Link>
         </motion.div>
 
-        <div className="mt-12 flex items-center gap-3" aria-hidden>
+        <motion.div className="mt-12 flex items-center gap-3" aria-hidden>
           {HERO_SLIDES.map((slide, slideIndex) => (
             <span
               key={slide.src}
@@ -147,7 +145,7 @@ export function HeroSection() {
               }`}
             />
           ))}
-        </div>
+        </motion.div>
       </Container>
     </section>
   )

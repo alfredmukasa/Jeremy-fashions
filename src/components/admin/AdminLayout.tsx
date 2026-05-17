@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { FiMenu, FiX } from 'react-icons/fi'
 
 import { ROUTES } from '../../constants'
+import { BrandLogo } from '../common/BrandLogo'
 import { getAdminRole } from '../../lib/adminPermissions'
 import { supabase } from '../../lib/supabase'
 import { Button } from '../common/Button'
@@ -28,9 +29,9 @@ export function AdminLayout() {
     <div className="min-h-svh bg-neutral-100 text-neutral-950">
       <div className="border-b border-neutral-900 bg-neutral-950 text-white">
         <Container className="flex items-center justify-between gap-4 py-4">
-          <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-white/45">Jeremy Atelier</p>
-            <p className="mt-1 font-serif text-xl">Admin</p>
+          <div className="flex items-center gap-3">
+            <BrandLogo variant="light" size="sm" />
+            <p className="font-serif text-xl">Admin</p>
           </div>
           <div className="hidden items-center gap-4 text-sm text-white/70 md:flex">
             <span>{session.user.email}</span>

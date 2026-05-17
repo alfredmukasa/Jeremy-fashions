@@ -7,6 +7,7 @@ import { ROUTES } from '../../constants'
 import { isSupabaseConfigured, supabase } from '../../lib/supabase'
 import { isAdminUser, isEmailAllowedForAdmin } from '../../lib/adminAuth'
 
+import { BrandLogo } from '../../components/common/BrandLogo'
 import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
 import { Container } from '../../components/layout/Container'
@@ -141,8 +142,8 @@ export default function AdminLoginPage() {
     <div className="min-h-svh bg-neutral-950 text-white">
       <Container className="flex min-h-svh flex-col justify-center py-16 md:py-24">
         <div className="mx-auto w-full max-w-md">
-          <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-white/40">Jeremy Atelier</p>
-          <h1 className="mt-3 font-serif text-3xl text-white md:text-4xl">Admin sign-in</h1>
+          <BrandLogo variant="light" size="md" className="mb-6" />
+          <h1 className="font-serif text-3xl text-white md:text-4xl">Admin sign-in</h1>
           <p className="mt-3 text-sm text-white/55">
             Authorized staff only. Access is enforced with Supabase Auth and row-level security on the database.
           </p>

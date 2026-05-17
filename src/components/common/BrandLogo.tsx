@@ -8,18 +8,20 @@ import { cn } from '../../utils/cn'
 export type BrandLogoVariant = 'dark' | 'light'
 export type BrandLogoSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 
+/** Square mark dimensions for header, footer, loaders, and auth panels. */
 const SIZE_CLASS: Record<BrandLogoSize, string> = {
-  xs: 'h-5 max-h-5 max-w-[5rem]',
-  sm: 'h-7 max-h-7 max-w-[7.5rem] sm:h-8 sm:max-h-8',
-  md: 'h-8 max-h-8 max-w-[8.5rem] sm:h-9 sm:max-h-9',
-  lg: 'h-10 max-h-10 max-w-[10rem] sm:h-11 sm:max-h-11',
-  xl: 'h-14 max-h-14 max-w-[12rem] sm:h-16 sm:max-h-16',
+  xs: 'h-5 w-5',
+  sm: 'h-7 w-7 sm:h-8 sm:w-8',
+  md: 'h-8 w-8 sm:h-9 sm:w-9',
+  lg: 'h-10 w-10 sm:h-11 sm:w-11',
+  xl: 'h-14 w-14 sm:h-16 sm:w-16',
 }
 
 type BrandLogoProps = {
+  /** `light` = wordmark on dark surfaces; `dark` = wordmark on light surfaces. Mark is always shown as-is. */
   variant?: BrandLogoVariant
   size?: BrandLogoSize
-  /** @deprecated Light footer uses `variant="dark"` without filters. */
+  /** @deprecated Use `variant="dark"` on light footers. */
   onFooter?: boolean
   showWordmark?: boolean
   className?: string
@@ -38,28 +40,34 @@ export function BrandLogo({
   onClick,
   imgClassName,
 }: BrandLogoProps) {
-  const src =
-    onFooter || variant === 'dark' ? BRAND_LOGO.dark : BRAND_LOGO.light
+  const onLightSurface = onFooter || variant === 'dark'
 
   const content: ReactNode = (
     <>
-      <img
-        src={src}
-        alt={BRAND}
-        width={36}
-        height={36}
+      <span
         className={cn(
-          'brand-logo block h-auto w-auto shrink-0 object-contain object-left transition-[opacity,transform] duration-500 ease-[var(--motion-ease)] group-hover/logo:scale-[1.02]',
+          'inline-flex shrink-0 items-center justify-center overflow-hidden rounded-md',
           SIZE_CLASS[size],
-          imgClassName,
+          onLightSurface && 'ring-1 ring-black/8',
         )}
-        decoding="async"
-      />
+      >
+        <img
+          src={BRAND_LOGO.mark}
+          alt={BRAND}
+          width={36}
+          height={36}
+          className={cn(
+            'brand-logo h-full w-full object-contain transition-[opacity,transform] duration-500 ease-[var(--motion-ease)] group-hover/logo:scale-[1.03]',
+            imgClassName,
+          )}
+          decoding="async"
+        />
+      </span>
       {showWordmark ? (
         <span
           className={cn(
             'hidden font-serif text-[0.72rem] tracking-[0.22em] sm:inline sm:text-[0.78rem] md:text-[0.82rem]',
-            variant === 'light' ? 'text-white' : 'text-[var(--text-primary)]',
+            onLightSurface ? 'text-[var(--text-primary)]' : 'text-white',
           )}
         >
           {BRAND}
@@ -69,7 +77,8 @@ export function BrandLogo({
   )
 
   const shellClass = cn(
-    'group/logo inline-flex max-w-[10rem] shrink-0 items-center gap-2.5 overflow-hidden sm:max-w-[11rem] sm:gap-3',
+    'group/logo inline-flex shrink-0 items-center gap-2.5 sm:gap-3',
+    showWordmark && 'max-w-none',
     linkTo && 'transition-opacity duration-300 hover:opacity-85',
     className,
   )

@@ -2,7 +2,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { HiOutlineXMark } from 'react-icons/hi2'
 
-import { BRAND, ROUTES } from '../../constants'
+import { ROUTES } from '../../constants'
+import { BrandLogo } from '../common/BrandLogo'
 import { ThemeToggle } from '../common/ThemeToggle'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
@@ -67,14 +68,12 @@ export function MobileMenu() {
             className="fixed inset-y-0 right-0 z-[70] flex w-[min(420px,100%)] flex-col bg-[var(--surface-elevated)] text-[var(--text-primary)] shadow-2xl md:hidden"
           >
             <div className="flex items-center justify-between border-b border-[var(--border-subtle)] px-6 py-5">
-              <Link
-                to={waitlistMode ? ROUTES.waitlist : ROUTES.home}
+              <BrandLogo
+                linkTo={waitlistMode ? ROUTES.waitlist : ROUTES.home}
                 onClick={() => setOpen(false)}
-                className="font-serif text-sm uppercase tracking-[0.22em] text-[var(--text-primary)] transition-opacity hover:opacity-70"
-                aria-label={BRAND}
-              >
-                {BRAND}
-              </Link>
+                variant="dark"
+                size="sm"
+              />
               <div className="flex items-center gap-1">
                 {canPersistTheme ? <ThemeToggle /> : null}
                 <button

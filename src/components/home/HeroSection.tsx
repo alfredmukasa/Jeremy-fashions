@@ -119,19 +119,11 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.25, duration: 0.55 }}
-          className="mt-10 flex flex-wrap gap-4"
+          className="mt-10"
         >
           <Link to={ROUTES.shop}>
             <Button variant="inverse" className="min-w-[180px]">
               Shop collection
-            </Button>
-          </Link>
-          <Link to={`${ROUTES.shop}?tag=new`}>
-            <Button
-              variant="ghost"
-              className="min-w-[160px] border border-white/30 bg-transparent text-white hover:bg-white hover:text-neutral-950"
-            >
-              View new arrivals
             </Button>
           </Link>
         </motion.div>

@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { HiOutlineChevronUp } from 'react-icons/hi2'
 
 import { DEFAULT_FOOTER_SOCIAL_LINKS } from '../../constants/siteContent'
-import { BRAND, ROUTES } from '../../constants'
+import { ROUTES } from '../../constants'
+import { BrandLogo } from '../common/BrandLogo'
 import { fetchPublicSiteContent, FOOTER_SOCIAL_ICONS } from '../../services/siteContentService'
 import { cn } from '../../utils/cn'
 
@@ -107,13 +108,12 @@ export function Footer() {
               })}
             </motion.div>
 
-            <Link
-              to={ROUTES.home}
-              className="min-w-0 justify-self-center text-center font-serif text-[9px] uppercase leading-tight tracking-[0.14em] text-[var(--footer-fg)] transition-opacity hover:opacity-70 min-[360px]:text-[10px] min-[360px]:tracking-[0.18em] sm:text-[11px] sm:tracking-[0.2em] md:text-[13px] md:tracking-[0.22em] max-[359px]:order-first"
-              aria-label={BRAND}
-            >
-              {BRAND}
-            </Link>
+            <BrandLogo
+              linkTo={ROUTES.home}
+              variant="dark"
+              size="sm"
+              className="min-w-0 justify-self-center max-[359px]:order-first"
+            />
 
             <motion.div className="min-w-0 justify-self-end max-[359px]:w-full max-[359px]:flex max-[359px]:justify-center">
               <FooterHelp />

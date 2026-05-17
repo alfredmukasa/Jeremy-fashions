@@ -21,6 +21,7 @@ import {
 } from '../../services/adminService'
 import type { ProductRow } from '../../services/mappers'
 
+import { BrandLogo } from '../../components/common/BrandLogo'
 import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
 import { Container } from '../../components/layout/Container'
@@ -242,8 +243,8 @@ export default function AdminDashboardPage() {
       <div className="border-b border-neutral-200 bg-neutral-950 text-white">
         <Container className="flex flex-col gap-6 py-10 md:flex-row md:items-end md:justify-between">
           <div>
-            <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-white/50">Jeremy Atelier</p>
-            <h1 className="mt-2 font-serif text-3xl md:text-4xl">Admin dashboard</h1>
+            <BrandLogo variant="light" size="sm" className="mb-4" />
+            <h1 className="font-serif text-3xl md:text-4xl">Admin dashboard</h1>
             <p className="mt-2 text-sm text-white/70">{session.user.email}</p>
           </div>
           <div className="flex flex-wrap gap-2">

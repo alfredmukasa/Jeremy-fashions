@@ -3,7 +3,8 @@ import { Link, NavLink, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { HiOutlineBars3, HiOutlineHeart, HiOutlineShoppingBag, HiOutlineUser } from 'react-icons/hi2'
 
-import { BRAND, ROUTES } from '../../constants'
+import { ROUTES } from '../../constants'
+import { BrandLogo } from '../common/BrandLogo'
 import { useAuth } from '../../context/AuthContext'
 import { useWaitlistMode } from '../../context/WaitlistModeContext'
 import { useCartStore, selectCartItemCount } from '../../store/cartStore'
@@ -158,20 +159,11 @@ export function Navbar() {
       <Container>
         <div className="flex min-h-[48px] items-center gap-3 md:min-h-[56px] md:gap-4">
           <div className="flex shrink-0 items-center gap-3 overflow-hidden md:gap-4">
-            <Link
-              to={waitlistMode ? ROUTES.waitlist : ROUTES.home}
-              className={cn(
-                'shrink-0 font-serif text-[13px] uppercase tracking-[0.22em] transition-opacity duration-300 hover:opacity-70 sm:text-sm',
-                homeHeroOverlay || (isOverlay && !isHome)
-                  ? 'text-white'
-                  : !isOverlay
-                    ? 'text-neutral-900'
-                    : 'text-white',
-              )}
-              aria-label={BRAND}
-            >
-              {BRAND}
-            </Link>
+            <BrandLogo
+              linkTo={waitlistMode ? ROUTES.waitlist : ROUTES.home}
+              variant={isOverlay ? 'light' : 'dark'}
+              size="sm"
+            />
             {!waitlistMode ? (
               <span
                 className={cn(

@@ -17,7 +17,8 @@ export function MobileMenu() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
   const { waitlistMode } = useWaitlistMode()
-  const { canPersistTheme } = useTheme()
+  const { appearanceMode, canPersistTheme } = useTheme()
+  const mobileMenuLightPanel = appearanceMode === 'light'
   useBodyScrollLock(open)
 
   const publicItems = waitlistMode
@@ -71,7 +72,8 @@ export function MobileMenu() {
               <BrandLogo
                 linkTo={waitlistMode ? ROUTES.waitlist : ROUTES.home}
                 onClick={() => setOpen(false)}
-                variant="dark"
+                variant={mobileMenuLightPanel ? 'dark' : 'light'}
+                forceDarkMark={mobileMenuLightPanel}
                 size="md"
               />
               <div className="flex items-center gap-1">

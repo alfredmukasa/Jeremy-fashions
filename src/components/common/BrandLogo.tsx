@@ -40,6 +40,8 @@ type BrandLogoProps = {
   linkTo?: string
   onClick?: () => void
   imgClassName?: string
+  /** Keep the masked mark black on light UI chrome (e.g. white navbar) when appearance is dark. */
+  forceDarkMark?: boolean
 }
 
 export function BrandLogo({
@@ -51,6 +53,7 @@ export function BrandLogo({
   linkTo,
   onClick,
   imgClassName,
+  forceDarkMark = false,
 }: BrandLogoProps) {
   const onLightSurface = onFooter || variant === 'dark'
 
@@ -66,7 +69,8 @@ export function BrandLogo({
           <span
             aria-hidden
             className={cn(
-              'brand-logo block h-full w-full bg-neutral-900 transition-[opacity,transform] duration-500 ease-[var(--motion-ease)] group-hover/logo:scale-[1.03] dark:bg-neutral-100',
+              'brand-logo block h-full w-full bg-neutral-900 transition-[opacity,transform] duration-500 ease-[var(--motion-ease)] group-hover/logo:scale-[1.03]',
+              !forceDarkMark && 'dark:bg-neutral-100',
               imgClassName,
             )}
             style={MARK_MASK_STYLE}

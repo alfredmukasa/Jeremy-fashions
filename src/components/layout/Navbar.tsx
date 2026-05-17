@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react'
+import { useEffect, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { HiOutlineBars3, HiOutlineHeart, HiOutlineShoppingBag, HiOutlineUser } from 'react-icons/hi2'
@@ -23,7 +23,6 @@ const links = [
 ]
 
 const SCROLL_THRESHOLD = 24
-const SCROLL_DELTA = 10
 
 function NavIconButton({
   children,
@@ -69,36 +68,21 @@ export function Navbar() {
   const isHome = location.pathname === ROUTES.home && !waitlistMode
   const wishlistHref = user ? ROUTES.saved : `${ROUTES.shop}?wishlist=1`
   const [scrolled, setScrolled] = useState(false)
-  const [hidden, setHidden] = useState(false)
-  const lastScrollY = useRef(0)
   const cartCount = useCartStore(selectCartItemCount)
   const wishCount = useWishlistStore(selectWishlistCount)
   const openCart = useUiStore((s) => s.openCart)
   const setMobileOpen = useUiStore((s) => s.setMobileNavOpen)
 
   const isWaitlistLanding = waitlistMode && location.pathname === ROUTES.waitlist
-  const isOverlay = (isHome && !scrolled) || isWaitlistLanding
+  /** White mark on dark glass hero only — home top-of-page or waitlist hero. */
+  const useLightLogoMark = (isHome && !scrolled) || isWaitlistLanding
+  const isOverlay = useLightLogoMark
 
   useEffect(() => {
-    lastScrollY.current = window.scrollY
-
     const onScroll = () => {
-      const current = window.scrollY
-      const delta = current - lastScrollY.current
-
       if (isHome || isWaitlistLanding) {
-        setScrolled(current > SCROLL_THRESHOLD)
+        setScrolled(window.scrollY > SCROLL_THRESHOLD)
       }
-
-      if (current < 72) {
-        setHidden(false)
-      } else if (delta > SCROLL_DELTA) {
-        setHidden(true)
-      } else if (delta < -SCROLL_DELTA) {
-        setHidden(false)
-      }
-
-      lastScrollY.current = current
     }
 
     const id = requestAnimationFrame(() => onScroll())
@@ -110,12 +94,14 @@ export function Navbar() {
   }, [isHome, isWaitlistLanding, location.pathname])
 
   useEffect(() => {
-    queueMicrotask(() => {
-      setHidden(false)
-      setScrolled(false)
-      lastScrollY.current = 0
-    })
+    queueMicrotask(() => setScrolled(false))
   }, [location.pathname])
+
+  useEffect(() => {
+    if (!isHome && !isWaitlistLanding) {
+      queueMicrotask(() => setScrolled(false))
+    }
+  }, [isHome, isWaitlistLanding])
 
   const homeHeroOverlay = isHome && isOverlay
   const iconTone = homeHeroOverlay ? 'text-white' : isOverlay ? 'text-white' : 'text-neutral-900'
@@ -126,11 +112,11 @@ export function Navbar() {
       : 'border border-neutral-200 bg-white text-neutral-900'
 
   const glassOverlay = cn(
-    'border-b text-white',
+    'border text-white',
     'supports-[backdrop-filter]:backdrop-blur-md supports-[backdrop-filter]:backdrop-saturate-150',
   )
   const glassScrolled = cn(
-    'border-b border-neutral-200 bg-white text-neutral-900',
+    'border border-neutral-200 bg-white text-neutral-900',
     'supports-[backdrop-filter]:border-white/20 supports-[backdrop-filter]:bg-white/85',
     'supports-[backdrop-filter]:backdrop-blur-xl supports-[backdrop-filter]:backdrop-saturate-150',
   )
@@ -138,9 +124,7 @@ export function Navbar() {
   return (
     <motion.header
       className={cn(
-        'fixed inset-x-0 z-40 will-change-transform',
-        'top-[var(--announcement-height)]',
-        hidden ? 'nav-hide' : 'nav-show',
+        'fixed inset-x-[10px] top-[var(--announcement-height)] z-40 rounded-2xl',
         homeHeroOverlay
           ? cn(
               glassOverlay,
@@ -161,7 +145,8 @@ export function Navbar() {
           <div className="flex shrink-0 items-center gap-3 overflow-hidden md:gap-4">
             <BrandLogo
               linkTo={waitlistMode ? ROUTES.waitlist : ROUTES.home}
-              variant={isOverlay ? 'light' : 'dark'}
+              variant={useLightLogoMark ? 'light' : 'dark'}
+              forceDarkMark={!useLightLogoMark}
               size="md"
             />
             {!waitlistMode ? (

@@ -37,8 +37,10 @@
     --space-home-section-top: clamp(1.75rem, 3vw, 2.5rem);
     --space-home-section-bottom: clamp(3rem, 5vw, 4.5rem);
     --space-content-x: clamp(1rem, 4vw, 3rem);
-    --header-offset: 3rem;
-    --announcement-height: 2rem;
+    /* Navbar min-heights: 48px mobile, 56px md+ (see Navbar.tsx) */
+    --nav-height: 3rem;
+    --header-offset: var(--nav-height);
+    --announcement-height: 0px;
     --hero-radius-bottom: 1.5rem;
     --hero-min-height-mobile: min(52vh, 26rem);
     --hero-min-height-desktop: min(78vh, 40rem);
@@ -127,6 +129,13 @@
     --selection-fg: #0e0e0e;
     --shadow-soft: 0 12px 40px -12px rgba(0, 0, 0, 0.45);
     --shadow-lift: 0 20px 50px -20px rgba(0, 0, 0, 0.55);
+  }
+
+  @media (min-width: 768px) {
+    :root,
+    [data-theme='light'] {
+      --nav-height: 3.5rem;
+    }
   }
 
   html {

@@ -41,7 +41,11 @@ export function AnnouncementBar() {
   const visible = showWaitlistMessage || showPromoBanner
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--announcement-height', visible ? '2rem' : '0')
+    const height = visible ? '2rem' : '0px'
+    document.documentElement.style.setProperty('--announcement-height', height)
+    return () => {
+      document.documentElement.style.setProperty('--announcement-height', '0px')
+    }
   }, [visible])
 
   if (!visible) {
@@ -50,7 +54,7 @@ export function AnnouncementBar() {
 
   return (
     <motion.div
-      className="fixed inset-x-0 top-0 z-50 border-b border-neutral-200 bg-[#ececec] text-neutral-950"
+      className="fixed inset-x-[10px] top-0 z-50 overflow-hidden rounded-t-2xl border border-b-0 border-neutral-200 bg-[#ececec] text-neutral-950"
       style={{ minHeight: 'var(--announcement-height)' }}
     >
       <motion.div className="mx-auto flex h-[var(--announcement-height)] max-w-[1440px] items-center justify-center px-4 sm:px-6 lg:px-12">

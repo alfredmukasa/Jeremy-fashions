@@ -12,17 +12,13 @@ type AdminProductMediaFieldsProps = {
   onChange: (next: AdminProductPayload) => void
 }
 
-function normalizeGallery(images: string[]): string[] {
-  return images.map((url) => url.trim()).filter(Boolean)
-}
-
 export function AdminProductMediaFields({ form, uploadFolder, onChange }: AdminProductMediaFieldsProps) {
   const featuredInputRef = useRef<HTMLInputElement>(null)
   const galleryInputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
 
   function setGallery(next: string[]) {
-    onChange({ ...form, gallery_images: normalizeGallery(next) })
+    onChange({ ...form, gallery_images: next })
   }
 
   async function uploadFeatured(files: FileList | null) {

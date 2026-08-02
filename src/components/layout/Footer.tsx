@@ -76,7 +76,7 @@ export function Footer() {
     siteContentQuery.data?.footerSocialLinks ?? [...DEFAULT_FOOTER_SOCIAL_LINKS]
 
   return (
-    <footer className="fixed inset-x-0 bottom-0 z-30 isolate bg-[var(--surface-base)]">
+    <footer className="relative z-[2] isolate mt-20 bg-[var(--surface-base)] md:mt-28">
       <motion.div
         layout
         className="mx-auto max-w-[1440px] border-t border-[var(--border-subtle)] bg-[var(--footer-bg)]"

@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 
@@ -28,6 +28,7 @@ function BannerLink({ href, children }: { href: string; children: ReactNode }) {
 }
 
 export function AnnouncementBar() {
+  const location = useLocation()
   const { waitlistMode } = useWaitlistMode()
   const siteContentQuery = useQuery({
     queryKey: ['public', 'site-content'],
@@ -36,9 +37,8 @@ export function AnnouncementBar() {
   })
 
   const topBanner = siteContentQuery.data?.topBanner ?? DEFAULT_TOP_BANNER
-  const showWaitlistMessage = waitlistMode
   const showPromoBanner = !waitlistMode && topBanner.enabled
-  const visible = showWaitlistMessage || showPromoBanner
+  const visible = showPromoBanner && location.pathname !== '/waitlist'
 
   useEffect(() => {
     const height = visible ? '2rem' : '0px'

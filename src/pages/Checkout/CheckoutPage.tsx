@@ -9,6 +9,8 @@ import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
 import { useAuth } from '../../context/AuthContext'
+import { findCountryByCode, getRegionOptions } from '../../lib/countryRegionData'
+import { detectLocation } from '../../lib/geolocation'
 import { createPaymentIntent, PaymentApiError } from '../../lib/paymentApi'
 import { getStripe, isStripeConfigured } from '../../lib/stripe'
 import { useProducts } from '../../hooks/useCatalog'
@@ -105,6 +107,7 @@ export default function CheckoutPage() {
     handleSubmit,
     watch,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
@@ -117,7 +120,7 @@ export default function CheckoutPage() {
         city: '',
         region: '',
         postalCode: '',
-        country: 'United States',
+        country: '',
       },
       billing: {
         fullName: '',
@@ -126,7 +129,7 @@ export default function CheckoutPage() {
         city: '',
         region: '',
         postalCode: '',
-        country: 'United States',
+        country: '',
       },
       billingSameAsShipping: true,
     },
@@ -163,6 +166,35 @@ export default function CheckoutPage() {
     setValue('shipping.postalCode', values.postalCode)
     setValue('shipping.country', values.country)
   }, [selectedAddressId, setValue, shippingAddressesQuery.data, useNewAddress])
+
+  useEffect(() => {
+    let cancelled = false
+
+    detectLocation().then((location) => {
+      if (cancelled || !location) return
+      // A saved address (or a manual edit) may have already filled this in while the
+      // lookup was in flight — never clobber it with a guess.
+      if (getValues('shipping.country')) return
+
+      const country = findCountryByCode(location.countryCode)
+      if (!country) return
+
+      setValue('shipping.country', country.name)
+
+      if (location.regionName) {
+        const region = getRegionOptions(location.countryCode).find(
+          (option) => option.name.toLowerCase() === location.regionName!.toLowerCase(),
+        )
+        if (region) {
+          setValue('shipping.region', region.name)
+        }
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [getValues, setValue])
 
   useEffect(() => {
     const paymentIntentId = searchParams.get('payment_intent')
@@ -296,6 +328,7 @@ export default function CheckoutPage() {
           billingSameAsShipping={billingSameAsShipping}
           register={register}
           errors={errors}
+          watch={watch}
           setValue={setValue}
           handleSubmit={handleSubmit}
           startPayment={startPayment}
@@ -333,6 +366,7 @@ function CheckoutGrid(props: {
   billingSameAsShipping: boolean
   register: ReturnType<typeof useForm<CheckoutFormValues>>['register']
   errors: ReturnType<typeof useForm<CheckoutFormValues>>['formState']['errors']
+  watch: ReturnType<typeof useForm<CheckoutFormValues>>['watch']
   setValue: ReturnType<typeof useForm<CheckoutFormValues>>['setValue']
   handleSubmit: ReturnType<typeof useForm<CheckoutFormValues>>['handleSubmit']
   startPayment: (values: CheckoutFormValues) => Promise<void>
@@ -384,6 +418,7 @@ function CheckoutGrid(props: {
                   useNewAddress={props.useNewAddress}
                   register={props.register}
                   errors={props.errors}
+                  watch={props.watch}
                   setValue={props.setValue}
                   onSelectSavedAddress={props.onSelectSavedAddress}
                   onUseNewAddress={props.onUseNewAddress}
@@ -406,7 +441,13 @@ function CheckoutGrid(props: {
               </div>
               {!props.billingSameAsShipping ? (
                 <div className="mt-6">
-                  <CheckoutAddressFields prefix="billing" register={props.register} errors={props.errors} />
+                  <CheckoutAddressFields
+                    prefix="billing"
+                    register={props.register}
+                    errors={props.errors}
+                    watch={props.watch}
+                    setValue={props.setValue}
+                  />
                 </div>
               ) : (
                 <p className="mt-3 text-xs text-neutral-500">Billing will match your shipping address.</p>

@@ -22,6 +22,7 @@ dist-ssr
 
 # Deployment / platform local state
 .vercel
+.foglamp/
 
 # Credentials & key material
 *.pem

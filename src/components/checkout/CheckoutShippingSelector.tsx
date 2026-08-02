@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import type { FieldErrors, UseFormRegister, UseFormSetValue } from 'react-hook-form'
+import type { FieldErrors, UseFormRegister, UseFormSetValue, UseFormWatch } from 'react-hook-form'
 
 import { ROUTES } from '../../constants'
 import type { ShippingAddress } from '../../types'
@@ -14,6 +14,7 @@ type CheckoutShippingSelectorProps = {
   useNewAddress: boolean
   register: UseFormRegister<CheckoutFormValues>
   errors: FieldErrors<CheckoutFormValues>
+  watch: UseFormWatch<CheckoutFormValues>
   setValue: UseFormSetValue<CheckoutFormValues>
   onSelectSavedAddress: (addressId: string) => void
   onUseNewAddress: () => void
@@ -26,6 +27,7 @@ export function CheckoutShippingSelector({
   useNewAddress,
   register,
   errors,
+  watch,
   setValue,
   onSelectSavedAddress,
   onUseNewAddress,
@@ -46,7 +48,7 @@ export function CheckoutShippingSelector({
         >
           Manage shipping locations
         </Link>
-        <CheckoutAddressFields prefix="shipping" register={register} errors={errors} />
+        <CheckoutAddressFields prefix="shipping" register={register} errors={errors} watch={watch} setValue={setValue} />
       </div>
     )
   }
@@ -102,7 +104,9 @@ export function CheckoutShippingSelector({
         Ship to a different address
       </label>
 
-      {useNewAddress ? <CheckoutAddressFields prefix="shipping" register={register} errors={errors} /> : null}
+      {useNewAddress ? (
+        <CheckoutAddressFields prefix="shipping" register={register} errors={errors} watch={watch} setValue={setValue} />
+      ) : null}
 
       <Link
         to={ROUTES.profile}

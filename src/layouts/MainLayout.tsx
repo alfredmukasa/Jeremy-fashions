@@ -51,7 +51,7 @@ export function MainLayout() {
       <CartDrawer />
       <main
         className={cn(
-          'pb-28 md:pb-36',
+          !isWaitlist && 'pb-28 md:pb-36',
           isHome || isWaitlist
             ? 'overflow-x-visible pt-0'
             : 'pt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] lg:pt-[calc(var(--header-offset)+var(--announcement-height))]',
@@ -69,7 +69,7 @@ export function MainLayout() {
           </motion.div>
         </AnimatePresence>
       </main>
-      <Footer />
+      {!isWaitlist && <Footer />}
     </motion.div>
   )
 }

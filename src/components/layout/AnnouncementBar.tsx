@@ -58,21 +58,15 @@ export function AnnouncementBar() {
       style={{ minHeight: 'var(--announcement-height)' }}
     >
       <motion.div className="mx-auto flex h-[var(--announcement-height)] max-w-[1440px] items-center justify-center px-4 sm:px-6 lg:px-12">
-        {showWaitlistMessage ? (
-          <p className="text-center text-[9px] font-medium uppercase tracking-[0.14em] text-neutral-950 sm:text-[10px]">
-            A private chapter is opening — join the charter list for first access.
-          </p>
-        ) : (
-          <p className="text-center text-[9px] font-medium uppercase tracking-[0.14em] text-neutral-950 sm:text-[10px]">
-            {topBanner.text}
-            {topBanner.linkHref && topBanner.linkLabel ? (
-              <>
-                {' · '}
-                <BannerLink href={topBanner.linkHref}>{topBanner.linkLabel}</BannerLink>
-              </>
-            ) : null}
-          </p>
-        )}
+        <p className="text-center text-[9px] font-medium uppercase tracking-[0.14em] text-neutral-950 sm:text-[10px]">
+          {topBanner.text}
+          {topBanner.linkHref && topBanner.linkLabel ? (
+            <>
+              {' · '}
+              <BannerLink href={topBanner.linkHref}>{topBanner.linkLabel}</BannerLink>
+            </>
+          ) : null}
+        </p>
       </motion.div>
     </motion.div>
   )

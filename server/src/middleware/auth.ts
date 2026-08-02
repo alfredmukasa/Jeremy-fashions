@@ -29,3 +29,30 @@ export async function requireUser(req: AuthedRequest, res: Response, next: NextF
 
   return next()
 }
+
+/**
+ * Like `requireUser`, but lets the request through with no `req.user` when there's no
+ * (or an invalid) bearer token, instead of rejecting — used by routes that support guest
+ * checkout alongside signed-in checkout.
+ */
+export async function optionalUser(req: AuthedRequest, res: Response, next: NextFunction) {
+  const header = req.headers.authorization
+  if (!header?.startsWith('Bearer ')) {
+    return next()
+  }
+
+  const token = header.slice('Bearer '.length).trim()
+  const { data, error } = await supabaseAnon.auth.getUser(token)
+
+  if (error || !data.user?.id || !data.user.email) {
+    return res.status(401).json({ error: 'Your session has expired. Sign in again and retry checkout.' })
+  }
+
+  req.user = {
+    id: data.user.id,
+    email: data.user.email,
+  }
+  req.accessToken = token
+
+  return next()
+}

@@ -112,10 +112,6 @@ export function Footer() {
             </motion.div>
           </motion.div>
         </motion.div>
-
-        <p className="mt-5 text-center text-[9px] font-medium uppercase tracking-[0.28em] text-[var(--text-muted)] md:mt-6">
-          © {new Date().getFullYear()} Jeremy Atelier. All rights reserved.
-        </p>
       </motion.div>
     </footer>
   )

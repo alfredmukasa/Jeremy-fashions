@@ -2,6 +2,7 @@ import cors from 'cors'
 import express from 'express'
 
 import { config } from './config.js'
+import { ordersRouter } from './routes/orders.js'
 import { paymentsRouter } from './routes/payments.js'
 import { webhooksRouter } from './routes/webhooks.js'
 
@@ -21,6 +22,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhooksRouter)
 app.use(express.json())
 app.use('/api/payments', paymentsRouter)
+app.use('/api/orders', ordersRouter)
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[server] unhandled error', error)

@@ -1,10 +1,10 @@
 import { Router } from 'express'
 import Stripe from 'stripe'
 
-import { createUserSupabase } from '../lib/supabase.js'
+import { createUserSupabase, requireSupabaseAdmin } from '../lib/supabase.js'
 import { stripe } from '../lib/stripe.js'
 import type { AuthedRequest } from '../middleware/auth.js'
-import { requireUser } from '../middleware/auth.js'
+import { optionalUser } from '../middleware/auth.js'
 import { validateCreatePaymentIntent } from '../middleware/validateCheckout.js'
 import {
   attachPaymentIntent,
@@ -36,27 +36,33 @@ function paymentErrorMessage(error: unknown): string {
 
 paymentsRouter.post(
   '/create-payment-intent',
-  requireUser,
+  optionalUser,
   validateCreatePaymentIntent,
   async (req, res) => {
     try {
       const user = (req as AuthedRequest).user
-      if (!user) {
-        return res.status(401).json({ error: 'Authentication is required to checkout.' })
-      }
-
       const body = req.body as CreatePaymentIntentBody
-      const accountEmail = user.email.trim().toLowerCase()
-      if (body.email !== accountEmail) {
-        return res.status(400).json({ error: 'Checkout email must match your signed-in account.' })
+
+      let db: ReturnType<typeof createUserSupabase>
+      if (user) {
+        const accountEmail = user.email.trim().toLowerCase()
+        if (body.email !== accountEmail) {
+          return res.status(400).json({ error: 'Checkout email must match your signed-in account.' })
+        }
+
+        const accessToken = (req as AuthedRequest).accessToken
+        if (!accessToken) {
+          return res.status(401).json({ error: 'Authentication is required to checkout.' })
+        }
+
+        db = createUserSupabase(accessToken)
+      } else {
+        // Guest checkout: no user session, so RLS can't scope an anon client to this
+        // order. The service role bypasses RLS — every field it writes is still
+        // validated above (email/address) and in validateCheckoutItems (items/prices).
+        db = requireSupabaseAdmin()
       }
 
-      const accessToken = (req as AuthedRequest).accessToken
-      if (!accessToken) {
-        return res.status(401).json({ error: 'Authentication is required to checkout.' })
-      }
-
-      const db = createUserSupabase(accessToken)
       const existing = await findOrderByIdempotencyKey(db, body.idempotencyKey)
       if (existing?.stripe_payment_intent_id) {
         try {
@@ -91,7 +97,7 @@ paymentsRouter.post(
       const order =
         existing ??
         (await createPendingOrder(db, {
-          userId: user.id,
+          userId: user?.id ?? null,
           email: body.email,
           idempotencyKey: body.idempotencyKey,
           items,
@@ -114,7 +120,7 @@ paymentsRouter.post(
           receipt_email: body.email,
           metadata: {
             order_id: order.id,
-            user_id: user.id,
+            user_id: user?.id ?? 'guest',
             idempotency_key: body.idempotencyKey,
           },
         },

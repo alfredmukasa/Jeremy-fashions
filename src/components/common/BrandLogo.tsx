@@ -85,6 +85,11 @@ export function BrandLogo({
               'brand-logo h-full w-full object-contain transition-[opacity,transform,filter] duration-500 ease-[var(--motion-ease)] group-hover/logo:scale-[1.03]',
               imgClassName,
             )}
+            style={
+              variant === 'light'
+                ? { filter: 'invert(1) brightness(1.2)' }
+                : undefined
+            }
             decoding="async"
           />
         )}

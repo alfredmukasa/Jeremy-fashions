@@ -51,7 +51,7 @@ export class PaymentApiError extends Error {
 
 export async function createPaymentIntent(
   payload: CreatePaymentIntentPayload,
-  accessToken: string,
+  accessToken?: string,
 ): Promise<CreatePaymentIntentResponse> {
   let response: Response
   try {
@@ -59,7 +59,7 @@ export async function createPaymentIntent(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       },
       body: JSON.stringify(payload),
     })
@@ -89,4 +89,31 @@ export async function createPaymentIntent(
   }
 
   return data as CreatePaymentIntentResponse
+}
+
+export type GuestOrderStatus = {
+  orderId: string
+  status: string
+  paymentStatus: string
+  totalAmount: number
+  currency: string
+}
+
+/**
+ * Order-status lookup for guest checkout confirmation polling — scoped by order id + the
+ * email used at checkout, since a guest has no session for RLS to key off of.
+ */
+export async function getGuestOrderStatus(orderId: string, email: string): Promise<GuestOrderStatus | null> {
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE}/orders/${orderId}/status?email=${encodeURIComponent(email)}`)
+  } catch {
+    return null
+  }
+
+  if (!response.ok) {
+    return null
+  }
+
+  return (await response.json().catch(() => null)) as GuestOrderStatus | null
 }

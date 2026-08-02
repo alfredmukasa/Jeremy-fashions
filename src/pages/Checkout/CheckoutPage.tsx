@@ -170,15 +170,27 @@ export default function CheckoutPage() {
     if (!paymentIntentId || redirectStatus !== 'succeeded') return
 
     const storedOrderId = sessionStorage.getItem('jeremy-checkout-order-id')
+    const storedEmail = sessionStorage.getItem('jeremy-checkout-email')
     clearCart()
     setOrderId(storedOrderId ?? paymentIntentId)
+    if (storedEmail) {
+      setValue('email', storedEmail)
+    }
     setStep('confirmation')
     sessionStorage.removeItem('jeremy-checkout-order-id')
+    sessionStorage.removeItem('jeremy-checkout-email')
     setSearchParams({}, { replace: true })
-  }, [clearCart, searchParams, setSearchParams])
+  }, [clearCart, searchParams, setSearchParams, setValue])
 
   if (step === 'confirmation' && orderId) {
-    return <CheckoutConfirmation orderId={orderId} total={totals.total} email={email || user?.email || ''} />
+    return (
+      <CheckoutConfirmation
+        orderId={orderId}
+        total={totals.total}
+        email={email || user?.email || ''}
+        isSignedIn={Boolean(user)}
+      />
+    )
   }
 
   if (lines.length === 0) {
@@ -193,11 +205,6 @@ export default function CheckoutPage() {
   }
 
   async function startPayment(values: CheckoutFormValues) {
-    if (!session?.access_token) {
-      toast.error('Sign in again to complete checkout.')
-      return
-    }
-
     if (!isStripeConfigured) {
       setCheckoutError('Stripe publishable key is not configured.')
       return
@@ -233,12 +240,13 @@ export default function CheckoutPage() {
               },
           billingSameAsShipping: values.billingSameAsShipping,
         },
-        session.access_token,
+        session?.access_token,
       )
 
       setClientSecret(response.clientSecret)
       setOrderId(response.orderId)
       sessionStorage.setItem('jeremy-checkout-order-id', response.orderId)
+      sessionStorage.setItem('jeremy-checkout-email', values.email)
       setStep('payment')
     } catch (error) {
       const message =
@@ -284,6 +292,7 @@ export default function CheckoutPage() {
           totals={totals}
           isPreparingPayment={isPreparingPayment}
           checkoutError={checkoutError}
+          isSignedIn={Boolean(user)}
           billingSameAsShipping={billingSameAsShipping}
           register={register}
           errors={errors}
@@ -320,6 +329,7 @@ function CheckoutGrid(props: {
   totals: ReturnType<typeof calculateCheckoutTotals>
   isPreparingPayment: boolean
   checkoutError: string | null
+  isSignedIn: boolean
   billingSameAsShipping: boolean
   register: ReturnType<typeof useForm<CheckoutFormValues>>['register']
   errors: ReturnType<typeof useForm<CheckoutFormValues>>['formState']['errors']
@@ -348,8 +358,19 @@ function CheckoutGrid(props: {
               <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-900">Contact</h2>
               <div className="mt-6 max-w-xl">
                 <FieldLabel id="email">Email</FieldLabel>
-                <Input id="email" type="email" autoComplete="email" readOnly {...props.register('email')} />
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  readOnly={props.isSignedIn}
+                  {...props.register('email')}
+                />
                 <FieldError message={props.errors.email?.message} />
+                {!props.isSignedIn ? (
+                  <p className="mt-2 text-xs text-neutral-500">
+                    We&rsquo;ll send your receipt and tracking updates here — no account required.
+                  </p>
+                ) : null}
               </div>
             </section>
 

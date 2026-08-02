@@ -95,7 +95,7 @@ export async function findOrderByIdempotencyKey(db: SupabaseClient, idempotencyK
 export async function createPendingOrder(
   db: SupabaseClient,
   args: {
-    userId: string
+    userId: string | null
     email: string
     idempotencyKey: string
     items: CheckoutLineItem[]

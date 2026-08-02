@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
 import { PaymentStatusBadge } from '../account/dashboard/PaymentStatusBadge'
-import { paymentStatusLabel } from '../../lib/paymentStatus'
+import { getGuestOrderStatus } from '../../lib/paymentApi'
+import { normalizePaymentStatus, paymentStatusLabel } from '../../lib/paymentStatus'
 import { getCustomerOrderPaymentStatus } from '../../services/orderService'
 import { formatPrice } from '../../utils/formatPrice'
 
@@ -14,12 +15,20 @@ type CheckoutConfirmationProps = {
   orderId: string
   total: number
   email: string
+  isSignedIn: boolean
 }
 
-export function CheckoutConfirmation({ orderId, total, email }: CheckoutConfirmationProps) {
+export function CheckoutConfirmation({ orderId, total, email, isSignedIn }: CheckoutConfirmationProps) {
   const paymentQuery = useQuery({
-    queryKey: ['customer', 'order-payment', orderId],
-    queryFn: () => getCustomerOrderPaymentStatus(orderId),
+    queryKey: ['checkout', 'order-payment', orderId, isSignedIn, email],
+    queryFn: async () => {
+      if (isSignedIn) {
+        return getCustomerOrderPaymentStatus(orderId)
+      }
+      const guestStatus = await getGuestOrderStatus(orderId, email)
+      if (!guestStatus) return null
+      return { paymentStatus: normalizePaymentStatus(guestStatus.paymentStatus), status: guestStatus.status }
+    },
     refetchInterval: (query) => {
       const status = query.state.data?.paymentStatus
       if (!status || status === 'paid' || status === 'failed') return false
@@ -53,11 +62,13 @@ export function CheckoutConfirmation({ orderId, total, email }: CheckoutConfirma
           <span className="font-medium text-neutral-900">{orderId.slice(0, 8).toUpperCase()}</span>.
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link to={ROUTES.orders}>
-            <Button>View orders</Button>
-          </Link>
+          {isSignedIn ? (
+            <Link to={ROUTES.orders}>
+              <Button>View orders</Button>
+            </Link>
+          ) : null}
           <Link to={ROUTES.shop}>
-            <Button variant="outline">Continue shopping</Button>
+            <Button variant={isSignedIn ? 'outline' : 'primary'}>Continue shopping</Button>
           </Link>
         </div>
       </div>

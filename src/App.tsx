@@ -118,9 +118,9 @@ export default function App() {
               <Route path={ROUTES.shop} element={page(ShopPage)} />
               <Route path="/product/:slug" element={page(ProductPage)} />
               <Route path={ROUTES.cart} element={page(CartPage)} />
+              <Route path={ROUTES.checkout} element={page(CheckoutPage)} />
               <Route element={<ProtectedRoute />}>
                 <Route path={ROUTES.account} element={page(AccountDashboardPage)} />
-                <Route path={ROUTES.checkout} element={page(CheckoutPage)} />
                 <Route path={ROUTES.orders} element={page(OrdersPage)} />
                 <Route path={ROUTES.profile} element={page(ProfilePage)} />
                 <Route path={ROUTES.saved} element={page(SavedListPage)} />

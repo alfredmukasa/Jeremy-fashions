@@ -42,7 +42,7 @@ export function MainLayout() {
       className={cn(
         'min-h-svh text-[var(--text-primary)] transition-colors duration-500',
         !isHome && !isWaitlist && 'bg-[var(--surface-base)]',
-        isWaitlist && waitlistMode && 'bg-neutral-950',
+        isWaitlist && waitlistMode && 'bg-[var(--surface-base)]',
       )}
     >
       <AnnouncementBar />

@@ -77,39 +77,37 @@ export function Footer() {
 
   return (
     <footer className="fixed inset-x-0 bottom-0 z-30 isolate bg-[var(--surface-base)]">
-      <motion.div layout className="px-2 pb-3 sm:px-3 md:px-4 md:pb-5">
+      <motion.div
+        layout
+        className="mx-auto max-w-[1440px] border-t border-[var(--border-subtle)] bg-[var(--footer-bg)]"
+      >
         <motion.div
           layout
-          className="mx-auto max-w-[1440px] border-t border-[var(--border-subtle)] pt-3 sm:pt-4"
+          className="grid grid-cols-2 items-center gap-x-2 gap-y-3 rounded-[var(--footer-radius)] px-3 py-3 text-[var(--footer-fg)] min-[360px]:gap-x-3 min-[360px]:px-4 min-[360px]:py-3.5 sm:px-6 sm:py-3.5 md:gap-4 md:px-10 md:py-4"
         >
           <motion.div
             layout
-            className="grid grid-cols-2 items-center gap-x-2 gap-y-3 rounded-[var(--footer-radius)] bg-[var(--footer-bg)] px-3 py-3 text-[var(--footer-fg)] min-[360px]:gap-x-3 min-[360px]:px-4 min-[360px]:py-3.5 sm:px-6 sm:py-3.5 md:gap-4 md:px-10 md:py-4"
+            className="flex min-w-0 items-center justify-start gap-2.5 sm:gap-3"
           >
-            <motion.div
-              layout
-              className="flex min-w-0 items-center justify-start gap-2.5 sm:gap-3"
-            >
-              {social.map(({ href, label, icon }) => {
-                const Icon = FOOTER_SOCIAL_ICONS[icon] ?? FOOTER_SOCIAL_ICONS.instagram
-                return (
-                  <a
-                    key={`${label}-${href}`}
-                    href={href}
-                    target="_blank"
-                    rel="noreferrer"
-                    aria-label={label}
-                    className="shrink-0 text-[var(--footer-fg)] transition-opacity hover:opacity-55"
-                  >
-                    <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px] md:h-5 md:w-5" />
-                  </a>
-                )
-              })}
-            </motion.div>
+            {social.map(({ href, label, icon }) => {
+              const Icon = FOOTER_SOCIAL_ICONS[icon] ?? FOOTER_SOCIAL_ICONS.instagram
+              return (
+                <a
+                  key={`${label}-${href}`}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={label}
+                  className="shrink-0 text-[var(--footer-fg)] transition-opacity hover:opacity-55"
+                >
+                  <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px] md:h-5 md:w-5" />
+                </a>
+              )
+            })}
+          </motion.div>
 
-            <motion.div className="min-w-0 justify-self-end">
-              <FooterHelp />
-            </motion.div>
+          <motion.div className="min-w-0 justify-self-end">
+            <FooterHelp />
           </motion.div>
         </motion.div>
       </motion.div>

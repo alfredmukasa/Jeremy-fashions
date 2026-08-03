@@ -21,7 +21,7 @@ function resolveClientOrigins(): string | string[] {
   const origins = [...new Set([...explicit, vercelOrigin].filter(Boolean) as string[])]
 
   if (origins.length === 0) {
-    return 'http://localhost:5173'
+    return 'https://krewnox.ca'
   }
 
   return origins.length === 1 ? origins[0] : origins

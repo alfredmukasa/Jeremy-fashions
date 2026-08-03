@@ -25,6 +25,7 @@ const CheckoutPage = lazy(() => import('./pages/Checkout/CheckoutPage'))
 const LoginPage = lazy(() => import('./pages/Auth/LoginPage'))
 const RegisterPage = lazy(() => import('./pages/Auth/RegisterPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/Auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/Auth/ResetPasswordPage'))
 const AuthCallbackPage = lazy(() => import('./pages/Auth/AuthCallbackPage'))
 const AccountDashboardPage = lazy(() => import('./pages/Account/AccountDashboardPage'))
 const OrdersPage = lazy(() => import('./pages/Account/OrdersPage'))
@@ -112,6 +113,7 @@ export default function App() {
                 </WaitlistPublicGate>
               }
             />
+            <Route path={ROUTES.resetPassword} element={page(ResetPasswordPage)} />
             <Route path={ROUTES.authCallback} element={page(AuthCallbackPage)} />
             <Route element={<MainLayout />}>
               <Route path={ROUTES.home} element={page(HomePage)} />

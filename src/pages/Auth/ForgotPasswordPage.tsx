@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
     <AuthLayout
       eyebrow="Password"
       title="Reset access"
-      subtitle="We will email you a secure link to choose a new password. The link expires quickly — use it from the same device when possible."
+      subtitle="We'll email you a link to choose a new password."
       footer={
         <p className="text-center text-xs text-neutral-500">
           <Link to={ROUTES.login} className="text-neutral-300 underline-offset-4 hover:underline">

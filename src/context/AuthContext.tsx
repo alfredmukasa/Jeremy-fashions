@@ -24,6 +24,7 @@ export type AuthContextValue = {
   signUp: (args: { email: string; password: string; fullName: string }) => Promise<SignUpResult>
   signOut: () => Promise<void>
   resetPasswordForEmail: (email: string) => Promise<SignInResult>
+  updatePassword: (password: string) => Promise<SignInResult>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -135,8 +136,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) {
       return { error: new Error('Supabase is not configured.') }
     }
-    const redirectTo = getAuthCallbackUrl({ type: 'recovery', next: '/login?reset=1' })
+    const redirectTo = getAuthCallbackUrl({ type: 'recovery', next: ROUTES.resetPassword })
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
+    return { error: error ? new Error(error.message) : null }
+  }, [])
+
+  const updatePassword = useCallback(async (password: string): Promise<SignInResult> => {
+    if (!supabase) {
+      return { error: new Error('Supabase is not configured.') }
+    }
+    const { error } = await supabase.auth.updateUser({ password })
     return { error: error ? new Error(error.message) : null }
   }, [])
 
@@ -149,8 +158,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       resetPasswordForEmail,
+      updatePassword,
     }),
-    [session, loading, signIn, signUp, signOut, resetPasswordForEmail],
+    [session, loading, signIn, signUp, signOut, resetPasswordForEmail, updatePassword],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

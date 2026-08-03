@@ -6,18 +6,11 @@ import { ROUTES } from '../../constants'
 import { useAuth } from '../../context/AuthContext'
 import { friendlyAuthError } from '../../lib/authErrors'
 import { isSupabaseConfigured } from '../../lib/supabase'
+import { MIN_PASSWORD, validatePassword } from '../../utils/passwordValidation'
 
 import { AuthButton } from '../../components/auth/AuthButton'
 import { AuthInput } from '../../components/auth/AuthInput'
 import { AuthLayout } from '../../components/auth/AuthLayout'
-
-const MIN_PASSWORD = 8
-
-function validatePassword(pw: string): string | null {
-  if (pw.length < MIN_PASSWORD) return `Use at least ${MIN_PASSWORD} characters.`
-  if (!/[a-zA-Z]/.test(pw) || !/[0-9]/.test(pw)) return 'Include at least one letter and one number.'
-  return null
-}
 
 export default function RegisterPage() {
   const navigate = useNavigate()

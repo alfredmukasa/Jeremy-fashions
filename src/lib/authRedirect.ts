@@ -32,7 +32,12 @@ export function getLoginRedirectUrl(params?: Record<string, string>): string {
 
 export function sanitizeNextPath(next: string | null | undefined): string {
   if (!next || !next.startsWith('/') || next.startsWith('//')) return ROUTES.account
-  if (next === ROUTES.login || next === ROUTES.register || next === ROUTES.authCallback) {
+  if (
+    next === ROUTES.login ||
+    next === ROUTES.register ||
+    next === ROUTES.authCallback ||
+    next === ROUTES.resetPassword
+  ) {
     return ROUTES.account
   }
   return next

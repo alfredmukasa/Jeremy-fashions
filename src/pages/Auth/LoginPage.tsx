@@ -28,7 +28,7 @@ export default function LoginPage() {
       toast.success('Your email has been confirmed successfully. Sign in to continue.')
     } else if (reset) {
       setNotice('reset')
-      toast.success('You can now choose a new password from your profile settings.')
+      toast.success('Your password has been updated. Sign in with your new password.')
     }
     if (confirmed || reset) {
       setSearchParams({}, { replace: true })
@@ -92,7 +92,7 @@ export default function LoginPage() {
           ) : null}
           {notice === 'reset' ? (
             <p className="border border-white/15 bg-white/5 px-4 py-3 text-sm text-neutral-300">
-              Password reset link accepted. Sign in, then update your password in profile settings.
+              Your password has been updated. Sign in with your new password.
             </p>
           ) : null}
           <div>

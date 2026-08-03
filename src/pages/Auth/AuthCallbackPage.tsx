@@ -93,7 +93,7 @@ export default function AuthCallbackPage() {
           hashParams.get('type') === 'recovery'
 
         if (isRecovery) {
-          navigate(`${ROUTES.profile}?reset=1`, { replace: true })
+          navigate(ROUTES.resetPassword, { replace: true })
           return
         }
 

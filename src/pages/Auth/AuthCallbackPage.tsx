@@ -59,28 +59,28 @@ export default function AuthCallbackPage() {
       const refreshToken = hashParams.get('refresh_token')
 
       try {
-        if (code) {
-          const { error } = await client.auth.exchangeCodeForSession(code)
-          if (error) throw error
-        } else if (accessToken && refreshToken) {
+        if (accessToken && refreshToken) {
           const { error } = await client.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           })
           if (error) throw error
-        } else {
-          const { data, error } = await client.auth.getSession()
-          if (error) throw error
-          if (!data.session) {
-            throw new Error('This confirmation link is invalid or has expired.')
-          }
         }
 
+        // The client is configured with `detectSessionInUrl: true`, so it already exchanges
+        // a `?code=` param for a session the first time any auth call resolves internally
+        // (including this `getSession()` call) — calling `exchangeCodeForSession(code)`
+        // ourselves here would reuse an already-consumed code and throw "PKCE code verifier
+        // not found in storage" every time, since the one-time verifier is already gone.
         const { data: sessionData, error: sessionError } = await client.auth.getSession()
         if (sessionError) throw sessionError
 
         if (!sessionData.session) {
-          throw new Error('We could not establish a session from this link.')
+          throw new Error(
+            code
+              ? 'This confirmation link is invalid or has expired.'
+              : 'We could not establish a session from this link.',
+          )
         }
 
         window.history.replaceState({}, document.title, `${window.location.pathname}`)
@@ -97,13 +97,16 @@ export default function AuthCallbackPage() {
           return
         }
 
-        setStatus('success')
-        setMessage('Your email has been confirmed. Taking you to your account…')
+        const isEmailFlow = flowType === 'signup' || flowType === 'email' || flowType === 'invite'
 
-        const destination =
-          flowType === 'signup' || flowType === 'email' || flowType === 'invite'
-            ? ROUTES.account
-            : next
+        setStatus('success')
+        setMessage(
+          isEmailFlow
+            ? 'Your email has been confirmed. Taking you to your account…'
+            : 'You are signed in. Taking you to your account…',
+        )
+
+        const destination = isEmailFlow ? ROUTES.account : next
 
         window.setTimeout(() => {
           if (!cancelled) navigate(destination, { replace: true })

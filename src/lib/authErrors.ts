@@ -20,6 +20,9 @@ export function friendlyAuthError(message: string): string {
   if (lower.includes('network') || lower.includes('fetch')) {
     return 'We could not reach the auth service. Check your connection and try again.'
   }
+  if (lower.includes('provider') && (lower.includes('not enabled') || lower.includes('not found') || lower.includes('unsupported'))) {
+    return 'Google sign-in is not enabled yet. Please use email and password, or try again shortly.'
+  }
 
   return message
 }

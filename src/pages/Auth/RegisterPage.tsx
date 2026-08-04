@@ -68,11 +68,6 @@ export default function RegisterPage() {
     <AuthLayout
       eyebrow="Register"
       title="Join the studio list"
-      subtitle={
-        isSupabaseConfigured
-          ? 'Create a Supabase Auth account and a public profile row for your membership.'
-          : 'Configure Supabase to enable registration.'
-      }
       footer={
         <p className="text-center text-sm text-neutral-500">
           Already have an account?{' '}

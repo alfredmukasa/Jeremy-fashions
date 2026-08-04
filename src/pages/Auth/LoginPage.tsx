@@ -68,11 +68,6 @@ export default function LoginPage() {
     <AuthLayout
       eyebrow="Sign in"
       title="Welcome back"
-      subtitle={
-        isSupabaseConfigured
-          ? 'Use your studio credentials. Sessions stay signed in across refreshes on this device.'
-          : 'Configure Supabase environment variables to enable live sign-in.'
-      }
       footer={
         <p className="text-center text-sm text-neutral-500">
           New here?{' '}

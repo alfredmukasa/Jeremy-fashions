@@ -14,6 +14,7 @@ import { cn } from '../../utils/cn'
 
 import { ThemeToggle } from '../common/ThemeToggle'
 import { ProductSearchField } from '../search/ProductSearchField'
+import { AdminTransferNotification } from './AdminTransferNotification'
 import { Container } from './Container'
 
 const links = [
@@ -219,6 +220,12 @@ export function Navbar() {
             ) : null}
 
             <ThemeToggle overlay={homeHeroOverlay || (isWaitlistLanding && isOverlay)} className="hidden md:inline-flex" />
+
+            {!waitlistMode && user ? (
+              <div className={cn('hidden md:inline-flex', iconTone)}>
+                <AdminTransferNotification tone={iconTone === 'text-white' ? 'light' : 'dark'} />
+              </div>
+            ) : null}
 
             {!waitlistMode && user ? (
               <NavIconLink to={ROUTES.account} aria-label="Account" className={cn('hidden md:inline-flex', iconTone)}>

@@ -29,6 +29,7 @@ export const ROUTES = {
   adminOrders: `${adminBase}/orders`,
   adminWaitlist: `${adminBase}/waitlist`,
   adminUsers: `${adminBase}/users`,
+  adminTeam: `${adminBase}/team`,
   adminDiscounts: `${adminBase}/discounts`,
   adminSettings: `${adminBase}/settings`,
   adminSiteContent: `${adminBase}/site-content`,

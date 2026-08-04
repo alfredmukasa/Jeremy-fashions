@@ -9,6 +9,19 @@ export function isAdminUser(user: User | null | undefined): boolean {
   return user.app_metadata?.role === 'admin'
 }
 
+/**
+ * "Owner" is a stricter, exclusive flag on top of isAdminUser — the one account
+ * allowed to add other admins or transfer control. This is a client-side hint
+ * only (mirrored into the JWT for convenience); the authoritative check lives
+ * in `public.is_app_owner()` inside the SECURITY DEFINER functions that
+ * actually change roles, so a stale JWT here can only hide/show a button, never
+ * bypass the real check.
+ */
+export function isAppOwner(user: User | null | undefined): boolean {
+  if (!user) return false
+  return isAdminUser(user) && user.app_metadata?.is_owner === true
+}
+
 /** Lowercased emails from VITE_ADMIN_ALLOWED_EMAILS (comma-separated). Empty = no extra client filter. */
 export function getAdminAllowedEmails(): string[] {
   const raw = import.meta.env.VITE_ADMIN_ALLOWED_EMAILS

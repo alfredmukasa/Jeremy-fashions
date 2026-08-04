@@ -21,6 +21,7 @@ import { cn } from '../../utils/cn'
 
 import { AccountSidebar } from '../../components/account/dashboard/AccountSidebar'
 import { ACCOUNT_SECTION_IDS, type AccountSection } from '../../components/account/dashboard/accountSections'
+import { AdminTransferBanner } from '../../components/account/dashboard/AdminTransferBanner'
 import { DashboardHeader } from '../../components/account/dashboard/DashboardHeader'
 import { DashboardSkeleton } from '../../components/account/dashboard/DashboardSkeleton'
 import { EmptyState } from '../../components/account/dashboard/EmptyState'
@@ -109,6 +110,7 @@ export default function AccountDashboardPage() {
 
   return (
     <div className="pb-24">
+      <AdminTransferBanner />
       <DashboardHeader userName={userName} memberSince={memberSince} />
 
       <Container className="py-12 md:py-16">

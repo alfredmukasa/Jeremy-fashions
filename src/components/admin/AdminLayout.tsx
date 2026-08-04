@@ -5,6 +5,7 @@ import { FiMenu, FiX } from 'react-icons/fi'
 
 import { ROUTES } from '../../constants'
 import { BrandLogo } from '../common/BrandLogo'
+import { isAppOwner } from '../../lib/adminAuth'
 import { getAdminRole } from '../../lib/adminPermissions'
 import { supabase } from '../../lib/supabase'
 import { Button } from '../common/Button'
@@ -17,6 +18,7 @@ export function AdminLayout() {
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
   const role = getAdminRole(session.user)
+  const owner = isAppOwner(session.user)
 
   async function signOut() {
     if (!supabase) return
@@ -35,6 +37,11 @@ export function AdminLayout() {
           </div>
           <div className="hidden items-center gap-4 text-sm text-white/70 md:flex">
             <span>{session.user.email}</span>
+            {owner ? (
+              <span className="rounded-none border border-amber-400/40 bg-amber-400/10 px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-amber-300">
+                Owner
+              </span>
+            ) : null}
             <span className="rounded-none border border-white/20 px-2 py-1 text-[10px] uppercase tracking-[0.2em]">
               {role.replace('_', ' ')}
             </span>

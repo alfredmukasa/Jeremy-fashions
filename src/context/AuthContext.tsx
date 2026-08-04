@@ -22,6 +22,7 @@ export type AuthContextValue = {
   loading: boolean
   signIn: (email: string, password: string) => Promise<SignInResult>
   signUp: (args: { email: string; password: string; fullName: string }) => Promise<SignUpResult>
+  signInWithGoogle: () => Promise<SignInResult>
   signOut: () => Promise<void>
   resetPasswordForEmail: (email: string) => Promise<SignInResult>
   updatePassword: (password: string) => Promise<SignInResult>
@@ -127,6 +128,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
+  const signInWithGoogle = useCallback(async (): Promise<SignInResult> => {
+    if (!supabase) {
+      return { error: new Error('Supabase is not configured.') }
+    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: getAuthCallbackUrl({ next: ROUTES.account }),
+      },
+    })
+    return { error: error ? new Error(error.message) : null }
+  }, [])
+
   const signOut = useCallback(async () => {
     if (!supabase) return
     await supabase.auth.signOut()
@@ -156,11 +170,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       signIn,
       signUp,
+      signInWithGoogle,
       signOut,
       resetPasswordForEmail,
       updatePassword,
     }),
-    [session, loading, signIn, signUp, signOut, resetPasswordForEmail, updatePassword],
+    [session, loading, signIn, signUp, signInWithGoogle, signOut, resetPasswordForEmail, updatePassword],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

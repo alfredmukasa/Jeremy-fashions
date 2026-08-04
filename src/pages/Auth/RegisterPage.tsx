@@ -9,6 +9,7 @@ import { isSupabaseConfigured } from '../../lib/supabase'
 import { MIN_PASSWORD, validatePassword } from '../../utils/passwordValidation'
 
 import { AuthButton } from '../../components/auth/AuthButton'
+import { AuthDivider, GoogleAuthButton } from '../../components/auth/GoogleAuthButton'
 import { AuthInput } from '../../components/auth/AuthInput'
 import { AuthLayout } from '../../components/auth/AuthLayout'
 
@@ -81,51 +82,55 @@ export default function RegisterPage() {
         </p>
       }
     >
-      <form onSubmit={submit} className="space-y-5">
-        {fieldError ? (
-          <p className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{fieldError}</p>
-        ) : null}
-        <div className="grid gap-5 sm:grid-cols-2">
-          <div>
-            <label htmlFor="reg-first" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
-              First name
-            </label>
-            <AuthInput id="reg-first" name="first" autoComplete="given-name" required />
+      <div className="space-y-6">
+        <GoogleAuthButton label="Sign up with Google" />
+        <AuthDivider />
+        <form onSubmit={submit} className="space-y-5">
+          {fieldError ? (
+            <p className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{fieldError}</p>
+          ) : null}
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label htmlFor="reg-first" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+                First name
+              </label>
+              <AuthInput id="reg-first" name="first" autoComplete="given-name" required />
+            </div>
+            <div>
+              <label htmlFor="reg-last" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+                Last name
+              </label>
+              <AuthInput id="reg-last" name="last" autoComplete="family-name" required />
+            </div>
           </div>
           <div>
-            <label htmlFor="reg-last" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
-              Last name
+            <label htmlFor="reg-email" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+              Email
             </label>
-            <AuthInput id="reg-last" name="last" autoComplete="family-name" required />
+            <AuthInput id="reg-email" name="email" type="email" autoComplete="email" required />
           </div>
-        </div>
-        <div>
-          <label htmlFor="reg-email" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
-            Email
+          <div>
+            <label htmlFor="reg-password" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+              Password
+            </label>
+            <AuthInput id="reg-password" name="password" type="password" autoComplete="new-password" required />
+            <p className="mt-2 text-xs text-neutral-500">{MIN_PASSWORD}+ characters, letters and numbers.</p>
+          </div>
+          <div>
+            <label htmlFor="reg-confirm" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
+              Confirm password
+            </label>
+            <AuthInput id="reg-confirm" name="confirm" type="password" autoComplete="new-password" required />
+          </div>
+          <label className="flex cursor-pointer items-start gap-2 text-xs text-neutral-400">
+            <input type="checkbox" required className="mt-1 h-4 w-4 rounded-none border-white/30 bg-white/5" />I agree to
+            the terms and privacy policy.
           </label>
-          <AuthInput id="reg-email" name="email" type="email" autoComplete="email" required />
-        </div>
-        <div>
-          <label htmlFor="reg-password" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
-            Password
-          </label>
-          <AuthInput id="reg-password" name="password" type="password" autoComplete="new-password" required />
-          <p className="mt-2 text-xs text-neutral-500">{MIN_PASSWORD}+ characters, letters and numbers.</p>
-        </div>
-        <div>
-          <label htmlFor="reg-confirm" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
-            Confirm password
-          </label>
-          <AuthInput id="reg-confirm" name="confirm" type="password" autoComplete="new-password" required />
-        </div>
-        <label className="flex cursor-pointer items-start gap-2 text-xs text-neutral-400">
-          <input type="checkbox" required className="mt-1 h-4 w-4 rounded-none border-white/30 bg-white/5" />I agree to
-          the terms and privacy policy.
-        </label>
-        <AuthButton type="submit" disabled={busy || !isSupabaseConfigured}>
-          {busy ? 'Creating…' : 'Create account'}
-        </AuthButton>
-      </form>
+          <AuthButton type="submit" disabled={busy || !isSupabaseConfigured}>
+            {busy ? 'Creating…' : 'Create account'}
+          </AuthButton>
+        </form>
+      </div>
     </AuthLayout>
   )
 }

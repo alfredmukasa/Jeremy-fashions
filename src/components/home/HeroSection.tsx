@@ -70,12 +70,18 @@ export function HeroSection() {
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0"
+              className="absolute inset-0 overflow-hidden"
             >
               <img
                 src={active.src}
                 alt=""
-                className="h-full w-full object-cover"
+                aria-hidden
+                className="h-full w-full scale-110 object-cover object-center opacity-70 blur-2xl"
+              />
+              <img
+                src={active.src}
+                alt={active.alt ?? ''}
+                className="absolute inset-0 h-full w-full object-contain"
                 loading={slideIndex === 0 ? 'eager' : 'lazy'}
                 fetchPriority={slideIndex === 0 ? 'high' : 'auto'}
                 decoding="async"

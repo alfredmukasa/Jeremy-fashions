@@ -426,7 +426,7 @@ function HeroSlidesEditor({
           <div key={`${index}-${slide.src}`} className="grid gap-4 border border-neutral-100 p-4 md:grid-cols-[120px_1fr]">
             <div className="aspect-[4/5] overflow-hidden bg-neutral-100">
               {slide.src ? (
-                <img src={slide.src} alt="" className="h-full w-full object-contain" />
+                <img src={slide.src} alt="" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full items-center justify-center text-xs text-neutral-400">No image</div>
               )}

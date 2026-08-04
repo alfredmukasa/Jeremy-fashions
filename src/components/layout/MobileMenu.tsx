@@ -132,9 +132,6 @@ export function MobileMenu() {
                 </motion.div>
               ) : null}
             </nav>
-            <div className="border-t border-[var(--border-subtle)] p-6 text-xs text-[var(--text-muted)]">
-              Minimal silhouettes. Neutral palette. Built for the street and the studio.
-            </div>
           </motion.aside>
         </>
       ) : null}

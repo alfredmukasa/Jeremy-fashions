@@ -124,7 +124,7 @@ export function Navbar() {
   return (
     <motion.header
       className={cn(
-        'fixed inset-x-[10px] top-[var(--announcement-height)] z-40 rounded-2xl',
+        'fixed inset-x-[10px] top-[var(--announcement-height)] z-40 rounded-b-2xl',
         homeHeroOverlay
           ? cn(
               glassOverlay,

@@ -63,25 +63,29 @@ export function HeroSection() {
           style={{ opacity: bgOpacity }}
           className="hero-fixed-bg absolute inset-0 bg-neutral-950"
         >
-          <AnimatePresence mode="sync">
-            <motion.div
-              key={active.src}
-              initial={{ opacity: 0, scale: 1.05 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute inset-0"
-            >
-              <img
-                src={active.src}
-                alt=""
-                className="h-full w-full object-cover"
-                loading={slideIndex === 0 ? 'eager' : 'lazy'}
-                fetchPriority={slideIndex === 0 ? 'high' : 'auto'}
-                decoding="async"
-              />
-            </motion.div>
-          </AnimatePresence>
+          {/* Capped at 1600px so ultra-wide screens don't force the crop into an extreme zoom;
+              full-bleed on every laptop/desktop size below that. */}
+          <div className="relative mx-auto h-full max-w-[1600px] overflow-hidden">
+            <AnimatePresence mode="sync">
+              <motion.div
+                key={active.src}
+                initial={{ opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute inset-0"
+              >
+                <img
+                  src={active.src}
+                  alt=""
+                  className="h-full w-full object-cover"
+                  loading={slideIndex === 0 ? 'eager' : 'lazy'}
+                  fetchPriority={slideIndex === 0 ? 'high' : 'auto'}
+                  decoding="async"
+                />
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
           <motion.div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/45 to-black/20" />
           <motion.div className="absolute inset-0 bg-[radial-gradient(ellipse_at_30%_20%,rgba(255,255,255,0.1),transparent_50%)]" />

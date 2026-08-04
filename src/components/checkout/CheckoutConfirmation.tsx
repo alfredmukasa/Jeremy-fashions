@@ -63,7 +63,7 @@ export function CheckoutConfirmation({ orderId, total, email, isSignedIn }: Chec
         </p>
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           {isSignedIn ? (
-            <Link to={ROUTES.orders}>
+            <Link to={`${ROUTES.account}#orders`}>
               <Button>View orders</Button>
             </Link>
           ) : null}

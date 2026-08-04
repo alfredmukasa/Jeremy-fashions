@@ -28,9 +28,6 @@ const ForgotPasswordPage = lazy(() => import('./pages/Auth/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/Auth/ResetPasswordPage'))
 const AuthCallbackPage = lazy(() => import('./pages/Auth/AuthCallbackPage'))
 const AccountDashboardPage = lazy(() => import('./pages/Account/AccountDashboardPage'))
-const OrdersPage = lazy(() => import('./pages/Account/OrdersPage'))
-const ProfilePage = lazy(() => import('./pages/Account/ProfilePage'))
-const SavedListPage = lazy(() => import('./pages/Account/SavedListPage'))
 const WaitlistPage = lazy(() => import('./pages/Waitlist/WaitlistPage'))
 
 const adminLazy = isAdminPortalMounted()
@@ -123,9 +120,9 @@ export default function App() {
               <Route path={ROUTES.checkout} element={page(CheckoutPage)} />
               <Route element={<ProtectedRoute />}>
                 <Route path={ROUTES.account} element={page(AccountDashboardPage)} />
-                <Route path={ROUTES.orders} element={page(OrdersPage)} />
-                <Route path={ROUTES.profile} element={page(ProfilePage)} />
-                <Route path={ROUTES.saved} element={page(SavedListPage)} />
+                <Route path={ROUTES.orders} element={<Navigate to={`${ROUTES.account}#orders`} replace />} />
+                <Route path={ROUTES.profile} element={<Navigate to={`${ROUTES.account}#settings`} replace />} />
+                <Route path={ROUTES.saved} element={<Navigate to={`${ROUTES.account}#wishlist`} replace />} />
               </Route>
               <Route path={ROUTES.waitlist} element={page(WaitlistPage)} />
               <Route path="*" element={<Navigate to={ROUTES.home} replace />} />

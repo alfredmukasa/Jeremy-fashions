@@ -43,7 +43,7 @@ export function CheckoutShippingSelector({
           Add a shipping location in your profile to reuse it at checkout.
         </p>
         <Link
-          to={ROUTES.profile}
+          to={`${ROUTES.account}#addresses`}
           className="inline-block text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-950 underline-offset-4 hover:underline"
         >
           Manage shipping locations
@@ -109,7 +109,7 @@ export function CheckoutShippingSelector({
       ) : null}
 
       <Link
-        to={ROUTES.profile}
+        to={`${ROUTES.account}#addresses`}
         className="inline-block text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-600 underline-offset-4 hover:text-neutral-950 hover:underline"
       >
         Manage shipping locations

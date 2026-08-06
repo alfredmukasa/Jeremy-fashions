@@ -11,4 +11,4 @@ Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /auth/callback
 
-Sitemap: https://krewnox.com/sitemap.xml
+Sitemap: https://krewnox.ca/sitemap.xml

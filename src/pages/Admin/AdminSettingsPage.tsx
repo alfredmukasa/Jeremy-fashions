@@ -19,7 +19,7 @@ const SETTINGS_KEY = 'storefront'
 
 const defaults: StorefrontSettings = {
   brandName: 'Krewnox',
-  supportEmail: 'support@krewnox.com',
+  supportEmail: 'support@krewnox.ca',
   lowStockThreshold: 5,
 }
 

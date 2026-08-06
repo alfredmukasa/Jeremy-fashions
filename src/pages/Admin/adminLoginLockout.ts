@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'jeremy_admin_login_lockout'
+const STORAGE_KEY = 'krewnox_admin_login_lockout'
 
 const MAX_FAILURES = 8
 const LOCKOUT_MS = 5 * 60 * 1000

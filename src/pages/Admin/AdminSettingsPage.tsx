@@ -18,8 +18,8 @@ type StorefrontSettings = {
 const SETTINGS_KEY = 'storefront'
 
 const defaults: StorefrontSettings = {
-  brandName: 'Jeremy Atelier',
-  supportEmail: 'support@jeremyatelier.com',
+  brandName: 'Krewnox',
+  supportEmail: 'support@krewnox.com',
   lowStockThreshold: 5,
 }
 

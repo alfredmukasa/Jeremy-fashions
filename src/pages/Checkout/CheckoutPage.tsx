@@ -201,16 +201,16 @@ export default function CheckoutPage() {
     const redirectStatus = searchParams.get('redirect_status')
     if (!paymentIntentId || redirectStatus !== 'succeeded') return
 
-    const storedOrderId = sessionStorage.getItem('jeremy-checkout-order-id')
-    const storedEmail = sessionStorage.getItem('jeremy-checkout-email')
+    const storedOrderId = sessionStorage.getItem('krewnox-checkout-order-id')
+    const storedEmail = sessionStorage.getItem('krewnox-checkout-email')
     clearCart()
     setOrderId(storedOrderId ?? paymentIntentId)
     if (storedEmail) {
       setValue('email', storedEmail)
     }
     setStep('confirmation')
-    sessionStorage.removeItem('jeremy-checkout-order-id')
-    sessionStorage.removeItem('jeremy-checkout-email')
+    sessionStorage.removeItem('krewnox-checkout-order-id')
+    sessionStorage.removeItem('krewnox-checkout-email')
     setSearchParams({}, { replace: true })
   }, [clearCart, searchParams, setSearchParams, setValue])
 
@@ -277,8 +277,8 @@ export default function CheckoutPage() {
 
       setClientSecret(response.clientSecret)
       setOrderId(response.orderId)
-      sessionStorage.setItem('jeremy-checkout-order-id', response.orderId)
-      sessionStorage.setItem('jeremy-checkout-email', values.email)
+      sessionStorage.setItem('krewnox-checkout-order-id', response.orderId)
+      sessionStorage.setItem('krewnox-checkout-email', values.email)
       setStep('payment')
     } catch (error) {
       const message =
@@ -294,7 +294,7 @@ export default function CheckoutPage() {
 
   function handlePaymentSuccess() {
     clearCart()
-    sessionStorage.removeItem('jeremy-checkout-order-id')
+    sessionStorage.removeItem('krewnox-checkout-order-id')
     setStep('confirmation')
     toast.success('Payment received. Thank you for your order.')
   }

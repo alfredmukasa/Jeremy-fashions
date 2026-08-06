@@ -1,5 +1,5 @@
 -- =============================================================================
--- Jeremy Atelier — Pixabay-only storefront seed data
+-- Krewnox — Pixabay-only storefront seed data
 -- Idempotent: safe to run multiple times. Uses ON CONFLICT (slug) DO UPDATE so
 -- repeat runs refresh content without creating duplicates.
 -- All category and product image URLs intentionally use cdn.pixabay.com.
@@ -30,7 +30,7 @@ insert into public.products
 values
     ('Arc Mono Hoodie', 'arc-mono-hoodie',
      'Heavyweight organic cotton with brushed interior. Dropped shoulders, concealed pockets, tonal embroidery.',
-     168.00, 148.00, 'hoodies', 'Jeremy Atelier', 32,
+     168.00, 148.00, 'hoodies', 'Krewnox', 32,
      true, 4.8,
      'https://cdn.pixabay.com/photo/2016/09/10/01/24/urban-1658436_1280.jpg',
      array['https://cdn.pixabay.com/photo/2014/11/03/17/50/man-515518_1280.jpg'],
@@ -40,7 +40,7 @@ values
 
     ('Linear Zip Hoodie', 'linear-zip-hoodie',
      'Two-way zipper, ripstop-lined hood, matte hardware. Built for transitional weather.',
-     182.00, null, 'hoodies', 'Jeremy Atelier', 18,
+     182.00, null, 'hoodies', 'Krewnox', 18,
      false, 4.6,
      'https://cdn.pixabay.com/photo/2020/11/06/06/24/black-5716973_1280.jpg',
      array['https://cdn.pixabay.com/photo/2022/02/07/22/04/man-7000371_1280.jpg'],
@@ -50,7 +50,7 @@ values
 
     ('Velour Crew Hoodie', 'velour-crew-hoodie',
      'Relaxed crewneck silhouette with interior tape finishing and ribbed profile.',
-     156.00, null, 'hoodies', 'Jeremy Atelier', 24,
+     156.00, null, 'hoodies', 'Krewnox', 24,
      false, 4.7,
      'https://cdn.pixabay.com/photo/2015/08/03/17/46/model-873681_1280.jpg',
      array['https://cdn.pixabay.com/photo/2021/07/15/11/15/woman-6468147_640.jpg'],
@@ -60,7 +60,7 @@ values
 
     ('Oversized Stamp Tee', 'oversized-stamp-tee',
      'Supima cotton, wide block fit. Discreet tonal stamp at hem.',
-     72.00, 58.00, 't-shirts', 'Jeremy Atelier', 120,
+     72.00, 58.00, 't-shirts', 'Krewnox', 120,
      true, 4.9,
      'https://cdn.pixabay.com/photo/2020/08/26/14/02/girl-5519558_1280.jpg',
      array['https://cdn.pixabay.com/photo/2020/10/19/09/44/woman-5667299_640.jpg'],
@@ -70,7 +70,7 @@ values
 
     ('Signal Longline Tee', 'signal-longline-tee',
      'Extended length, side vents, matte screen print across spine.',
-     68.00, null, 't-shirts', 'Jeremy Atelier', 44,
+     68.00, null, 't-shirts', 'Krewnox', 44,
      false, 4.5,
      'https://cdn.pixabay.com/photo/2014/11/03/17/50/man-515518_1280.jpg',
      array['https://cdn.pixabay.com/photo/2020/11/06/06/24/black-5716973_1280.jpg'],
@@ -80,7 +80,7 @@ values
 
     ('Contour Rib Tee', 'contour-rib-tee',
      'Compact rib knit that holds shape. Crew with micro cap sleeve.',
-     64.00, null, 't-shirts', 'Jeremy Atelier', 56,
+     64.00, null, 't-shirts', 'Krewnox', 56,
      false, 4.8,
      'https://cdn.pixabay.com/photo/2023/09/14/15/48/woman-8253239_1280.jpg',
      array['https://cdn.pixabay.com/photo/2018/07/28/09/23/woman-3567600_1280.jpg'],
@@ -90,7 +90,7 @@ values
 
     ('Mercer Pocket Tee', 'mercer-pocket-tee',
      'Mercerized cotton with chest welt pocket and coverstitch finish.',
-     76.00, null, 't-shirts', 'Jeremy Atelier', 33,
+     76.00, null, 't-shirts', 'Krewnox', 33,
      false, 4.4,
      'https://cdn.pixabay.com/photo/2021/06/26/00/26/fashion-6364998_640.jpg',
      array['https://cdn.pixabay.com/photo/2021/09/15/12/34/woman-6626742_640.jpg'],
@@ -100,7 +100,7 @@ values
 
     ('Field Shell Jacket', 'field-shell-jacket',
      'Water-resistant shell, packable hood, magnetic placket. Interior utility loops.',
-     348.00, 298.00, 'jackets', 'Jeremy Atelier', 12,
+     348.00, 298.00, 'jackets', 'Krewnox', 12,
      true, 4.9,
      'https://cdn.pixabay.com/photo/2016/11/18/17/08/fashion-1835871_1280.jpg',
      array['https://cdn.pixabay.com/photo/2017/03/27/13/28/man-2178721_640.jpg'],
@@ -110,7 +110,7 @@ values
 
     ('Pleated Wool Blazer', 'pleated-wool-blazer',
      'Italian wool blend, soft shoulder, concealed one-button closure.',
-     420.00, null, 'jackets', 'Jeremy Atelier', 9,
+     420.00, null, 'jackets', 'Krewnox', 9,
      false, 4.7,
      'https://cdn.pixabay.com/photo/2018/05/11/16/18/man-3390927_1280.jpg',
      array['https://cdn.pixabay.com/photo/2015/06/20/13/55/man-815795_1280.jpg'],
@@ -120,7 +120,7 @@ values
 
     ('Quilt Liner Jacket', 'quilt-liner-jacket',
      'Diamond quilting, contrast bound edges, recycled fill. City-weight warmth.',
-     312.00, null, 'jackets', 'Jeremy Atelier', 15,
+     312.00, null, 'jackets', 'Krewnox', 15,
      false, 4.8,
      'https://cdn.pixabay.com/photo/2024/11/27/07/51/woman-9227532_1280.jpg',
      array['https://cdn.pixabay.com/photo/2021/07/15/11/15/woman-6468147_640.jpg'],
@@ -130,7 +130,7 @@ values
 
     ('Trace Leather Jacket', 'trace-leather-jacket',
      'Vegetable-tanned lambskin, asymmetric zip, quilted sleeve inset.',
-     780.00, null, 'jackets', 'Jeremy Atelier', 6,
+     780.00, null, 'jackets', 'Krewnox', 6,
      false, 4.9,
      'https://cdn.pixabay.com/photo/2015/08/03/17/46/model-873681_1280.jpg',
      array['https://cdn.pixabay.com/photo/2024/11/27/07/51/woman-9227532_1280.jpg'],
@@ -140,7 +140,7 @@ values
 
     ('Obsidian Runner', 'obsidian-runner',
      'Sculpted midsole, knit upper with directional rib. Rubber outsole, tonal lacing.',
-     220.00, null, 'sneakers', 'Jeremy Atelier', 28,
+     220.00, null, 'sneakers', 'Krewnox', 28,
      true, 4.7,
      'https://cdn.pixabay.com/photo/2019/09/26/05/28/shoes-4505142_1280.jpg',
      array['https://cdn.pixabay.com/photo/2019/07/18/07/04/shoes-4345636_1280.jpg'],
@@ -150,7 +150,7 @@ values
 
     ('Velocity Court', 'velocity-court',
      'Low profile cupsole, butter leather vamp, perforated toebox.',
-     198.00, 168.00, 'sneakers', 'Jeremy Atelier', 21,
+     198.00, 168.00, 'sneakers', 'Krewnox', 21,
      false, 4.5,
      'https://cdn.pixabay.com/photo/2020/08/24/21/40/fashion-5515135_640.jpg',
      array['https://cdn.pixabay.com/photo/2022/03/31/19/45/shoes-7103597_640.jpg'],
@@ -160,7 +160,7 @@ values
 
     ('Monolith High', 'monolith-high',
      'High-top silhouette, ballistic nylon panels, tonal TPU clip.',
-     245.00, null, 'sneakers', 'Jeremy Atelier', 14,
+     245.00, null, 'sneakers', 'Krewnox', 14,
      false, 4.8,
      'https://cdn.pixabay.com/photo/2019/07/18/07/04/shoes-4345636_1280.jpg',
      array['https://cdn.pixabay.com/photo/2016/06/03/17/35/shoes-1433925_640.jpg'],
@@ -170,7 +170,7 @@ values
 
     ('Trace Slip-On', 'trace-slip-on',
      'Knit slip-on with molded footbed, seamless collar, rubber wrap.',
-     165.00, null, 'sneakers', 'Jeremy Atelier', 37,
+     165.00, null, 'sneakers', 'Krewnox', 37,
      false, 4.6,
      'https://cdn.pixabay.com/photo/2022/03/31/19/45/shoes-7103597_640.jpg',
      array['https://cdn.pixabay.com/photo/2019/12/01/18/04/legs-4666061_640.jpg'],
@@ -180,7 +180,7 @@ values
 
     ('Leather Crossbody', 'leather-crossbody',
      'Grained calfskin, magnetic flap, interior card sleeve. Adjustable leather strap.',
-     210.00, null, 'accessories', 'Jeremy Atelier', 22,
+     210.00, null, 'accessories', 'Krewnox', 22,
      true, 4.8,
      'https://cdn.pixabay.com/photo/2016/11/18/19/39/backpack-1836594_1280.jpg',
      array['https://cdn.pixabay.com/photo/2016/11/23/18/12/bag-1854148_640.jpg'],
@@ -190,7 +190,7 @@ values
 
     ('Silver Link Bracelet', 'silver-link-bracelet',
      'Sterling silver, brushed links with hidden clasp. Made in Milan.',
-     142.00, null, 'accessories', 'Jeremy Atelier', 40,
+     142.00, null, 'accessories', 'Krewnox', 40,
      false, 4.6,
      'https://cdn.pixabay.com/photo/2016/11/23/18/12/bag-1854148_640.jpg',
      array['https://cdn.pixabay.com/photo/2016/11/18/19/39/backpack-1836594_1280.jpg'],
@@ -200,7 +200,7 @@ values
 
     ('Technical Cap', 'technical-cap',
      'Bonded seams, water-repellent shell, tonal metal clasp.',
-     54.00, null, 'accessories', 'Jeremy Atelier', 64,
+     54.00, null, 'accessories', 'Krewnox', 64,
      false, 4.4,
      'https://cdn.pixabay.com/photo/2022/02/07/22/04/man-7000371_1280.jpg',
      array['https://cdn.pixabay.com/photo/2014/11/03/17/50/man-515518_1280.jpg'],
@@ -210,7 +210,7 @@ values
 
     ('Merino Beanie', 'merino-beanie',
      'Extra-fine merino, double-fold cuff, itch-free knit.',
-     48.00, null, 'accessories', 'Jeremy Atelier', 88,
+     48.00, null, 'accessories', 'Krewnox', 88,
      false, 4.5,
      'https://cdn.pixabay.com/photo/2017/08/01/01/33/beanie-2562646_640.jpg',
      array['https://cdn.pixabay.com/photo/2018/05/11/16/18/man-3390927_1280.jpg'],
@@ -220,7 +220,7 @@ values
 
     ('Monolith Tote', 'monolith-tote',
      'Japanese canvas, structured base, interior laptop sleeve and key leash.',
-     186.00, null, 'accessories', 'Jeremy Atelier', 19,
+     186.00, null, 'accessories', 'Krewnox', 19,
      false, 4.7,
      'https://cdn.pixabay.com/photo/2016/11/18/19/39/backpack-1836594_1280.jpg',
      array['https://cdn.pixabay.com/photo/2016/11/23/18/12/bag-1854148_640.jpg'],
@@ -230,7 +230,7 @@ values
 
     ('Shadow Hoodie', 'shadow-hoodie',
      'Garment-dyed fleece, articulated sleeves, hidden thumb exits.',
-     174.00, null, 'hoodies', 'Jeremy Atelier', 27,
+     174.00, null, 'hoodies', 'Krewnox', 27,
      false, 4.7,
      'https://cdn.pixabay.com/photo/2014/11/03/17/50/man-515518_1280.jpg',
      array['https://cdn.pixabay.com/photo/2016/09/10/01/24/urban-1658436_1280.jpg'],
@@ -240,7 +240,7 @@ values
 
     ('Studio Tank', 'studio-tank',
      'Fine gauge rib, extended armhole, bound neckline.',
-     52.00, null, 't-shirts', 'Jeremy Atelier', 48,
+     52.00, null, 't-shirts', 'Krewnox', 48,
      false, 4.6,
      'https://cdn.pixabay.com/photo/2020/08/26/14/02/girl-5519558_1280.jpg',
      array['https://cdn.pixabay.com/photo/2017/08/06/15/13/woman-2593366_640.jpg'],
@@ -250,7 +250,7 @@ values
 
     ('Denim Trucker Jacket', 'denim-trucker-jacket',
      'Rigid Japanese denim, chain-stitched yoke, tonal hardware and selvedge detail.',
-     268.00, null, 'jackets', 'Jeremy Atelier', 11,
+     268.00, null, 'jackets', 'Krewnox', 11,
      false, 4.5,
      'https://cdn.pixabay.com/photo/2017/08/01/11/48/woman-2564660_640.jpg',
      array['https://cdn.pixabay.com/photo/2017/03/27/13/28/man-2178721_640.jpg'],
@@ -260,7 +260,7 @@ values
 
     ('Echo Low Sneaker', 'echo-low-sneaker',
      'Low stack sole, suede overlays, memory foam sock.',
-     189.00, null, 'sneakers', 'Jeremy Atelier', 30,
+     189.00, null, 'sneakers', 'Krewnox', 30,
      true, 4.7,
      'https://cdn.pixabay.com/photo/2019/09/26/05/28/shoes-4505142_1280.jpg',
      array['https://cdn.pixabay.com/photo/2022/03/31/19/45/shoes-7103597_640.jpg'],

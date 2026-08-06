@@ -3,7 +3,7 @@ import { Navigate, useLocation } from 'react-router-dom'
 import { getAdminBasePath } from '../lib/adminPortal'
 
 /**
- * Redirects legacy `/admin` URLs to the configured staff base path (default `/jeremy-admin`).
+ * Redirects legacy `/admin` URLs to the configured staff base path (default `/krewnox-admin`).
  */
 export function AdminLegacyRedirect() {
   const { pathname, search, hash } = useLocation()

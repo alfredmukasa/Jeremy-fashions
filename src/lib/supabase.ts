@@ -24,9 +24,9 @@ export const supabase: SupabaseClient | null = isSupabaseConfigured
         autoRefreshToken: true,
         detectSessionInUrl: true,
         storage: authStorage,
-        storageKey: 'jeremy-atelier-auth',
+        storageKey: 'krewnox-auth',
       },
-      global: { headers: { 'x-client-info': 'jeremy-atelier-web' } },
+      global: { headers: { 'x-client-info': 'krewnox-web' } },
     })
   : null
 

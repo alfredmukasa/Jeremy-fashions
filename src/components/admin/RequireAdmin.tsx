@@ -41,7 +41,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
       <div className="min-h-svh pb-24">
         <Container className="py-16">
           <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-neutral-500">Admin</p>
-          <h1 className="mt-3 font-serif text-3xl text-neutral-950">Jeremy admin</h1>
+          <h1 className="mt-3 font-serif text-3xl text-neutral-950">Krewnox admin</h1>
           <p className="mt-4 text-sm text-neutral-600">
             Configure <code className="text-xs">VITE_SUPABASE_URL</code> and{' '}
             <code className="text-xs">VITE_SUPABASE_ANON_KEY</code> to use this dashboard.

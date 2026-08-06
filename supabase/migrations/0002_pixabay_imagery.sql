@@ -1,5 +1,5 @@
 -- =============================================================================
--- Jeremy Atelier — replace demo imagery with Pixabay URLs
+-- Krewnox — replace demo imagery with Pixabay URLs
 -- Keeps existing catalog content while moving all storefront image fields away
 -- from non-Pixabay demo assets.
 -- =============================================================================

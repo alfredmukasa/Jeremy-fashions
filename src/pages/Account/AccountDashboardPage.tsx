@@ -297,7 +297,7 @@ function DashboardPanel({
           Sign out securely
         </h2>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-neutral-600">
-          End your session on this device. You can sign back in any time with your Jeremy Fashion account.
+          End your session on this device. You can sign back in any time with your Krewnox account.
         </p>
         <Button className="mt-6" variant="outline" onClick={onLogout}>
           Sign out

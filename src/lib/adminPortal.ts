@@ -1,5 +1,5 @@
 /**
- * Staff routes are included in all builds by default so `/jeremy-admin` works on
+ * Staff routes are included in all builds by default so `/krewnox-admin` works on
  * production and every device. Access is enforced by Supabase Auth + RLS, not by
  * omitting routes from the bundle.
  *
@@ -12,14 +12,14 @@ export function isAdminPortalMounted(): boolean {
 
 /**
  * Optional non-default URL prefix (e.g. /ops-a8f3c2) so the path is not guessable.
- * Must start with /. Invalid values fall back to /jeremy-admin.
+ * Must start with /. Invalid values fall back to /krewnox-admin.
  */
 export function getAdminBasePath(): string {
   const raw = import.meta.env.VITE_ADMIN_BASE_PATH
   let s =
-    typeof raw === 'string' && raw.trim().length > 0 ? raw.trim().replace(/\/+$/, '') : '/jeremy-admin'
+    typeof raw === 'string' && raw.trim().length > 0 ? raw.trim().replace(/\/+$/, '') : '/krewnox-admin'
   if (!s.startsWith('/')) s = `/${s}`
-  if (s === '/' || s === '') s = '/jeremy-admin'
+  if (s === '/' || s === '') s = '/krewnox-admin'
   return s
 }
 

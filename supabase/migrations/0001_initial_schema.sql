@@ -1,5 +1,5 @@
 -- =============================================================================
--- Jeremy Atelier — initial schema
+-- Krewnox — initial schema
 -- Tables: products, categories, waitlist, discount_codes
 -- =============================================================================
 

@@ -1,6 +1,6 @@
 import { getAdminBasePath } from '../lib/adminPortal'
 
-export const BRAND = 'JEREMY ATELIER'
+export const BRAND = 'KREWNOX'
 
 const adminBase = getAdminBasePath()
 
@@ -21,7 +21,7 @@ export const ROUTES = {
   /** Saved pieces (auth); guests use shop wishlist filter locally */
   saved: '/saved',
   waitlist: '/waitlist',
-  /** Staff area — default /jeremy-admin; also reachable via /admin (redirect) */
+  /** Staff area — default /krewnox-admin; also reachable via /admin (redirect) */
   admin: adminBase,
   adminLogin: `${adminBase}/login`,
   adminProducts: `${adminBase}/products`,

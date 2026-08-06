@@ -53,10 +53,10 @@ export default function WaitlistPage() {
   })
 
   useEffect(() => {
-    document.title = waitlistMode ? 'Private access — Jeremy Atelier' : 'Waitlist — Jeremy Atelier'
+    document.title = waitlistMode ? 'Private access — Krewnox' : 'Waitlist — Krewnox'
     const meta = document.querySelector('meta[name="description"]')
     if (meta) {
-      meta.setAttribute('content', 'Join the Jeremy Atelier waitlist.')
+      meta.setAttribute('content', 'Join the Krewnox waitlist.')
     }
   }, [waitlistMode])
 

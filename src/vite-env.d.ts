@@ -8,7 +8,7 @@ interface ImportMetaEnv {
   readonly VITE_ADMIN_ALLOWED_EMAILS?: string
   /** Set to "false" to omit staff routes from the build. Omitted = admin enabled. */
   readonly VITE_ADMIN_PORTAL_ENABLED?: string
-  /** Optional URL prefix for staff UI, e.g. /ops-x7k9. Default /jeremy-admin when portal enabled. */
+  /** Optional URL prefix for staff UI, e.g. /ops-x7k9. Default /krewnox-admin when portal enabled. */
   readonly VITE_ADMIN_BASE_PATH?: string
   readonly VITE_STRIPE_PUBLISHABLE_KEY?: string
   readonly VITE_PAYMENTS_API_URL?: string

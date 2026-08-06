@@ -1,7 +1,7 @@
 export type AppearanceMode = 'light' | 'dark'
 
 export const DEFAULT_APPEARANCE: AppearanceMode = 'light'
-export const THEME_CACHE_KEY = 'jeremy-atelier-appearance'
+export const THEME_CACHE_KEY = 'krewnox-appearance'
 
 export function isAppearanceMode(value: unknown): value is AppearanceMode {
   return value === 'light' || value === 'dark'

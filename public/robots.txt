@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+Disallow: /krewnox-admin/
+Disallow: /admin/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /auth/callback
+
+Sitemap: https://krewnox.com/sitemap.xml

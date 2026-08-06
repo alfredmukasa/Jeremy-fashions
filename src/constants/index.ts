@@ -21,6 +21,9 @@ export const ROUTES = {
   /** Saved pieces (auth); guests use shop wishlist filter locally */
   saved: '/saved',
   waitlist: '/waitlist',
+  terms: '/terms',
+  privacy: '/privacy',
+  refundPolicy: '/refund-policy',
   /** Staff area — default /krewnox-admin; also reachable via /admin (redirect) */
   admin: adminBase,
   adminLogin: `${adminBase}/login`,

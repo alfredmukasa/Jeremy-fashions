@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 
+import { ROUTES } from '../../constants'
 import { Button } from '../common/Button'
 
 type StripePaymentFormProps = {
@@ -67,6 +69,21 @@ export function StripePaymentForm({
           }}
         />
       </div>
+      <p className="text-xs leading-relaxed text-neutral-500">
+        By completing this purchase, you agree to our{' '}
+        <Link to={ROUTES.terms} target="_blank" className="underline underline-offset-2 hover:text-neutral-800">
+          Terms of Service
+        </Link>{' '}
+        and{' '}
+        <Link
+          to={ROUTES.refundPolicy}
+          target="_blank"
+          className="underline underline-offset-2 hover:text-neutral-800"
+        >
+          Refund Policy
+        </Link>
+        .
+      </p>
       <Button type="submit" className="w-full" disabled={!stripe || !elements || isSubmitting}>
         {isSubmitting ? 'Processing payment…' : submitLabel}
       </Button>

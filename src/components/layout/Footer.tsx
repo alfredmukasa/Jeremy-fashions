@@ -12,8 +12,10 @@ import { cn } from '../../utils/cn'
 const helpNavLinks = [
   { label: 'Shop all', to: ROUTES.shop },
   { label: 'Contact', to: ROUTES.account },
-  { label: 'Terms', to: '#' },
   { label: 'Search', to: `${ROUTES.shop}?focus=search` },
+  { label: 'Terms', to: ROUTES.terms },
+  { label: 'Privacy', to: ROUTES.privacy },
+  { label: 'Refund policy', to: ROUTES.refundPolicy },
 ]
 
 function FooterHelp() {

@@ -1,0 +1,6 @@
+# index.html contains an inline bootstrap script that's pinned by exact byte
+# hash in the CSP (vercel.json). CRLF vs LF changes those bytes, so this file
+# must always check out as LF regardless of the developer's OS/git config —
+# otherwise a Windows checkout silently produces a different hash than what
+# Vercel's Linux build ships, and the browser blocks the inline script.
+index.html text eol=lf

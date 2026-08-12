@@ -124,7 +124,7 @@ export default function WaitlistPage() {
                 disabled={isSubmitting}
                 className={cn('self-start shrink-0 sm:self-auto sm:w-auto', isSubmitting && 'opacity-70')}
               >
-                {isSubmitting ? 'Submitting…' : 'Join the waitlist'}
+                {isSubmitting ? 'Submitting…' : 'Join'}
               </Button>
             </div>
 

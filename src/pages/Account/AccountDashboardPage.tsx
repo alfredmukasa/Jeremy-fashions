@@ -33,6 +33,7 @@ import { ShippingAddressManager } from '../../components/account/ShippingAddress
 import { Container } from '../../components/layout/Container'
 import { ProductGrid } from '../../components/product/ProductGrid'
 import { Button } from '../../components/common/Button'
+import { Seo } from '../../components/seo/Seo'
 
 function displayName(fullName: unknown, email: string | undefined): string {
   if (typeof fullName === 'string' && fullName.trim()) return fullName.trim()
@@ -110,6 +111,7 @@ export default function AccountDashboardPage() {
 
   return (
     <div className="pb-24">
+      <Seo title="Account" description="Your KREWNOX account." path="/account" noindex />
       <AdminTransferBanner />
       <DashboardHeader userName={userName} memberSince={memberSince} />
 

@@ -8,6 +8,17 @@
     },
     {
       "source": "/((?!api/).*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": "(?i).*(facebookexternalhit|Facebot|Twitterbot|LinkedInBot|Slackbot|Discordbot|TelegramBot|WhatsApp|Pinterest|redditbot|SkypeUriPreview|vkShare|Google-InspectionTool|W3C_Validator).*"
+        }
+      ],
+      "destination": "/api/server?social-preview-path=/$1"
+    },
+    {
+      "source": "/((?!api/).*)",
       "destination": "/index.html"
     }
   ],

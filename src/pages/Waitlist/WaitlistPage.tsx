@@ -1,4 +1,4 @@
-import { useEffect, type CSSProperties } from 'react'
+import type { CSSProperties } from 'react'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -11,6 +11,7 @@ import { joinWaitlist } from '../../services/waitlistService'
 import { Button } from '../../components/common/Button'
 import { Container } from '../../components/layout/Container'
 import { FieldLabel, Input } from '../../components/common/Input'
+import { Seo } from '../../components/seo/Seo'
 import { cn } from '../../utils/cn'
 
 const waitlistSchema = z.object({
@@ -52,14 +53,6 @@ export default function WaitlistPage() {
     defaultValues: { fullName: '', email: '' },
   })
 
-  useEffect(() => {
-    document.title = waitlistMode ? 'Private access — Krewnox' : 'Waitlist — Krewnox'
-    const meta = document.querySelector('meta[name="description"]')
-    if (meta) {
-      meta.setAttribute('content', 'Join the Krewnox waitlist.')
-    }
-  }, [waitlistMode])
-
   async function onSubmit(values: WaitlistFormValues) {
     const result = await joinWaitlist({ fullName: values.fullName, email: values.email })
 
@@ -81,6 +74,11 @@ export default function WaitlistPage() {
       className="flex min-h-[calc(100svh-var(--header-offset)-var(--announcement-height))] items-center justify-center bg-white px-4 sm:px-6"
       style={LIGHT_SURFACE_STYLE}
     >
+      <Seo
+        title={waitlistMode ? 'Private access' : 'Waitlist'}
+        description="Join the KREWNOX waitlist for early access to new drops and restocks."
+        path="/waitlist"
+      />
       <Container className="flex justify-center">
         <motion.div
           initial={{ opacity: 0, y: 12 }}

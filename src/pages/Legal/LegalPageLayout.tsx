@@ -1,9 +1,12 @@
-import { useEffect, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 import { Container } from '../../components/layout/Container'
+import { Seo } from '../../components/seo/Seo'
 
 type LegalPageLayoutProps = {
   title: string
+  /** Route path, e.g. `/terms` — used for the canonical URL. */
+  path: string
   lastUpdated: string
   metaDescription: string
   intro?: ReactNode
@@ -15,14 +18,10 @@ type LegalPageLayoutProps = {
  * heading, "last updated" stamp, and prose styling consistent across all three so
  * they read as one connected set of documents rather than three one-off pages.
  */
-export function LegalPageLayout({ title, lastUpdated, metaDescription, intro, children }: LegalPageLayoutProps) {
-  useEffect(() => {
-    document.title = `${title} — Krewnox`
-    const meta = document.querySelector('meta[name="description"]')
-    if (meta) meta.setAttribute('content', metaDescription)
-  }, [title, metaDescription])
-
+export function LegalPageLayout({ title, path, lastUpdated, metaDescription, intro, children }: LegalPageLayoutProps) {
   return (
+    <>
+      <Seo title={`${title} — Krewnox`} rawTitle description={metaDescription} path={path} />
     <div className="bg-[var(--surface-base)] pb-24 pt-14 sm:pt-20">
       <Container className="max-w-3xl">
         <p className="text-[10px] font-medium uppercase tracking-[0.35em] text-[var(--text-muted)]">
@@ -51,5 +50,6 @@ export function LegalPageLayout({ title, lastUpdated, metaDescription, intro, ch
         </div>
       </Container>
     </div>
+    </>
   )
 }

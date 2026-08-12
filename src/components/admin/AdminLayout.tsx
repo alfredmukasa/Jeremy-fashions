@@ -10,6 +10,7 @@ import { getAdminRole } from '../../lib/adminPermissions'
 import { supabase } from '../../lib/supabase'
 import { Button } from '../common/Button'
 import { Container } from '../layout/Container'
+import { Seo } from '../seo/Seo'
 import { useAdminSession } from './AdminSessionContext'
 import { AdminSidebar } from './AdminSidebar'
 
@@ -29,6 +30,10 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-svh bg-neutral-100 text-neutral-950">
+      {/* Auth-gated by RequireAdmin above this in the tree; robots.txt also disallows
+          /admin and /krewnox-admin, but that's not a security boundary — this noindex
+          is the actual search-engine signal for staff-only tooling. */}
+      <Seo title="Staff dashboard" path={window.location.pathname} noindex />
       <div className="border-b border-neutral-900 bg-neutral-950 text-white">
         <Container className="flex items-center justify-between gap-4 py-4">
           <div className="flex items-center gap-3">

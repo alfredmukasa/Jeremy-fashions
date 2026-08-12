@@ -7,8 +7,10 @@
     "dev": "vite",
     "dev:server": "npm run dev --prefix server",
     "dev:all": "npx concurrently -k \"npm run dev:server\" \"npm run dev\"",
+    "prebuild": "node scripts/generate-sitemap.mjs",
     "build": "npm run build:server && tsc -b && vite build",
     "build:server": "npm run build --prefix server",
+    "sitemap": "node scripts/generate-sitemap.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

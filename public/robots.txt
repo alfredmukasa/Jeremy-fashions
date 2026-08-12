@@ -5,6 +5,9 @@ Disallow: /admin/
 Disallow: /cart
 Disallow: /checkout
 Disallow: /account
+Disallow: /orders
+Disallow: /profile
+Disallow: /saved
 Disallow: /login
 Disallow: /register
 Disallow: /forgot-password

@@ -29,6 +29,7 @@ import { StripePaymentForm } from '../../components/checkout/StripePaymentForm'
 import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
 import { Container } from '../../components/layout/Container'
+import { Seo } from '../../components/seo/Seo'
 
 const addressSchema = z.object({
   fullName: z.string().trim().min(2, 'Enter the full name for this address.'),
@@ -308,6 +309,7 @@ export default function CheckoutPage() {
 
   return (
     <div className="pb-24">
+      <Seo title="Checkout" description="Secure checkout." path="/checkout" noindex />
       <div className="border-b border-neutral-200 bg-neutral-50">
         <Container className="py-14 md:py-16">
           <h1 className="font-serif text-4xl tracking-tight text-neutral-950 md:text-5xl">Checkout</h1>

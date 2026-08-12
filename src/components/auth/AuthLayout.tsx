@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 import { ROUTES } from '../../constants'
 import { BrandLogo } from '../common/BrandLogo'
+import { Seo } from '../seo/Seo'
 
 type AuthLayoutProps = {
   title: string
@@ -13,10 +14,15 @@ type AuthLayoutProps = {
 
 /**
  * Editorial split: visual panel + form. Matches luxury / monochrome direction from the auth spec.
+ *
+ * Shared by every sign-in/sign-up/password flow, so `noindex` is set here once rather
+ * than in each page — auth screens have no unique public search value and shouldn't
+ * be indexed regardless of which one is rendered.
  */
 export function AuthLayout({ title, subtitle, eyebrow, children, footer }: AuthLayoutProps) {
   return (
     <div className="min-h-svh bg-neutral-950 text-neutral-100">
+      <Seo title={title} description={subtitle ?? title} path={window.location.pathname} noindex />
       <div className="grid min-h-svh lg:grid-cols-2">
         <div className="relative hidden overflow-hidden lg:block">
           <div

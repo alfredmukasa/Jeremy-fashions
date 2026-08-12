@@ -7,11 +7,45 @@ import rateLimit from 'express-rate-limit'
 import { config } from './config.js'
 import { ordersRouter } from './routes/orders.js'
 import { paymentsRouter } from './routes/payments.js'
+import { renderSocialPreviewHtml, socialPreviewRouter } from './routes/socialPreview.js'
 import { webhooksRouter } from './routes/webhooks.js'
 
 const app = express()
 
 app.set('trust proxy', 1) // behind Vercel's proxy — needed for express-rate-limit to key by real client IP
+
+// Modest budget for the bot-prerender path: each hit does a DB read, and legitimate
+// crawler traffic for a small catalog is nowhere near this ceiling.
+const socialPreviewLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+})
+
+// Vercel's `has: user-agent` rewrite in vercel.json sends known social/search bot
+// requests here for *any* storefront path (home, product, shop, …) by appending
+// `?social-preview-path=<original path>` to the same `/api/server` function this whole
+// app is deployed as. Intercepting by query param — rather than by Express route path —
+// means this works regardless of which URL a bot actually requested, and real browser
+// traffic (which never carries this query param) is completely unaffected and falls
+// through to `next()` immediately below.
+app.use((req, res, next) => {
+  const previewPath = req.query['social-preview-path']
+  if (typeof previewPath !== 'string') return next()
+
+  socialPreviewLimiter(req, res, () => {
+    renderSocialPreviewHtml(previewPath)
+      .then((html) => {
+        res.set('Cache-Control', 'public, max-age=300, s-maxage=600, stale-while-revalidate=86400')
+        res.type('html').send(html)
+      })
+      .catch((error: unknown) => {
+        console.error('[socialPreview] middleware failed', error)
+        res.status(500).type('html').send('<!doctype html><title>KREWNOX</title>')
+      })
+  })
+})
 
 app.use(helmet())
 app.use(compression())
@@ -61,6 +95,9 @@ app.use('/api/payments/create-payment-intent', paymentsLimiter)
 app.use('/api/orders/:id/status', orderLookupLimiter)
 app.use('/api/payments', paymentsRouter)
 app.use('/api/orders', ordersRouter)
+// Bot-only prerendered HTML for social-crawler Open Graph tags — see socialPreview.ts
+// and the matching `has: user-agent` rewrite in vercel.json.
+app.use('/api/social-preview', socialPreviewRouter)
 
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[server] unhandled error', error)

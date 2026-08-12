@@ -4,6 +4,7 @@ export default function PrivacyPolicyPage() {
   return (
     <LegalPageLayout
       title="Privacy Policy"
+      path="/privacy"
       lastUpdated="August 5, 2026"
       metaDescription="What personal data Krewnox collects, how it's used, who it's shared with, and how to request access or deletion."
       intro={

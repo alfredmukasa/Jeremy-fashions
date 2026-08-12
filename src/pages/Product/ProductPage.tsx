@@ -19,10 +19,13 @@ import { Container } from '../../components/layout/Container'
 import { ProductGallery } from '../../components/product/ProductGallery'
 import { ProductGrid } from '../../components/product/ProductGrid'
 import { SectionHeading } from '../../components/common/SectionHeading'
+import { Seo } from '../../components/seo/Seo'
+import { breadcrumbJsonLd, productJsonLd } from '../../lib/structuredData'
 
 function NotFound() {
   return (
     <Container className="py-24 text-center">
+      <Seo title="Product not found" description="This product is no longer available." path="/shop" noindex />
       <h1 className="display-serif text-3xl text-[var(--text-primary)]">Product not found</h1>
       <p className="mt-4 text-sm text-[var(--text-secondary)]">
         The piece you&rsquo;re looking for is no longer available.
@@ -210,8 +213,30 @@ function ProductDetail({ product }: DetailProps) {
   </>
 )
 
+  const productPath = `/product/${product.slug}`
+  const primaryImage = product.images[0]
+
   return (
     <div className="pb-28 md:pb-24">
+      <Seo
+        title={product.name}
+        description={
+          product.description
+            ? product.description.slice(0, 160)
+            : `${product.name} — shop the ${product.category.replace('-', ' ')} collection at KREWNOX.`
+        }
+        path={productPath}
+        type="product"
+        image={primaryImage ? { url: primaryImage, alt: product.name } : undefined}
+        structuredData={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Shop', path: '/shop' },
+            { name: product.name, path: productPath },
+          ]),
+          productJsonLd(product, productPath),
+        ]}
+      />
       <Container className="py-10 md:py-14">
         <nav className="text-[11px] uppercase tracking-[0.25em] text-[var(--text-muted)]">
           <Link to={ROUTES.home} className="transition hover:text-[var(--text-primary)]">

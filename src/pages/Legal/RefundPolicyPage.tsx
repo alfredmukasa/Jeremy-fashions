@@ -4,6 +4,7 @@ export default function RefundPolicyPage() {
   return (
     <LegalPageLayout
       title="Refund Policy"
+      path="/refund-policy"
       lastUpdated="August 5, 2026"
       metaDescription="Krewnox's return, exchange, and refund policy — return windows, eligibility, and how refunds are issued."
       intro={

@@ -7,6 +7,7 @@ export default function TermsPage() {
   return (
     <LegalPageLayout
       title="Terms of Service"
+      path="/terms"
       lastUpdated="August 5, 2026"
       metaDescription="The terms that govern your use of Krewnox and any purchase you make on the site."
       intro={

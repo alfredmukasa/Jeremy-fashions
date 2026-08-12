@@ -6,6 +6,7 @@ import { formatPrice } from '../../utils/formatPrice'
 
 import { Button } from '../../components/common/Button'
 import { Container } from '../../components/layout/Container'
+import { Seo } from '../../components/seo/Seo'
 
 export default function CartPage() {
   const lines = useCartStore((s) => s.lines)
@@ -15,6 +16,7 @@ export default function CartPage() {
 
   return (
     <div className="pb-24">
+      <Seo title="Your Bag" description="Review your bag before checkout." path="/cart" noindex />
       <div className="border-b border-neutral-200 bg-neutral-50">
         <Container className="py-14 md:py-16">
           <h1 className="font-serif text-4xl tracking-tight text-neutral-950 md:text-5xl">Your bag</h1>

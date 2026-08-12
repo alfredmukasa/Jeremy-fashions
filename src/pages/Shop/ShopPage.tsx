@@ -14,7 +14,14 @@ import { isNewArrival, sortProducts } from '../../utils/productSort'
 import { Container } from '../../components/layout/Container'
 import { FilterSidebar, type FilterState } from '../../components/product/FilterSidebar'
 import { ProductGrid } from '../../components/product/ProductGrid'
+import { Seo } from '../../components/seo/Seo'
+import { breadcrumbJsonLd } from '../../lib/structuredData'
 import { cn } from '../../utils/cn'
+
+const SHOP_BREADCRUMBS = [
+  { name: 'Home', path: '/' },
+  { name: 'Shop', path: '/shop' },
+]
 
 function effectivePrice(p: Product) {
   return p.salePrice ?? p.price
@@ -124,8 +131,22 @@ export default function ShopPage() {
   const pageTitle =
     tagFilter === 'new' ? 'New arrivals' : wishOnly ? 'Saved pieces' : categoryParam ? categoryParam.replace(/-/g, ' ') : 'Shop all'
 
+  const seoTitle = categoryParam ? `Shop ${categoryParam.replace(/-/g, ' ')}` : 'Shop All'
+  const seoDescription = categoryParam
+    ? `Browse the ${categoryParam.replace(/-/g, ' ')} collection at KREWNOX — tailored outerwear, sculptural sneakers, and studio-grade essentials.`
+    : 'Browse the full KREWNOX collection — tailored outerwear, sculptural sneakers, and studio-grade essentials designed as a system.'
+
   return (
     <div className="pb-8">
+      {/* Filters/search/sort/pagination are all client-side query params on this same
+          view, so canonical always points at the bare /shop URL — never the filtered
+          variant — to avoid indexing near-duplicate faceted-navigation URLs. */}
+      <Seo
+        title={seoTitle}
+        description={seoDescription}
+        path="/shop"
+        structuredData={[breadcrumbJsonLd(SHOP_BREADCRUMBS)]}
+      />
       <Container className="pt-8 md:pt-12">
         <h1 className="shop-title-mertra text-center">{pageTitle}</h1>
 

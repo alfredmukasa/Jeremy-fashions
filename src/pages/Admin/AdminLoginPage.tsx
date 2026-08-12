@@ -11,6 +11,7 @@ import { BrandLogo } from '../../components/common/BrandLogo'
 import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
 import { Container } from '../../components/layout/Container'
+import { Seo } from '../../components/seo/Seo'
 
 import {
   clearAdminLoginFailures,
@@ -140,6 +141,7 @@ export default function AdminLoginPage() {
 
   return (
     <div className="min-h-svh bg-neutral-950 text-white">
+      <Seo title="Staff sign-in" path={ROUTES.adminLogin} noindex />
       <Container className="flex min-h-svh flex-col justify-center py-16 md:py-24">
         <div className="mx-auto w-full max-w-md">
           <BrandLogo variant="light" size="md" className="mb-6" />

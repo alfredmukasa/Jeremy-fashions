@@ -122,7 +122,7 @@ export default function WaitlistPage() {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className={cn('self-start shrink-0 sm:self-auto sm:w-auto', isSubmitting && 'opacity-70')}
+                className={cn('self-start shrink-0', isSubmitting && 'opacity-70')}
               >
                 {isSubmitting ? 'Submitting…' : 'Join'}
               </Button>

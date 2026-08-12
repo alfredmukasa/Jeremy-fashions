@@ -2,9 +2,17 @@ import type { InputHTMLAttributes, ReactNode, TextareaHTMLAttributes } from 'rea
 
 import { cn } from '../../utils/cn'
 
-export function FieldLabel({ id, children }: { id: string; children: ReactNode }) {
+export function FieldLabel({
+  id,
+  children,
+  className,
+}: {
+  id: string
+  children: ReactNode
+  className?: string
+}) {
   return (
-    <label htmlFor={id} className="eyebrow mb-2 block">
+    <label htmlFor={id} className={cn('eyebrow mb-2 block', className)}>
       {children}
     </label>
   )

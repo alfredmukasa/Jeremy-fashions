@@ -55,7 +55,8 @@ export type Category = {
 }
 
 export type WaitlistEntry = {
-  fullName: string
+  /** Optional — the public waitlist form only collects email; falls back to the email's local-part when omitted. */
+  fullName?: string
   email: string
   phone?: string
   instagram?: string

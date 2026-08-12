@@ -15,7 +15,6 @@ import { Seo } from '../../components/seo/Seo'
 import { cn } from '../../utils/cn'
 
 const waitlistSchema = z.object({
-  fullName: z.string().trim().min(2, 'Please enter your full name.'),
   email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
 })
 
@@ -37,7 +36,7 @@ const LIGHT_SURFACE_STYLE = {
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null
-  return <p className="mt-2 text-xs text-rose-600">{message}</p>
+  return <p className="text-xs text-rose-600">{message}</p>
 }
 
 export default function WaitlistPage() {
@@ -50,11 +49,11 @@ export default function WaitlistPage() {
     formState: { errors, isSubmitting },
   } = useForm<WaitlistFormValues>({
     resolver: zodResolver(waitlistSchema),
-    defaultValues: { fullName: '', email: '' },
+    defaultValues: { email: '' },
   })
 
   async function onSubmit(values: WaitlistFormValues) {
-    const result = await joinWaitlist({ fullName: values.fullName, email: values.email })
+    const result = await joinWaitlist({ email: values.email })
 
     if (result.ok) {
       toast.success('You\'re on the list.')
@@ -84,42 +83,51 @@ export default function WaitlistPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45 }}
-          className="w-full max-w-sm"
+          className="w-full max-w-xl"
         >
-          <h1 className="text-center font-serif text-2xl tracking-[0.03em] text-neutral-950">
+          <h1 className="text-center font-serif text-3xl tracking-[0.03em] text-neutral-950 sm:text-4xl">
             Join the waitlist
           </h1>
 
-          <form onSubmit={handleSubmit(onSubmit)} className="mt-10 space-y-6" noValidate>
-            <div>
-              <FieldLabel id="fullName">Full name</FieldLabel>
-              <Input
-                id="fullName"
-                autoComplete="name"
-                aria-invalid={Boolean(errors.fullName)}
-                {...register('fullName')}
-              />
-              <FieldError message={errors.fullName?.message} />
+          {/* Single pill-shaped control: email input + submit read as one unified
+              waitlist control, matching the reference. The label moves to sr-only +
+              placeholder so the row stays compact; validation, submit handling, and
+              the underlying joinWaitlist() flow are unchanged. */}
+          <form onSubmit={handleSubmit(onSubmit)} className="mt-10" noValidate>
+            <div
+              className={cn(
+                'flex flex-col gap-2 rounded-[1.75rem] border bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-soft)] transition-colors sm:flex-row sm:items-center sm:gap-0 sm:rounded-full sm:py-2 sm:pl-6 sm:pr-2',
+                errors.email ? 'border-rose-300' : 'border-[var(--border-subtle)]',
+              )}
+            >
+              <div className="flex-1">
+                <FieldLabel id="email" className="sr-only">
+                  Email
+                </FieldLabel>
+                <Input
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  placeholder="Your email address"
+                  disabled={isSubmitting}
+                  aria-invalid={Boolean(errors.email)}
+                  className="border-transparent bg-transparent px-3! py-2.5! disabled:opacity-60 sm:px-0!"
+                  {...register('email')}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className={cn('w-full shrink-0 sm:w-auto', isSubmitting && 'opacity-70')}
+              >
+                {isSubmitting ? 'Submitting…' : 'Join the waitlist'}
+              </Button>
             </div>
 
-            <div>
-              <FieldLabel id="email">Email</FieldLabel>
-              <Input
-                id="email"
-                type="email"
-                autoComplete="email"
-                aria-invalid={Boolean(errors.email)}
-                {...register('email')}
-              />
+            <div className="mt-3 px-2" aria-live="polite">
               <FieldError message={errors.email?.message} />
             </div>
-
-            <Button
-              type="submit"
-              className={cn('w-full', isSubmitting && 'pointer-events-none opacity-70')}
-            >
-              {isSubmitting ? 'Submitting…' : 'Join the waitlist'}
-            </Button>
           </form>
         </motion.div>
       </Container>

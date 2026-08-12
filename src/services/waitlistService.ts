@@ -9,13 +9,17 @@ export type WaitlistResult =
  * Persists a waitlist signup to Supabase.
  */
 export async function joinWaitlist(entry: WaitlistEntry): Promise<WaitlistResult> {
-  const fullName = entry.fullName.trim()
   const email = entry.email.trim().toLowerCase()
   const phone = entry.phone?.trim() || null
 
-  if (!fullName || !email) {
-    return { ok: false, reason: 'invalid', message: 'Name and email are required.' }
+  if (!email) {
+    return { ok: false, reason: 'invalid', message: 'Email is required.' }
   }
+
+  // The public form only collects email — `full_name` is still `not null` in the
+  // database (see supabase/migrations/0001_initial_schema.sql), so fall back to the
+  // email's local-part rather than requiring a schema change for an admin-facing label.
+  const fullName = entry.fullName?.trim() || email.split('@')[0] || 'Waitlist'
 
   if (!isSupabaseConfigured || !supabase) {
     return {

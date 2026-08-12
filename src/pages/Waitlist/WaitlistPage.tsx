@@ -96,10 +96,13 @@ export default function WaitlistPage() {
           <form onSubmit={handleSubmit(onSubmit)} className="mt-10" noValidate>
             <div
               className={cn(
-                'flex flex-col gap-2 rounded-[1.75rem] border bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-soft)] transition-colors sm:flex-row sm:items-center sm:gap-0 sm:rounded-full sm:py-2 sm:pl-6 sm:pr-2',
-                errors.email ? 'border-rose-300' : 'border-[var(--border-subtle)]',
+                'flex flex-col gap-2 rounded-[1.75rem] border bg-[var(--surface-elevated)] p-2 shadow-[var(--shadow-soft)] transition-colors focus-within:shadow-[var(--shadow-lift)] sm:flex-row sm:items-center sm:gap-0 sm:rounded-full sm:py-2 sm:pl-6 sm:pr-2',
+                errors.email ? 'border-rose-300' : 'border-[var(--border-subtle)] focus-within:border-[var(--border-strong)]',
               )}
             >
+              {/* Focus indication is unified on the outer pill (focus-within above) rather
+                  than the input's own default focus ring, so the control keeps reading as
+                  one piece instead of showing a smaller rectangle inside the pill. */}
               <div className="flex-1">
                 <FieldLabel id="email" className="sr-only">
                   Email
@@ -111,7 +114,7 @@ export default function WaitlistPage() {
                   placeholder="Your email address"
                   disabled={isSubmitting}
                   aria-invalid={Boolean(errors.email)}
-                  className="border-transparent bg-transparent px-3! py-2.5! disabled:opacity-60 sm:px-0!"
+                  className="border-transparent bg-transparent px-3! py-2.5! focus:border-transparent! disabled:opacity-60 sm:px-0!"
                   {...register('email')}
                 />
               </div>

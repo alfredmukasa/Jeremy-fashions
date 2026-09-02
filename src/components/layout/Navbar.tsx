@@ -1,7 +1,7 @@
 import { useEffect, useState, type ComponentProps, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { HiOutlineBars3, HiOutlineHeart, HiOutlineShoppingBag, HiOutlineUser } from 'react-icons/hi2'
+import { HiOutlineBars3, HiOutlineShoppingBag, HiOutlineUser } from 'react-icons/hi2'
 
 import { ROUTES } from '../../constants'
 import { BrandLogo } from '../common/BrandLogo'
@@ -9,10 +9,8 @@ import { useAuth } from '../../context/AuthContext'
 import { useWaitlistMode } from '../../context/WaitlistModeContext'
 import { useCartStore, selectCartItemCount } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
-import { useWishlistStore, selectWishlistCount } from '../../store/wishlistStore'
 import { cn } from '../../utils/cn'
 
-import { ThemeToggle } from '../common/ThemeToggle'
 import { ProductSearchField } from '../search/ProductSearchField'
 import { AdminTransferNotification } from './AdminTransferNotification'
 import { Container } from './Container'
@@ -67,10 +65,8 @@ export function Navbar() {
   const { waitlistMode } = useWaitlistMode()
   const location = useLocation()
   const isHome = location.pathname === ROUTES.home && !waitlistMode
-  const wishlistHref = user ? ROUTES.saved : `${ROUTES.shop}?wishlist=1`
   const [scrolled, setScrolled] = useState(false)
   const cartCount = useCartStore(selectCartItemCount)
-  const wishCount = useWishlistStore(selectWishlistCount)
   const openCart = useUiStore((s) => s.openCart)
   const setMobileOpen = useUiStore((s) => s.setMobileNavOpen)
 
@@ -203,23 +199,6 @@ export function Navbar() {
                 />
               </div>
             ) : null}
-
-            {!waitlistMode ? (
-              <NavIconLink
-                to={wishlistHref}
-                aria-label={wishCount > 0 ? `Wishlist, ${wishCount} saved` : 'Wishlist'}
-                className={cn('hidden md:inline-flex', iconTone)}
-              >
-                <HiOutlineHeart className="h-5 w-5" />
-                {wishCount > 0 ? (
-                  <span aria-hidden="true" className={cn('absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center px-1 text-[9px] font-semibold', badgeClass)}>
-                    {wishCount}
-                  </span>
-                ) : null}
-              </NavIconLink>
-            ) : null}
-
-            <ThemeToggle overlay={homeHeroOverlay || (isWaitlistLanding && isOverlay)} className="hidden md:inline-flex" />
 
             {!waitlistMode && user ? (
               <div className={cn('hidden md:inline-flex', iconTone)}>

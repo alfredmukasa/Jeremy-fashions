@@ -28,7 +28,8 @@ export function createUserSupabase(accessToken: string) {
 
 export function requireSupabaseAdmin() {
   if (!supabaseAdmin) {
-    throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for this operation.')
+    console.error('[supabase] service role key is not configured')
+    throw new Error('Guest checkout is temporarily unavailable. Sign in or try again later.')
   }
 
   return supabaseAdmin

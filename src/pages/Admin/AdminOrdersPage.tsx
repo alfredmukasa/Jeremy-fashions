@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { PaymentStatusBadge } from '../../components/account/dashboard/PaymentStatusBadge'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
+import { formatOrderNumber } from '../../lib/orderNumber'
 import { normalizePaymentStatus, paymentStatusLabel, readPaymentActivity } from '../../lib/paymentStatus'
 import { adminListOrders, adminUpdateOrderStatus, type AdminOrderRow } from '../../services/adminService'
 
@@ -41,13 +42,14 @@ function AdminOrdersContent() {
       <AdminPageHeader
         eyebrow="Fulfillment"
         title="Orders"
-        description="Stripe updates payment status automatically. Use this view for shipping and fulfillment progress."
+        description="Payment status is set by Stripe. Fulfillment is separate — do not treat Paid as Shipped."
       />
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
-        <table className="w-full min-w-[980px] text-left text-sm">
+        <table className="w-full min-w-[1100px] text-left text-sm">
           <thead className="bg-neutral-50 text-[10px] uppercase tracking-[0.2em] text-neutral-500">
             <tr>
+              <th className="px-4 py-3 font-medium">Order</th>
               <th className="px-4 py-3 font-medium">Date</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Total</th>
@@ -88,15 +90,28 @@ function AdminOrderRowView({
   const activity = readPaymentActivity(order.payment_metadata).slice(-3).reverse()
   const paidAt =
     typeof order.payment_metadata?.paid_at === 'string' ? order.payment_metadata.paid_at : null
+  const refundAmount =
+    Number(order.refund_amount ?? 0) ||
+    (typeof order.payment_metadata?.stripe_amount_refunded === 'number'
+      ? order.payment_metadata.stripe_amount_refunded / 100
+      : 0)
 
   return (
     <tr className="border-t border-neutral-100 align-top">
+      <td className="px-4 py-3 font-medium text-neutral-900">
+        {formatOrderNumber({ id: order.id, orderNumber: order.order_number })}
+      </td>
       <td className="px-4 py-3 text-neutral-600">
         {new Date(order.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
       </td>
       <td className="px-4 py-3 font-medium text-neutral-900">{order.email}</td>
       <td className="px-4 py-3">
-        ${Number(order.total_amount).toFixed(2)} {order.currency}
+        <p>
+          ${Number(order.total_amount).toFixed(2)} {order.currency}
+        </p>
+        {refundAmount > 0 ? (
+          <p className="mt-1 text-xs text-violet-800">Refund ${refundAmount.toFixed(2)}</p>
+        ) : null}
       </td>
       <td className="px-4 py-3">
         <div className="space-y-2">

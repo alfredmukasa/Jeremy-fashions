@@ -33,9 +33,10 @@ export type CreatePaymentIntentPayload = {
 
 export type CreatePaymentIntentResponse = {
   orderId: string
+  orderNumber?: string | null
   clientSecret: string
   paymentIntentId: string
-  totals: CheckoutTotals & { currency?: string }
+  totals: CheckoutTotals & { currency?: string; discount?: number }
   reused?: boolean
 }
 
@@ -91,22 +92,43 @@ export async function createPaymentIntent(
   return data as CreatePaymentIntentResponse
 }
 
-export type GuestOrderStatus = {
+export type OrderConfirmation = {
   orderId: string
+  orderNumber: string
+  email: string
   status: string
   paymentStatus: string
+  createdAt: string
+  paidAt: string | null
   totalAmount: number
+  subtotalAmount: number
+  shippingAmount: number
+  taxAmount: number
+  discountAmount: number
+  refundAmount: number
   currency: string
+  items: Array<{ title: string; quantity: number; unitPrice: number }>
+  shippingAddress: CheckoutAddressInput | null
+  confirmationEmailSent: boolean
 }
 
+export type GuestOrderStatus = Pick<OrderConfirmation, 'orderId' | 'status' | 'paymentStatus' | 'totalAmount' | 'currency'>
+
 /**
- * Order-status lookup for guest checkout confirmation polling — scoped by order id + the
- * email used at checkout, since a guest has no session for RLS to key off of.
+ * Server confirmation lookup. Guests must pass checkout email. Signed-in customers may
+ * also send a bearer token. The server retrieves Stripe status if the webhook is late.
  */
-export async function getGuestOrderStatus(orderId: string, email: string): Promise<GuestOrderStatus | null> {
+export async function getOrderConfirmation(
+  orderId: string,
+  email: string,
+  accessToken?: string,
+): Promise<OrderConfirmation | null> {
   let response: Response
   try {
-    response = await fetch(`${API_BASE}/orders/${orderId}/status?email=${encodeURIComponent(email)}`)
+    const query = email ? `?email=${encodeURIComponent(email)}` : ''
+    response = await fetch(`${API_BASE}/orders/${orderId}/status${query}`, {
+      headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    })
   } catch {
     return null
   }
@@ -115,5 +137,17 @@ export async function getGuestOrderStatus(orderId: string, email: string): Promi
     return null
   }
 
-  return (await response.json().catch(() => null)) as GuestOrderStatus | null
+  return (await response.json().catch(() => null)) as OrderConfirmation | null
+}
+
+export async function getGuestOrderStatus(orderId: string, email: string): Promise<GuestOrderStatus | null> {
+  const confirmation = await getOrderConfirmation(orderId, email)
+  if (!confirmation) return null
+  return {
+    orderId: confirmation.orderId,
+    status: confirmation.status,
+    paymentStatus: confirmation.paymentStatus,
+    totalAmount: confirmation.totalAmount,
+    currency: confirmation.currency,
+  }
 }

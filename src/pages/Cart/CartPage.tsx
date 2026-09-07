@@ -20,7 +20,7 @@ export default function CartPage() {
       <div className="border-b border-neutral-200 bg-neutral-50">
         <Container className="py-14 md:py-16">
           <h1 className="font-serif text-4xl tracking-tight text-neutral-950 md:text-5xl">Your bag</h1>
-          <p className="mt-3 text-sm text-neutral-600">Review pieces before checkout — all demo, no charges.</p>
+          <p className="mt-3 text-sm text-neutral-600">Review pieces before secure checkout.</p>
         </Container>
       </div>
 

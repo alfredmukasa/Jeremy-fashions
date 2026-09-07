@@ -3,10 +3,12 @@ import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 export type CustomerOrder = {
   id: string
+  orderNumber: string
   createdAt: string
   status: string
   paymentStatus: PaymentStatus
   totalAmount: number
+  refundAmount: number
   currency: string
 }
 
@@ -40,10 +42,12 @@ export type CustomerOrderDetail = CustomerOrder & {
 
 type OrderRow = {
   id: string
+  order_number?: string | null
   created_at: string
   status: string
   payment_status: string
   total_amount: number | string
+  refund_amount?: number | string | null
   currency: string
   shipping_address: unknown
   stripe_payment_intent_id: string | null
@@ -70,13 +74,23 @@ type OrderItemRow = {
     | null
 }
 
-function mapOrder(row: Pick<OrderRow, 'id' | 'created_at' | 'status' | 'payment_status' | 'total_amount' | 'currency'>): CustomerOrder {
+function mapOrder(
+  row: Pick<
+    OrderRow,
+    'id' | 'order_number' | 'created_at' | 'status' | 'payment_status' | 'total_amount' | 'refund_amount' | 'currency' | 'payment_metadata'
+  >,
+): CustomerOrder {
+  const metadata = row.payment_metadata
+  const refundFromMetadata =
+    typeof metadata?.stripe_amount_refunded === 'number' ? metadata.stripe_amount_refunded / 100 : 0
   return {
     id: row.id,
+    orderNumber: row.order_number || `KN-${row.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
     createdAt: row.created_at,
     status: row.status,
     paymentStatus: normalizePaymentStatus(row.payment_status),
     totalAmount: Number(row.total_amount),
+    refundAmount: Number(row.refund_amount ?? refundFromMetadata),
     currency: row.currency,
   }
 }
@@ -176,17 +190,28 @@ export async function listCustomerOrders(): Promise<CustomerOrder[]> {
 
   const userId = await requireCurrentUserId()
 
-  const { data, error } = await supabase
+  const query = supabase
     .from('orders')
-    .select('id, created_at, status, payment_status, total_amount, currency')
+    .select('id, order_number, created_at, status, payment_status, total_amount, refund_amount, currency, payment_metadata')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
-  if (error) {
-    throw new Error(error.message)
+  const primary = await query
+  if (!primary.error) {
+    return (primary.data ?? []).map((row) => mapOrder(row as OrderRow))
   }
 
-  return (data ?? []).map((row) => mapOrder(row as OrderRow))
+  const fallback = await supabase
+    .from('orders')
+    .select('id, created_at, status, payment_status, total_amount, currency, payment_metadata')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (fallback.error) {
+    throw new Error(fallback.error.message)
+  }
+
+  return (fallback.data ?? []).map((row) => mapOrder(row as OrderRow))
 }
 
 export async function listCustomerOrdersDetailed(): Promise<CustomerOrderDetail[]> {
@@ -196,10 +221,32 @@ export async function listCustomerOrdersDetailed(): Promise<CustomerOrderDetail[
 
   const userId = await requireCurrentUserId()
 
-  const { data, error } = await supabase
-    .from('orders')
-    .select(
-      `
+  const detailedSelect = `
+      id,
+      order_number,
+      created_at,
+      status,
+      payment_status,
+      total_amount,
+      refund_amount,
+      currency,
+      shipping_address,
+      stripe_payment_intent_id,
+      payment_metadata,
+      order_items (
+        id,
+        product_id,
+        title,
+        quantity,
+        unit_price,
+        sku,
+        products (
+          image_url,
+          gallery_images
+        )
+      )
+    `
+  const fallbackSelect = `
       id,
       created_at,
       status,
@@ -221,16 +268,19 @@ export async function listCustomerOrdersDetailed(): Promise<CustomerOrderDetail[
           gallery_images
         )
       )
-    `,
-    )
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false })
+    `
 
-  if (error) {
-    throw new Error(error.message)
+  const primary = await supabase.from('orders').select(detailedSelect).eq('user_id', userId).order('created_at', { ascending: false })
+  if (!primary.error) {
+    return (primary.data ?? []).map((row) => mapOrderDetail(row as unknown as OrderRow))
   }
 
-  return (data ?? []).map((row) => mapOrderDetail(row as unknown as OrderRow))
+  const fallback = await supabase.from('orders').select(fallbackSelect).eq('user_id', userId).order('created_at', { ascending: false })
+  if (fallback.error) {
+    throw new Error(fallback.error.message)
+  }
+
+  return (fallback.data ?? []).map((row) => mapOrderDetail(row as unknown as OrderRow))
 }
 
 export async function getCustomerOrderPaymentStatus(orderId: string): Promise<{

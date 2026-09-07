@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
+import { ExpressCheckoutElement, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 
 import { ROUTES } from '../../constants'
 import { Button } from '../common/Button'
@@ -12,6 +12,12 @@ type StripePaymentFormProps = {
   submitLabel?: string
 }
 
+type WalletFlags = {
+  applePay?: boolean
+  googlePay?: boolean
+  link?: boolean
+}
+
 export function StripePaymentForm({
   returnUrl,
   onSuccess,
@@ -21,9 +27,11 @@ export function StripePaymentForm({
   const stripe = useStripe()
   const elements = useElements()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [wallets, setWallets] = useState<WalletFlags | null>(null)
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  const walletsAvailable = Boolean(wallets?.applePay || wallets?.googlePay || wallets?.link)
+
+  async function confirmCurrentPayment() {
     if (!stripe || !elements) {
       onError('Stripe is still loading. Please wait a moment and try again.')
       return
@@ -44,33 +52,82 @@ export function StripePaymentForm({
     }
 
     const paymentIntent = result.paymentIntent
-    if (paymentIntent?.status === 'succeeded') {
+    if (paymentIntent?.status === 'succeeded' || paymentIntent?.status === 'processing') {
       onSuccess(paymentIntent.id)
       setIsSubmitting(false)
       return
     }
 
-    if (paymentIntent?.status === 'processing') {
-      onSuccess(paymentIntent.id)
+    if (paymentIntent?.status === 'requires_action') {
+      onError('Additional authentication is required. Complete the prompt from your bank and try again.')
       setIsSubmitting(false)
       return
     }
 
-    onError('Payment was not completed. Check your card details and try again.')
+    onError('Payment was not completed. Check your details and try again.')
     setIsSubmitting(false)
   }
 
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await confirmCurrentPayment()
+  }
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <div className="border border-neutral-200 bg-white p-4 sm:p-5">
+    <form onSubmit={handleSubmit} className="min-w-0 space-y-6">
+      <div className={wallets === null || walletsAvailable ? 'space-y-4' : 'hidden'}>
+        <ExpressCheckoutElement
+          options={{
+            layout: { maxColumns: 2, maxRows: 1 },
+            buttonHeight: 48,
+            buttonTheme: {
+              applePay: 'black',
+              googlePay: 'black',
+            },
+            paymentMethods: {
+              applePay: 'auto',
+              googlePay: 'auto',
+              link: 'auto',
+              paypal: 'never',
+              amazonPay: 'never',
+              klarna: 'never',
+            },
+            emailRequired: true,
+          }}
+          onReady={(event) => {
+            setWallets(event.availablePaymentMethods ?? null)
+          }}
+          onConfirm={() => {
+            void confirmCurrentPayment()
+          }}
+          onCancel={() => {
+            setIsSubmitting(false)
+          }}
+          onLoadError={() => {
+            setWallets(null)
+          }}
+        />
+        {walletsAvailable ? (
+          <p className="text-center text-[10px] font-medium uppercase tracking-[0.28em] text-neutral-500">
+            Or pay with card
+          </p>
+        ) : null}
+      </div>
+
+      <div className="min-w-0 overflow-x-auto border border-neutral-200 bg-white p-4 sm:p-5">
         <PaymentElement
           options={{
             layout: 'tabs',
+            business: { name: 'KREWNOX' },
+            wallets: {
+              applePay: 'auto',
+              googlePay: 'auto',
+            },
           }}
         />
       </div>
       <p className="text-xs leading-relaxed text-neutral-500">
-        By completing this purchase, you agree to our{' '}
+        Wallet buttons appear only when Stripe detects them on this device. By completing this purchase, you agree to our{' '}
         <Link to={ROUTES.terms} target="_blank" className="underline underline-offset-2 hover:text-neutral-800">
           Terms of Service
         </Link>{' '}

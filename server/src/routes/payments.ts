@@ -12,11 +12,14 @@ import {
   clearOrderPaymentIntent,
   createPendingOrder,
   findOrderByIdempotencyKey,
+  refreshPendingOrder,
   validateCheckoutItems,
 } from '../services/orderService.js'
 import type { CreatePaymentIntentBody } from '../types.js'
 
 export const paymentsRouter = Router()
+
+const REUSABLE_PI_STATUSES = new Set(['requires_payment_method', 'requires_confirmation', 'requires_action'])
 
 function paymentErrorMessage(error: unknown): string {
   if (error instanceof Stripe.errors.StripeError) {
@@ -28,6 +31,9 @@ function paymentErrorMessage(error: unknown): string {
   }
 
   if (error instanceof Error && error.message.trim()) {
+    if (/SERVICE_ROLE|SECRET_KEY|STRIPE_|SUPABASE_|webhook secret/i.test(error.message)) {
+      return 'Checkout is temporarily unavailable. Please try again or sign in.'
+    }
     return error.message
   }
 
@@ -63,22 +69,62 @@ paymentsRouter.post(
         db = requireSupabaseAdmin()
       }
 
+      const { items, totals } = await validateCheckoutItems(body.items)
+      const amountInCents = Math.round(totals.total * 100)
+      if (amountInCents < 50) {
+        throw new CheckoutError('Order total must be at least $0.50 before payment can start.', 400)
+      }
+
       const existing = await findOrderByIdempotencyKey(db, body.idempotencyKey)
+      if (existing?.payment_status === 'paid' || existing?.payment_status === 'refunded') {
+        return res.status(409).json({ error: 'This checkout has already been paid.' })
+      }
+
+      if (existing) {
+        await refreshPendingOrder(db, existing.id, {
+          items,
+          totals,
+          shippingAddress: body.shippingAddress,
+          billingAddress: body.billingAddress,
+          billingSameAsShipping: body.billingSameAsShipping,
+        })
+      }
+
+      const existingNumber =
+        existing && 'order_number' in existing && typeof existing.order_number === 'string'
+          ? existing.order_number
+          : null
+
       if (existing?.stripe_payment_intent_id) {
         try {
           const paymentIntent = await stripe.paymentIntents.retrieve(existing.stripe_payment_intent_id)
-          if (paymentIntent.client_secret) {
+          if (
+            paymentIntent.client_secret &&
+            REUSABLE_PI_STATUSES.has(paymentIntent.status) &&
+            paymentIntent.amount === amountInCents
+          ) {
             return res.json({
               orderId: existing.id,
+              orderNumber: existingNumber,
               clientSecret: paymentIntent.client_secret,
               paymentIntentId: paymentIntent.id,
-              totals: {
-                total: Number(existing.total_amount),
-                currency: existing.currency,
-              },
+              totals,
               reused: true,
             })
           }
+
+          if (paymentIntent.status === 'succeeded') {
+            return res.status(409).json({ error: 'This checkout has already been paid.' })
+          }
+
+          if (['requires_payment_method', 'requires_confirmation', 'requires_action', 'processing'].includes(paymentIntent.status)) {
+            try {
+              await stripe.paymentIntents.cancel(paymentIntent.id)
+            } catch (cancelError) {
+              console.warn('[payments] unable to cancel stale payment intent', cancelError)
+            }
+          }
+          await clearOrderPaymentIntent(db, existing.id)
         } catch (retrieveError) {
           console.warn('[payments] stale payment intent; creating a new one', {
             orderId: existing.id,
@@ -89,11 +135,6 @@ paymentsRouter.post(
         }
       }
 
-      if (existing?.payment_status === 'paid') {
-        return res.status(409).json({ error: 'This checkout has already been paid.' })
-      }
-
-      const { items, totals } = await validateCheckoutItems(body.items)
       const order =
         existing ??
         (await createPendingOrder(db, {
@@ -107,10 +148,8 @@ paymentsRouter.post(
           billingSameAsShipping: body.billingSameAsShipping,
         }))
 
-      const amountInCents = Math.round(totals.total * 100)
-      if (amountInCents < 50) {
-        throw new CheckoutError('Order total must be at least $0.50 before payment can start.', 400)
-      }
+      const orderNumber =
+        order && 'order_number' in order && typeof order.order_number === 'string' ? order.order_number : null
 
       const paymentIntent = await stripe.paymentIntents.create(
         {
@@ -118,14 +157,16 @@ paymentsRouter.post(
           currency: totals.currency.toLowerCase(),
           automatic_payment_methods: { enabled: true },
           receipt_email: body.email,
+          description: `KREWNOX ${orderNumber ?? order.id}`,
           metadata: {
             order_id: order.id,
+            order_number: orderNumber ?? '',
             user_id: user?.id ?? 'guest',
             idempotency_key: body.idempotencyKey,
           },
         },
         {
-          idempotencyKey: body.idempotencyKey,
+          idempotencyKey: `${body.idempotencyKey}:${amountInCents}`,
         },
       )
 
@@ -137,6 +178,7 @@ paymentsRouter.post(
 
       return res.json({
         orderId: order.id,
+        orderNumber,
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
         totals,

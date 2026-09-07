@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { HiOutlineChevronDown } from 'react-icons/hi2'
 
+import { formatOrderNumber } from '../../../lib/orderNumber'
 import { ORDER_STATUSES } from '../../../lib/orderStatus'
 import type { CustomerOrderDetail } from '../../../services/orderService'
 import { cn } from '../../../utils/cn'
@@ -22,6 +23,7 @@ export function OrderHistoryTable({ orders }: { orders: CustomerOrderDetail[] })
     const matchesStatus = statusFilter === 'all' || order.status === statusFilter
     const haystack = [
       order.id,
+      order.orderNumber,
       order.items.map((item) => item.title).join(' '),
     ]
       .join(' ')
@@ -154,7 +156,7 @@ function OrderHistoryRow({ order }: { order: CustomerOrderDetail }) {
   return (
     <>
       <tr className="border-t border-neutral-100 transition-colors hover:bg-neutral-50/80">
-        <td className="px-4 py-4 font-medium text-neutral-900">{order.id.slice(0, 8).toUpperCase()}</td>
+        <td className="px-4 py-4 font-medium text-neutral-900">{formatOrderNumber(order)}</td>
         <td className="px-4 py-4 text-neutral-600">
           {new Date(order.createdAt).toLocaleDateString(undefined, {
             month: 'short',
@@ -227,7 +229,7 @@ function OrderHistoryCardHeader({ order }: { order: CustomerOrderDetail }) {
     <div className="flex items-start justify-between gap-4">
       <div>
         <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">
-          {order.id.slice(0, 8).toUpperCase()}
+          {formatOrderNumber(order)}
         </p>
         <p className="mt-1 text-sm text-neutral-600">
           {new Date(order.createdAt).toLocaleDateString(undefined, {
@@ -260,6 +262,9 @@ function OrderHistoryDetails({ id, order }: { id: string; order: CustomerOrderDe
           <PaymentStatusBadge status={order.paymentStatus} />
           <span>{order.paymentMethod}</span>
         </div>
+        {order.refundAmount > 0 ? (
+          <p className="mt-2 text-xs text-violet-800">Refunded {formatPrice(order.refundAmount, order.currency)}</p>
+        ) : null}
       </div>
       <div>
         <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Tracking status</p>

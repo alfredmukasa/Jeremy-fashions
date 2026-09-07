@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { HiOutlineChevronDown } from 'react-icons/hi2'
 
+import { formatOrderNumber } from '../../../lib/orderNumber'
 import type { CustomerOrderDetail } from '../../../services/orderService'
 import { cn } from '../../../utils/cn'
 import { formatPrice } from '../../../utils/formatPrice'
@@ -27,7 +28,7 @@ export function OrderCard({ order }: { order: CustomerOrderDetail }) {
   const [expanded, setExpanded] = useState(false)
   const primaryItem = order.items[0]
   const address = formatAddress(order)
-  const orderRef = order.id.slice(0, 8).toUpperCase()
+  const orderRef = formatOrderNumber(order)
   const detailsId = `order-card-details-${order.id}`
 
   return (
@@ -92,6 +93,9 @@ export function OrderCard({ order }: { order: CustomerOrderDetail }) {
                 <PaymentStatusBadge status={order.paymentStatus} />
                 <span>{order.paymentMethod}</span>
               </dd>
+              {order.refundAmount > 0 ? (
+                <p className="mt-2 text-xs text-violet-800">Refunded {formatPrice(order.refundAmount, order.currency)}</p>
+              ) : null}
             </div>
             <div>
               <dt className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Tracking</dt>

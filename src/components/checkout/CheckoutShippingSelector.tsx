@@ -10,6 +10,7 @@ import { CheckoutAddressFields, type CheckoutFormValues } from './CheckoutAddres
 type CheckoutShippingSelectorProps = {
   addresses: ShippingAddress[]
   isLoading: boolean
+  isSignedIn?: boolean
   selectedAddressId: string | null
   useNewAddress: boolean
   register: UseFormRegister<CheckoutFormValues>
@@ -23,6 +24,7 @@ type CheckoutShippingSelectorProps = {
 export function CheckoutShippingSelector({
   addresses,
   isLoading,
+  isSignedIn = false,
   selectedAddressId,
   useNewAddress,
   register,
@@ -39,15 +41,19 @@ export function CheckoutShippingSelector({
   if (!addresses.length) {
     return (
       <div className="space-y-4">
-        <p className="text-sm text-neutral-600">
-          Add a shipping location in your profile to reuse it at checkout.
-        </p>
-        <Link
-          to={`${ROUTES.account}#addresses`}
-          className="inline-block text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-950 underline-offset-4 hover:underline"
-        >
-          Manage shipping locations
-        </Link>
+        {isSignedIn ? (
+          <>
+            <p className="text-sm text-neutral-600">
+              Add a shipping location in your profile to reuse it at checkout.
+            </p>
+            <Link
+              to={`${ROUTES.account}#addresses`}
+              className="inline-block text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-950 underline-offset-4 hover:underline"
+            >
+              Manage shipping locations
+            </Link>
+          </>
+        ) : null}
         <CheckoutAddressFields prefix="shipping" register={register} errors={errors} watch={watch} setValue={setValue} />
       </div>
     )

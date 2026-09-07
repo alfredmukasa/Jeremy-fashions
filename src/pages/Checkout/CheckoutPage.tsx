@@ -200,15 +200,22 @@ export default function CheckoutPage() {
   useEffect(() => {
     const paymentIntentId = searchParams.get('payment_intent')
     const redirectStatus = searchParams.get('redirect_status')
-    if (!paymentIntentId || redirectStatus !== 'succeeded') return
+    if (!paymentIntentId || !redirectStatus) return
 
     const storedOrderId = sessionStorage.getItem('krewnox-checkout-order-id')
     const storedEmail = sessionStorage.getItem('krewnox-checkout-email')
-    clearCart()
-    setOrderId(storedOrderId ?? paymentIntentId)
     if (storedEmail) {
       setValue('email', storedEmail)
     }
+
+    if (redirectStatus === 'failed') {
+      setCheckoutError('Payment was not completed. You can try another method without placing a new order.')
+      setSearchParams({}, { replace: true })
+      return
+    }
+
+    clearCart()
+    setOrderId(storedOrderId ?? paymentIntentId)
     setStep('confirmation')
     sessionStorage.removeItem('krewnox-checkout-order-id')
     sessionStorage.removeItem('krewnox-checkout-email')
@@ -219,9 +226,9 @@ export default function CheckoutPage() {
     return (
       <CheckoutConfirmation
         orderId={orderId}
-        total={totals.total}
         email={email || user?.email || ''}
         isSignedIn={Boolean(user)}
+        accessToken={session?.access_token}
       />
     )
   }
@@ -297,7 +304,7 @@ export default function CheckoutPage() {
     clearCart()
     sessionStorage.removeItem('krewnox-checkout-order-id')
     setStep('confirmation')
-    toast.success('Payment received. Thank you for your order.')
+    toast.success('Payment submitted. Confirming with Stripe…')
   }
 
   function handlePaymentError(message: string) {
@@ -314,7 +321,7 @@ export default function CheckoutPage() {
         <Container className="py-14 md:py-16">
           <h1 className="font-serif text-4xl tracking-tight text-neutral-950 md:text-5xl">Checkout</h1>
           <p className="mt-3 max-w-2xl text-sm text-neutral-600">
-            Secure Stripe test-mode checkout with shipping, billing, and card payment.
+            Secure Stripe checkout. Card, Apple Pay, and Google Pay appear when Stripe makes them available.
           </p>
         </Container>
       </div>
@@ -416,6 +423,7 @@ function CheckoutGrid(props: {
                 <CheckoutShippingSelector
                   addresses={props.shippingAddresses}
                   isLoading={props.shippingAddressesLoading}
+                  isSignedIn={props.isSignedIn}
                   selectedAddressId={props.selectedAddressId}
                   useNewAddress={props.useNewAddress}
                   register={props.register}
@@ -480,10 +488,33 @@ function CheckoutGrid(props: {
             <div>
               <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-900">Payment</h2>
               <p className="mt-3 text-sm text-neutral-600">
-                Order {props.orderId?.slice(0, 8).toUpperCase()} · Stripe secure card entry
+                Order {props.orderId?.slice(0, 8).toUpperCase()} · Encrypted by Stripe
               </p>
             </div>
-            <Elements stripe={props.stripePromise} options={{ clientSecret: props.clientSecret }}>
+            <div className="lg:hidden">
+              <CheckoutCartSummary
+                lines={props.lines}
+                totals={props.totals}
+                showSubmit={false}
+              />
+            </div>
+            <Elements
+              stripe={props.stripePromise}
+              options={{
+                clientSecret: props.clientSecret,
+                appearance: {
+                  theme: 'stripe',
+                  variables: {
+                    colorPrimary: '#0a0a0a',
+                    colorBackground: '#ffffff',
+                    colorText: '#171717',
+                    colorDanger: '#be123c',
+                    fontFamily: 'Inter, system-ui, sans-serif',
+                    borderRadius: '0px',
+                  },
+                },
+              }}
+            >
               <StripePaymentForm
                 returnUrl={props.returnUrl}
                 onSuccess={props.onPaymentSuccess}

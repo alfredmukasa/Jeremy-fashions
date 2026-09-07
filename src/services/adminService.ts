@@ -90,6 +90,7 @@ export type AdminDiscountPayload = {
 
 export type AdminOrderRow = {
   id: string
+  order_number?: string | null
   created_at: string
   updated_at: string
   user_id: string | null
@@ -97,6 +98,7 @@ export type AdminOrderRow = {
   status: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
   payment_status: 'unpaid' | 'processing' | 'paid' | 'refunded' | 'partial_refund' | 'failed'
   total_amount: number
+  refund_amount?: number | null
   currency: string
   notes: string | null
   stripe_payment_intent_id: string | null
@@ -358,6 +360,18 @@ export async function adminDeleteDiscount(id: string): Promise<void> {
 
 export async function adminListOrders(): Promise<AdminOrderRow[]> {
   const client = requireClient()
+  const full = await client
+    .from('orders')
+    .select(
+      'id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, refund_amount, currency, notes, stripe_payment_intent_id, payment_metadata',
+    )
+    .order('created_at', { ascending: false })
+    .limit(200)
+
+  if (!full.error) {
+    return (full.data ?? []) as AdminOrderRow[]
+  }
+
   const { data, error } = await client
     .from('orders')
     .select(

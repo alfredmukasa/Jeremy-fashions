@@ -1,4 +1,4 @@
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 
@@ -15,9 +15,11 @@ import { AuthLayout } from '../../components/auth/AuthLayout'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { user, loading, signUp } = useAuth()
   const [busy, setBusy] = useState(false)
   const [fieldError, setFieldError] = useState<string | null>(null)
+  const presetEmail = searchParams.get('email') ?? ''
 
   if (!loading && user) {
     return <Navigate to={ROUTES.account} replace />
@@ -102,7 +104,14 @@ export default function RegisterPage() {
             <label htmlFor="reg-email" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
               Email
             </label>
-            <AuthInput id="reg-email" name="email" type="email" autoComplete="email" required />
+              <AuthInput
+                id="reg-email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                defaultValue={presetEmail}
+              />
           </div>
           <div>
             <label htmlFor="reg-password" className="mb-2 block text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
@@ -118,8 +127,18 @@ export default function RegisterPage() {
             <AuthInput id="reg-confirm" name="confirm" type="password" autoComplete="new-password" required />
           </div>
           <label className="flex cursor-pointer items-start gap-2 text-xs text-neutral-400">
-            <input type="checkbox" required className="mt-1 h-4 w-4 rounded-none border-white/30 bg-white/5" />I agree to
-            the terms and privacy policy.
+            <input type="checkbox" required className="mt-1 h-4 w-4 rounded-none border-white/30 bg-white/5" />
+            <span>
+              I agree to the{' '}
+              <Link to={ROUTES.terms} className="underline underline-offset-2 hover:text-white">
+                terms
+              </Link>{' '}
+              and{' '}
+              <Link to={ROUTES.privacy} className="underline underline-offset-2 hover:text-white">
+                privacy policy
+              </Link>
+              .
+            </span>
           </label>
           <AuthButton type="submit" disabled={busy || !isSupabaseConfigured}>
             {busy ? 'Creating…' : 'Create account'}

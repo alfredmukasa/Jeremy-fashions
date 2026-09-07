@@ -4,7 +4,6 @@ import { HiOutlineXMark } from 'react-icons/hi2'
 
 import { ROUTES } from '../../constants'
 import { BrandLogo } from '../common/BrandLogo'
-import { ThemeToggle } from '../common/ThemeToggle'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useWaitlistMode } from '../../context/WaitlistModeContext'
@@ -17,7 +16,7 @@ export function MobileMenu() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
   const { waitlistMode } = useWaitlistMode()
-  const { appearanceMode, canPersistTheme } = useTheme()
+  const { appearanceMode } = useTheme()
   const mobileMenuLightPanel = appearanceMode === 'light'
   useBodyScrollLock(open)
 
@@ -77,7 +76,6 @@ export function MobileMenu() {
                 size="md"
               />
               <div className="flex items-center gap-1">
-                {canPersistTheme ? <ThemeToggle /> : null}
                 <button
                   type="button"
                   aria-label="Close"

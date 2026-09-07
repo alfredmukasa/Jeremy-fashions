@@ -93,55 +93,41 @@ export function HeroSection() {
         </motion.div>
       </motion.div>
 
-      <Container className="relative z-[2] flex min-h-[100svh] flex-col justify-end pb-24 pt-36 md:pb-32">
-        <motion.p
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="text-[11px] font-medium uppercase tracking-[0.45em] text-white/80"
-        >
-          Season 06 — Monochrome Study
-        </motion.p>
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.75, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-          className="mt-6 max-w-4xl font-serif text-[clamp(2.6rem,6vw,4.75rem)] font-normal leading-[0.95] tracking-tight"
-        >
-          Silence reads louder than a logo.
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.15, duration: 0.6 }}
-          className="mt-6 max-w-xl text-sm leading-relaxed text-white/80 md:text-base"
-        >
-          Tailored outer layers, sculptural sneakers, and studio-grade essentials — designed as a system,
-          not a statement.
-        </motion.p>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.55 }}
-          className="mt-10"
-        >
-          <Link to={ROUTES.shop}>
-            <Button variant="inverse" className="min-w-[180px]">
-              Shop collection
-            </Button>
-          </Link>
-        </motion.div>
+      <Container className="relative z-[2] flex min-h-[100svh] flex-col pb-24 pt-[calc(var(--header-offset)+var(--announcement-height)+1rem)] md:pb-32">
+        <h1 className="sticky top-[calc(var(--header-offset)+var(--announcement-height)+1rem)] z-[3] w-fit max-w-full text-[11px] font-medium uppercase tracking-[0.22em] text-white/80 sm:tracking-[0.35em] md:tracking-[0.45em]">
+          <motion.span
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="block"
+          >
+            Season 06 — Monochrome Study
+          </motion.span>
+        </h1>
+        <div className="mt-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.55 }}
+          >
+            <Link to={ROUTES.shop}>
+              <Button variant="inverse" className="min-w-[180px]">
+                Shop collection
+              </Button>
+            </Link>
+          </motion.div>
 
-        <motion.div className="mt-12 flex items-center gap-3" aria-hidden>
-          {heroSlides.map((slide, i) => (
-            <span
-              key={`${slide.src}-${i}`}
-              className={`h-px transition-all duration-500 ${
-                i === slideIndex ? 'w-10 bg-white' : 'w-6 bg-white/35'
-              }`}
-            />
-          ))}
-        </motion.div>
+          <motion.div className="mt-12 flex items-center gap-3" aria-hidden>
+            {heroSlides.map((slide, i) => (
+              <span
+                key={`${slide.src}-${i}`}
+                className={`h-px transition-all duration-500 ${
+                  i === slideIndex ? 'w-10 bg-white' : 'w-6 bg-white/35'
+                }`}
+              />
+            ))}
+          </motion.div>
+        </div>
       </Container>
     </section>
   )

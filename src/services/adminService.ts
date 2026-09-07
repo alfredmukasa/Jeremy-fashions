@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import type { ProductAttributes } from '../types'
+import { mergeSizeChartIntoAttributes, sizeChartHasMeasurements } from '../lib/sizeChart'
+import type { ProductAttributes, SizeChart } from '../types'
 import type { ProductRow } from './mappers'
 import { GLOBAL_SETTINGS_ROW_ID } from './globalSettingsService'
 
@@ -30,6 +31,7 @@ export type AdminProductPayload = {
   sizes: string[]
   colors: { name: string; hex: string }[]
   attributes: ProductAttributes
+  sizeChart: SizeChart | null
 }
 
 export type AdminWaitlistRow = {
@@ -122,6 +124,13 @@ export type AdminDashboardStats = {
   revenueTotal: number
 }
 
+function sizeChartForSave(payload: AdminProductPayload) {
+  const chart = payload.sizeChart
+  if (!chart) return null
+  if (sizeChartHasMeasurements(chart) || chart.notes.trim()) return chart
+  return null
+}
+
 function requireClient() {
   if (!isSupabaseConfigured || !supabase) {
     throw new Error('Supabase is not configured.')
@@ -161,7 +170,10 @@ export async function adminCreateProduct(payload: AdminProductPayload): Promise<
     gender: payload.gender,
     sizes: payload.sizes,
     colors: payload.colors,
-    attributes: payload.attributes,
+    attributes: mergeSizeChartIntoAttributes(
+      (payload.attributes ?? {}) as Record<string, unknown>,
+      sizeChartForSave(payload),
+    ),
   }
 
   const { data, error } = await client.from('products').insert(row).select(PRODUCT_COLUMNS).single()
@@ -191,7 +203,10 @@ export async function adminUpdateProduct(id: string, payload: AdminProductPayloa
     gender: payload.gender,
     sizes: payload.sizes,
     colors: payload.colors,
-    attributes: payload.attributes,
+    attributes: mergeSizeChartIntoAttributes(
+      (payload.attributes ?? {}) as Record<string, unknown>,
+      sizeChartForSave(payload),
+    ),
   }
 
   const { data, error } = await client.from('products').update(row).eq('id', id).select(PRODUCT_COLUMNS).single()

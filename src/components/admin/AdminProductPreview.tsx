@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
+import { resolveSizeChart } from '../../lib/sizeChart'
 import type { Product } from '../../types'
 import { formatPrice } from '../../utils/formatPrice'
+import { SizeChartTable } from '../product/SizeChart'
 
 type AdminProductPreviewProps = {
   product: Product
@@ -91,6 +93,24 @@ export function AdminProductPreview({ product, storefrontReady }: AdminProductPr
           ) : (
             <p className="text-xs text-neutral-500">No sizes selected yet.</p>
           )}
+          {product.sizeChart?.rows.length ? (
+            <p className="text-xs text-neutral-600">
+              Size chart: {product.sizeChart.rows.length} size
+              {product.sizeChart.rows.length === 1 ? '' : 's'}
+            </p>
+          ) : null}
+          {(() => {
+            const chart = resolveSizeChart(product.productKind, product.sizes, product.sizeChart)
+            if (!chart) return null
+            return (
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">Size chart</p>
+                <div className="mt-2 border border-neutral-200 bg-white p-2">
+                  <SizeChartTable chart={chart} compact />
+                </div>
+              </div>
+            )
+          })()}
           {product.images.length > 1 ? (
             <div>
               <p className="text-[10px] uppercase tracking-[0.2em] text-neutral-500">Gallery</p>

@@ -21,6 +21,25 @@ export type ProductAttributes = {
   care?: string
 }
 
+export type SizeChartUnit = 'in' | 'cm'
+
+export type SizeChartColumn = {
+  id: string
+  label: string
+}
+
+export type SizeChartRow = {
+  size: string
+  values: Record<string, string>
+}
+
+export type SizeChart = {
+  unit: SizeChartUnit
+  columns: SizeChartColumn[]
+  rows: SizeChartRow[]
+  notes: string
+}
+
 export type Product = {
   id: string
   name: string
@@ -32,6 +51,7 @@ export type Product = {
   sizes: string[]
   colors: ProductColor[]
   attributes: ProductAttributes
+  sizeChart: SizeChart | null
   price: number
   salePrice?: number
   rating: number

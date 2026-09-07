@@ -1,7 +1,23 @@
 import { emptyAttributesForKind, resolveProductKind } from '../../lib/productCategoryConfig'
+import { emptySizeChart, parseSizeChart, sizeChartHasMeasurements } from '../../lib/sizeChart'
 import type { AdminProductPayload } from '../../services/adminService'
 import type { ProductRow } from '../../services/mappers'
 import type { Product, ProductAttributes, ProductKind } from '../../types'
+
+function attributesFromRow(raw: unknown, kind: ProductKind): ProductAttributes {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return emptyAttributesForKind(kind)
+  }
+  const source = raw as Record<string, unknown>
+  const next: ProductAttributes = { ...emptyAttributesForKind(kind) }
+  for (const [key, value] of Object.entries(source)) {
+    if (key === 'sizeChart') continue
+    if (typeof value === 'string') {
+      next[key as keyof ProductAttributes] = value
+    }
+  }
+  return next
+}
 
 export function emptyProductPayload(categorySlug: string, productKind: ProductKind = 'apparel'): AdminProductPayload {
   return {
@@ -24,6 +40,7 @@ export function emptyProductPayload(categorySlug: string, productKind: ProductKi
     sizes: [],
     colors: [{ name: 'Default', hex: '#1a1a1a' }],
     attributes: emptyAttributesForKind(productKind),
+    sizeChart: emptySizeChart(productKind),
   }
 }
 
@@ -39,10 +56,8 @@ export function productRowToPayload(row: ProductRow): AdminProductPayload {
     : [{ name: 'Default', hex: '#1a1a1a' }]
 
   const kind = resolveProductKind(row.category)
-  const attributes =
-    row.attributes && typeof row.attributes === 'object' && !Array.isArray(row.attributes)
-      ? (row.attributes as ProductAttributes)
-      : emptyAttributesForKind(kind)
+  const cleanSizes = sizes.filter((s): s is string => typeof s === 'string')
+  const storedChart = parseSizeChart(row.size_chart) ?? parseSizeChart(row.attributes)
 
   return {
     title: row.title,
@@ -61,9 +76,10 @@ export function productRowToPayload(row: ProductRow): AdminProductPayload {
     sku: row.sku ?? '',
     status: (row.status as AdminProductPayload['status']) || 'active',
     gender: row.gender === 'men' || row.gender === 'women' ? row.gender : 'unisex',
-    sizes: sizes.filter((s): s is string => typeof s === 'string'),
+    sizes: cleanSizes,
     colors: colors.length ? colors : [{ name: 'Default', hex: '#1a1a1a' }],
-    attributes,
+    attributes: attributesFromRow(row.attributes, kind),
+    sizeChart: storedChart && sizeChartHasMeasurements(storedChart) ? storedChart : emptySizeChart(kind, cleanSizes),
   }
 }
 
@@ -84,6 +100,7 @@ export function productPayloadToPreview(form: AdminProductPayload, id = 'preview
     sizes: form.sizes,
     colors: form.colors,
     attributes: form.attributes,
+    sizeChart: form.sizeChart,
     price: form.price,
     salePrice: form.compare_price == null ? undefined : form.compare_price,
     rating: form.rating,

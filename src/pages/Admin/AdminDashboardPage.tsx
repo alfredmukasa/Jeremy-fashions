@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { ROUTES } from '../../constants'
 import { supabase } from '../../lib/supabase'
 import { useAdminSession } from '../../components/admin/AdminSessionContext'
+import { parseSizeChart } from '../../lib/sizeChart'
 import { getCategories } from '../../services/productService'
 import type { Category } from '../../types'
 import {
@@ -49,6 +50,7 @@ function emptyPayload(categorySlug: string): AdminProductPayload {
     sizes: [],
     colors: [{ name: 'Default', hex: '#1a1a1a' }],
     attributes: {},
+    sizeChart: null,
   }
 }
 
@@ -86,6 +88,7 @@ function rowToPayload(row: ProductRow): AdminProductPayload {
       row.attributes && typeof row.attributes === 'object' && !Array.isArray(row.attributes)
         ? (row.attributes as AdminProductPayload['attributes'])
         : {},
+    sizeChart: parseSizeChart(row.size_chart) ?? parseSizeChart(row.attributes),
   }
 }
 

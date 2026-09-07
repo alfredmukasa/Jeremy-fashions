@@ -1,5 +1,6 @@
-import type { Category, Product, ProductAttributes, ProductColor, ProductKind } from '../types'
+import type { Category, Product, ProductAttributes, ProductColor, ProductKind, SizeChart } from '../types'
 import { resolveProductKind } from '../lib/productCategoryConfig'
+import { parseSizeChart } from '../lib/sizeChart'
 
 /**
  * Raw row shape returned by Supabase for the `products` table.
@@ -28,6 +29,7 @@ export type ProductRow = {
   sizes: string[] | null
   colors: unknown
   attributes?: unknown
+  size_chart?: unknown
 }
 
 export type CategoryRow = {
@@ -82,11 +84,16 @@ function parseAttributes(raw: unknown): ProductAttributes {
   const source = raw as Record<string, unknown>
   const out: ProductAttributes = {}
   for (const [key, value] of Object.entries(source)) {
+    if (key === 'sizeChart') continue
     if (typeof value === 'string' && value.trim()) {
       out[key as keyof ProductAttributes] = value.trim()
     }
   }
   return out
+}
+
+function parseStoredSizeChart(rawAttributes: unknown, rawColumn?: unknown): SizeChart | null {
+  return parseSizeChart(rawColumn) ?? parseSizeChart(rawAttributes)
 }
 
 function parseProductKind(raw: string | null | undefined, categorySlug: string): ProductKind {
@@ -109,6 +116,7 @@ export function mapProductRow(row: ProductRow): Product {
     sizes: stringArray(row.sizes),
     colors: parseColors(row.colors),
     attributes: parseAttributes(row.attributes),
+    sizeChart: parseStoredSizeChart(row.attributes, row.size_chart),
     price: toNumber(row.price),
     salePrice: row.compare_price == null ? undefined : toNumber(row.compare_price),
     rating: toNumber(row.rating),

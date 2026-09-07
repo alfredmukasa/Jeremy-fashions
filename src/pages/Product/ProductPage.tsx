@@ -3,13 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { HiOutlineChevronDown, HiOutlineHeart, HiOutlineShoppingBag } from 'react-icons/hi2'
 
-import type { Product } from '../../types'
+import type { Product, SizeChartUnit } from '../../types'
 import { ROUTES } from '../../constants'
 import { useProduct, useRelatedProducts } from '../../hooks/useCatalog'
 import { useCartStore } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore, selectWishlistHas } from '../../store/wishlistStore'
 import { sizeLabelForKind } from '../../lib/productCategoryConfig'
+import { sizeChartHasMeasurements } from '../../lib/sizeChart'
 import { formatPrice } from '../../utils/formatPrice'
 import { cn } from '../../utils/cn'
 
@@ -18,6 +19,7 @@ import { Button } from '../../components/common/Button'
 import { Container } from '../../components/layout/Container'
 import { ProductGallery } from '../../components/product/ProductGallery'
 import { ProductGrid } from '../../components/product/ProductGrid'
+import { SizeChartDialog, SizeChartTable } from '../../components/product/SizeChart'
 import { SectionHeading } from '../../components/common/SectionHeading'
 import { Seo } from '../../components/seo/Seo'
 import { breadcrumbJsonLd, productJsonLd } from '../../lib/structuredData'
@@ -174,6 +176,9 @@ function ProductDetail({ product }: DetailProps) {
   const [size, setSize] = useState(sizes[0] ?? '')
   const [color, setColor] = useState(colors[0]?.name ?? '')
   const [qty, setQty] = useState(1)
+  const [sizeChartOpen, setSizeChartOpen] = useState(false)
+  const sizeChart = sizeChartHasMeasurements(product.sizeChart) ? product.sizeChart : null
+  const [chartUnit, setChartUnit] = useState<SizeChartUnit>(sizeChart?.unit ?? 'in')
 
   const addLine = useCartStore((s) => s.addLine)
   const openCart = useUiStore((s) => s.openCart)
@@ -316,9 +321,20 @@ function ProductDetail({ product }: DetailProps) {
               ) : null}
               {sizes.length ? (
                 <motion.div>
-                  <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-[var(--text-muted)]">
-                    {sizeLabelForKind(product.productKind)}
-                  </p>
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-[var(--text-muted)]">
+                      {sizeLabelForKind(product.productKind)}
+                    </p>
+                    {sizeChart ? (
+                      <button
+                        type="button"
+                        onClick={() => setSizeChartOpen(true)}
+                        className="text-[10px] font-medium uppercase tracking-[0.22em] text-[var(--text-secondary)] underline-offset-4 transition hover:text-[var(--text-primary)] hover:underline"
+                      >
+                        Size chart
+                      </button>
+                    ) : null}
+                  </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {sizes.map((s) => (
                       <button
@@ -380,6 +396,12 @@ function ProductDetail({ product }: DetailProps) {
               <DetailAccordion title="Details" defaultOpen>
                 <p>{product.description}</p>
               </DetailAccordion>
+              {sizeChart ? (
+                <DetailAccordion title="Size chart">
+                  <SizeChartTable chart={sizeChart} displayUnit={chartUnit} highlightSize={size} compact />
+                  {sizeChart.notes.trim() ? <p className="mt-4">{sizeChart.notes}</p> : null}
+                </DetailAccordion>
+              ) : null}
               <DetailAccordion title="Shipping">
                 Complimentary standard shipping on orders over $250. Express delivery is available at checkout for
                 domestic addresses.
@@ -425,6 +447,19 @@ function ProductDetail({ product }: DetailProps) {
             </div>
           </Container>
         </section>
+      ) : null}
+
+      {sizeChart ? (
+        <SizeChartDialog
+          open={sizeChartOpen}
+          title={product.name}
+          kind={product.productKind}
+          chart={sizeChart}
+          highlightSize={size}
+          displayUnit={chartUnit}
+          onDisplayUnitChange={setChartUnit}
+          onClose={() => setSizeChartOpen(false)}
+        />
       ) : null}
     </div>
   )

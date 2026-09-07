@@ -6,11 +6,13 @@ import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { AdminProductCategoryFields } from '../../components/admin/AdminProductCategoryFields'
 import { AdminProductMediaFields } from '../../components/admin/AdminProductMediaFields'
 import { AdminProductPreview } from '../../components/admin/AdminProductPreview'
+import { AdminSizeChartFields } from '../../components/admin/AdminSizeChartFields'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
 import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
 import { invalidateCatalog } from '../../hooks/useCatalog'
 import { emptyAttributesForKind, resolveProductKind } from '../../lib/productCategoryConfig'
+import { emptySizeChart } from '../../lib/sizeChart'
 import { getCategories } from '../../services/productService'
 import {
   adminCreateProduct,
@@ -229,6 +231,7 @@ function AdminProductsContent() {
                         category: slug,
                         sizes: current.category === slug ? current.sizes : [],
                         attributes: current.category === slug ? current.attributes : emptyAttributesForKind(kind),
+                        sizeChart: current.category === slug ? current.sizeChart : emptySizeChart(kind),
                       }))
                     }}
                     className="mt-1 w-full border border-neutral-300 bg-white px-3 py-2 text-sm"
@@ -284,10 +287,15 @@ function AdminProductsContent() {
                 <div className="space-y-4 sm:col-span-2">
                   <AdminProductMediaFields form={form} uploadFolder={uploadFolder} onChange={setForm} />
                 </div>
-                <div className="sm:col-span-2">
+                <div className="space-y-4 sm:col-span-2">
                   <AdminProductCategoryFields
                     form={form}
                     categories={categoriesQuery.data ?? []}
+                    onChange={setForm}
+                  />
+                  <AdminSizeChartFields
+                    form={form}
+                    productKind={selectedCategory?.productKind ?? resolveProductKind(form.category)}
                     onChange={setForm}
                   />
                 </div>

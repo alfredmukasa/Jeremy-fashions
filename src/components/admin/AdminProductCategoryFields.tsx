@@ -5,6 +5,7 @@ import {
   sizeLabelForKind,
   sizePresetsForKind,
 } from '../../lib/productCategoryConfig'
+import { emptySizeChart, syncSizeChartRows } from '../../lib/sizeChart'
 import type { AdminProductPayload } from '../../services/adminService'
 import { FieldLabel, Input } from '../common/Input'
 
@@ -24,7 +25,12 @@ export function AdminProductCategoryFields({ form, categories, onChange }: Admin
     const selected = new Set(form.sizes)
     if (selected.has(size)) selected.delete(size)
     else selected.add(size)
-    onChange({ ...form, sizes: Array.from(selected) })
+    const sizes = Array.from(selected)
+    onChange({
+      ...form,
+      sizes,
+      sizeChart: syncSizeChartRows(form.sizeChart ?? emptySizeChart(productKind, sizes), sizes, productKind),
+    })
   }
 
   return (
@@ -85,15 +91,17 @@ export function AdminProductCategoryFields({ form, categories, onChange }: Admin
         <Input
           id="psizes"
           value={form.sizes.join(', ')}
-          onChange={(e) =>
+          onChange={(e) => {
+            const sizes = e.target.value
+              .split(',')
+              .map((size) => size.trim())
+              .filter(Boolean)
             onChange({
               ...form,
-              sizes: e.target.value
-                .split(',')
-                .map((size) => size.trim())
-                .filter(Boolean),
+              sizes,
+              sizeChart: syncSizeChartRows(form.sizeChart ?? emptySizeChart(productKind, sizes), sizes, productKind),
             })
-          }
+          }}
           placeholder="Custom sizes, comma-separated"
         />
       </div>

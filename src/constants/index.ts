@@ -5,6 +5,7 @@ export const BRAND = 'KREWNOX'
 const adminBase = getAdminBasePath()
 
 export const ROUTES = {
+  // Public indexable routes — keep src/constants/publicSitemapPages.mjs in sync.
   home: '/',
   shop: '/shop',
   product: (slug: string) => `/product/${slug}`,

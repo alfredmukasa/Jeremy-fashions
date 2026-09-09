@@ -5,7 +5,6 @@ import { HiOutlineXMark } from 'react-icons/hi2'
 import { ROUTES } from '../../constants'
 import { BrandLogo } from '../common/BrandLogo'
 import { useAuth } from '../../context/AuthContext'
-import { useTheme } from '../../context/ThemeContext'
 import { useWaitlistMode } from '../../context/WaitlistModeContext'
 import { useUiStore } from '../../store/uiStore'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
@@ -16,8 +15,6 @@ export function MobileMenu() {
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
   const { waitlistMode } = useWaitlistMode()
-  const { appearanceMode } = useTheme()
-  const mobileMenuLightPanel = appearanceMode === 'light'
   useBodyScrollLock(open)
 
   const publicItems = waitlistMode
@@ -71,8 +68,7 @@ export function MobileMenu() {
               <BrandLogo
                 linkTo={waitlistMode ? ROUTES.waitlist : ROUTES.home}
                 onClick={() => setOpen(false)}
-                variant={mobileMenuLightPanel ? 'dark' : 'light'}
-                forceDarkMark={mobileMenuLightPanel}
+                variant="dark"
                 size="md"
               />
               <div className="flex items-center gap-1">

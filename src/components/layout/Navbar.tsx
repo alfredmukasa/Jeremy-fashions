@@ -70,14 +70,13 @@ export function Navbar() {
   const openCart = useUiStore((s) => s.openCart)
   const setMobileOpen = useUiStore((s) => s.setMobileNavOpen)
 
-  const isWaitlistLanding = waitlistMode && location.pathname === ROUTES.waitlist
-  /** White mark on dark glass hero only — home top-of-page or waitlist hero. */
-  const useLightLogoMark = (isHome && !scrolled) || isWaitlistLanding
+  /** White mark on dark glass hero only — home, top of page. Waitlist keeps a solid bar. */
+  const useLightLogoMark = isHome && !scrolled
   const isOverlay = useLightLogoMark
 
   useEffect(() => {
     const onScroll = () => {
-      if (isHome || isWaitlistLanding) {
+      if (isHome) {
         setScrolled(window.scrollY > SCROLL_THRESHOLD)
       }
     }
@@ -88,17 +87,17 @@ export function Navbar() {
       cancelAnimationFrame(id)
       window.removeEventListener('scroll', onScroll)
     }
-  }, [isHome, isWaitlistLanding, location.pathname])
+  }, [isHome, location.pathname])
 
   useEffect(() => {
     queueMicrotask(() => setScrolled(false))
   }, [location.pathname])
 
   useEffect(() => {
-    if (!isHome && !isWaitlistLanding) {
+    if (!isHome) {
       queueMicrotask(() => setScrolled(false))
     }
-  }, [isHome, isWaitlistLanding])
+  }, [isHome])
 
   const homeHeroOverlay = isHome && isOverlay
   const iconTone = homeHeroOverlay ? 'text-white' : isOverlay ? 'text-white' : 'text-neutral-900'
@@ -121,7 +120,7 @@ export function Navbar() {
   return (
     <motion.header
       className={cn(
-        'fixed inset-x-[10px] top-[var(--announcement-height)] z-40 rounded-b-2xl',
+        'fixed inset-x-[10px] top-[var(--announcement-height)] z-50 rounded-b-2xl',
         homeHeroOverlay
           ? cn(
               glassOverlay,
@@ -183,7 +182,12 @@ export function Navbar() {
                   </NavLink>
                 ))
               : (
-                  <span className="text-[10px] font-medium uppercase tracking-[0.28em] text-white/55">
+                  <span
+                    className={cn(
+                      'text-[10px] font-medium uppercase tracking-[0.28em]',
+                      isOverlay ? 'text-white/55' : 'text-neutral-500',
+                    )}
+                  >
                     Private access
                   </span>
                 )}
@@ -195,7 +199,7 @@ export function Navbar() {
                 <ProductSearchField
                   key={location.pathname === ROUTES.shop ? location.search : 'global'}
                   variant="icon"
-                  overlay={homeHeroOverlay || (isWaitlistLanding && isOverlay)}
+                  overlay={homeHeroOverlay}
                 />
               </div>
             ) : null}

@@ -70,7 +70,7 @@ export default function WaitlistPage() {
 
   return (
     <div
-      className="flex min-h-[calc(100svh-var(--header-offset)-var(--announcement-height))] items-center justify-center bg-white px-4 sm:px-6"
+      className="relative z-0 flex min-h-[calc(100svh-var(--header-offset)-var(--announcement-height)-2.5rem)] items-center justify-center bg-white px-4 py-10 sm:px-6 sm:py-12"
       style={LIGHT_SURFACE_STYLE}
     >
       <Seo

@@ -51,9 +51,10 @@ export function MainLayout() {
       <CartDrawer />
       <main
         className={cn(
-          isHome || isWaitlist
+          'relative z-0',
+          isHome
             ? 'overflow-x-visible pt-0'
-            : 'pt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] lg:pt-[calc(var(--header-offset)+var(--announcement-height))]',
+            : 'pt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] lg:pt-[calc(var(--header-offset)+var(--announcement-height)+0.75rem)]',
         )}
       >
         <AnimatePresence initial={false}>

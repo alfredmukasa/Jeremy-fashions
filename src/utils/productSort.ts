@@ -1,8 +1,11 @@
 import type { SortValue } from '../constants'
 import type { Product } from '../types'
 
-/** Products tagged or created within this window count as "new" on /shop?tag=new */
-export const NEW_ARRIVAL_WINDOW_DAYS = 45
+/** New Arrivals shows the most recently uploaded active products. */
+export const NEW_ARRIVAL_LIMIT = 50
+
+/** Homepage restock grid keeps the newest pieces, not the full catalog. */
+export const HOME_NEW_ARRIVAL_LIMIT = 8
 
 function productTime(p: Product): number {
   if (p.createdAt) {
@@ -18,12 +21,9 @@ export function compareProductsByNewest(a: Product, b: Product): number {
   return b.id.localeCompare(a.id)
 }
 
-export function isNewArrival(product: Product, windowDays = NEW_ARRIVAL_WINDOW_DAYS): boolean {
-  if (product.tags.includes('new')) return true
-  const created = productTime(product)
-  if (!created) return false
-  const windowMs = windowDays * 24 * 60 * 60 * 1000
-  return Date.now() - created <= windowMs
+/** Latest uploaded products first, capped so New Arrivals stays a fresh drop. */
+export function latestProducts(list: Product[], limit = NEW_ARRIVAL_LIMIT): Product[] {
+  return [...list].sort(compareProductsByNewest).slice(0, Math.max(0, limit))
 }
 
 export function sortProducts(list: Product[], sort: SortValue): Product[] {

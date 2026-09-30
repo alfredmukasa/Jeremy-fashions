@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { AdminStatCard } from '../../components/admin/AdminStatCard'
 import { ROUTES } from '../../constants'
+import { normalizeOrderStatus, orderStatusLabel } from '../../lib/orderStatus'
 import { adminGetDashboardStats, adminListContactMessages, adminListOrders, adminListProducts } from '../../services/adminService'
 
 export default function AdminOverviewPage() {
@@ -103,7 +104,7 @@ export default function AdminOverviewPage() {
                       {new Date(order.created_at).toLocaleString(undefined, { dateStyle: 'short' })}
                     </td>
                     <td className="px-4 py-3 font-medium text-neutral-900">{order.email}</td>
-                    <td className="px-4 py-3 capitalize text-neutral-600">{order.status}</td>
+                    <td className="px-4 py-3 text-neutral-600">{orderStatusLabel(normalizeOrderStatus(order.status))}</td>
                     <td className="px-4 py-3">${Number(order.total_amount).toFixed(2)}</td>
                   </tr>
                 ))}

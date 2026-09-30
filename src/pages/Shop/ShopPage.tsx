@@ -9,7 +9,7 @@ import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore } from '../../store/wishlistStore'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { productMatchesQuery } from '../../utils/productSearch'
-import { isNewArrival, sortProducts } from '../../utils/productSort'
+import { NEW_ARRIVAL_LIMIT, latestProducts, sortProducts } from '../../utils/productSort'
 
 import { Container } from '../../components/layout/Container'
 import { FilterSidebar, type FilterState } from '../../components/product/FilterSidebar'
@@ -92,10 +92,6 @@ export default function ShopPage() {
       list = list.filter((p) => wishIds.includes(p.id))
     }
 
-    if (tagFilter === 'new') {
-      list = list.filter(isNewArrival)
-    }
-
     const q = debounced.trim()
     if (q) {
       list = list.filter((product) => productMatchesQuery(product, q))
@@ -114,6 +110,10 @@ export default function ShopPage() {
       return pr >= activeFilters.priceMin && pr <= activeFilters.priceMax
     })
 
+    if (tagFilter === 'new') {
+      list = latestProducts(list, NEW_ARRIVAL_LIMIT)
+    }
+
     return sortProducts(list, sort)
   }, [activeFilters, debounced, sort, tagFilter, wishIds, wishOnly, products])
 
@@ -131,10 +131,13 @@ export default function ShopPage() {
   const pageTitle =
     tagFilter === 'new' ? 'New arrivals' : wishOnly ? 'Saved pieces' : categoryParam ? categoryParam.replace(/-/g, ' ') : 'Shop all'
 
-  const seoTitle = categoryParam ? `Shop ${categoryParam.replace(/-/g, ' ')}` : 'Shop All'
-  const seoDescription = categoryParam
-    ? `Browse the ${categoryParam.replace(/-/g, ' ')} collection at KREWNOX — tailored outerwear, sculptural sneakers, and studio-grade essentials.`
-    : 'Browse the full KREWNOX collection — tailored outerwear, sculptural sneakers, and studio-grade essentials designed as a system.'
+  const seoTitle = tagFilter === 'new' ? 'New arrivals' : categoryParam ? `Shop ${categoryParam.replace(/-/g, ' ')}` : 'Shop All'
+  const seoDescription =
+    tagFilter === 'new'
+      ? 'The latest KREWNOX drops — newest pieces first, updated as soon as they are uploaded.'
+      : categoryParam
+        ? `Browse the ${categoryParam.replace(/-/g, ' ')} collection at KREWNOX — tailored outerwear, sculptural sneakers, and studio-grade essentials.`
+        : 'Browse the full KREWNOX collection — tailored outerwear, sculptural sneakers, and studio-grade essentials designed as a system.'
 
   return (
     <div className="pb-8">

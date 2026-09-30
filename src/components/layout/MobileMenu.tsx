@@ -18,11 +18,12 @@ export function MobileMenu() {
   useBodyScrollLock(open)
 
   const publicItems = waitlistMode
-    ? []
+    ? [{ to: ROUTES.contact, label: 'Contact us' }]
     : [
         { to: ROUTES.home, label: 'Home' },
         { to: ROUTES.shop, label: 'Shop' },
         { to: `${ROUTES.shop}?tag=new`, label: 'New arrivals' },
+        { to: ROUTES.contact, label: 'Contact us' },
       ]
 
   const authItems =

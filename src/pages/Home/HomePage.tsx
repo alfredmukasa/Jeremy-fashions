@@ -11,6 +11,7 @@ import { HeroSection } from '../../components/home/HeroSection'
 import { ProductShowcase } from '../../components/home/ProductShowcase'
 import { Seo } from '../../components/seo/Seo'
 import { ROUTES } from '../../constants'
+import { HOME_NEW_ARRIVAL_LIMIT, latestProducts } from '../../utils/productSort'
 
 const HOME_DESCRIPTION =
   'Shop KREWNOX — tailored outerwear, sculptural sneakers, and studio-grade essentials designed as a system, not a statement. New arrivals dropping weekly.'
@@ -32,6 +33,10 @@ export default function HomePage() {
   const structuredData = useMemo(() => [organizationJsonLd(), websiteJsonLd()], [])
 
   const showLoadingShowcase = loading && (!products || products.length === 0)
+  const newestProducts = useMemo(
+    () => latestProducts(products ?? [], HOME_NEW_ARRIVAL_LIMIT),
+    [products],
+  )
 
   return (
     <div>
@@ -68,10 +73,10 @@ export default function HomePage() {
         ) : null}
 
         <ProductShowcase
-          title="The great restock"
-          products={products ?? []}
+          title="New arrivals"
+          products={newestProducts}
           loading={showLoadingShowcase}
-          cta={{ label: 'View all', to: ROUTES.shop }}
+          cta={{ label: 'View all', to: `${ROUTES.shop}?tag=new` }}
         />
       </motion.div>
     </div>

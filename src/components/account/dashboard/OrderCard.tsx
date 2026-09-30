@@ -99,7 +99,9 @@ export function OrderCard({ order }: { order: CustomerOrderDetail }) {
             </div>
             <div>
               <dt className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Tracking</dt>
-              <dd className="mt-1 capitalize text-neutral-900">{order.status}</dd>
+              <dd className="mt-1 text-neutral-900">
+                <StatusBadge status={order.status} />
+              </dd>
             </div>
             <div className="sm:col-span-2">
               <dt className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Shipping address</dt>

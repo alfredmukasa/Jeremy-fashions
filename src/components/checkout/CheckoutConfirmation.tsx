@@ -65,7 +65,7 @@ export function CheckoutConfirmation({ orderId, email, isSignedIn, accessToken }
         <h1 className="mt-4 font-serif text-3xl text-neutral-950 sm:text-4xl">{headline}</h1>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <PaymentStatusBadge status={paymentStatus} />
-          {order?.status ? <StatusBadge status={order.status} /> : null}
+          {order?.status && paymentStatus === 'paid' ? <StatusBadge status={order.status} /> : null}
         </div>
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-neutral-600">{body}</p>
 

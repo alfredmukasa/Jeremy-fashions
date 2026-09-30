@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { HiOutlineChevronDown } from 'react-icons/hi2'
 
 import { formatOrderNumber } from '../../../lib/orderNumber'
-import { ORDER_STATUSES } from '../../../lib/orderStatus'
+import { FULFILLMENT_STATUSES, fulfillmentStatusFromOrder, orderStatusLabel, normalizeOrderStatus } from '../../../lib/orderStatus'
 import type { CustomerOrderDetail } from '../../../services/orderService'
 import { cn } from '../../../utils/cn'
 import { formatPrice } from '../../../utils/formatPrice'
@@ -20,7 +20,8 @@ export function OrderHistoryTable({ orders }: { orders: CustomerOrderDetail[] })
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const filtered = orders.filter((order) => {
-    const matchesStatus = statusFilter === 'all' || order.status === statusFilter
+    const trackingStatus = fulfillmentStatusFromOrder(order.status)
+    const matchesStatus = statusFilter === 'all' || trackingStatus === statusFilter
     const haystack = [
       order.id,
       order.orderNumber,
@@ -78,10 +79,10 @@ export function OrderHistoryTable({ orders }: { orders: CustomerOrderDetail[] })
               }}
               className="w-full rounded-sm border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-900 shadow-sm outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-neutral-950 sm:min-w-44"
             >
-              <option value="all">All statuses</option>
-              {ORDER_STATUSES.map((status) => (
+              <option value="all">All tracking statuses</option>
+              {FULFILLMENT_STATUSES.map((status) => (
                 <option key={status} value={status}>
-                  {status.charAt(0).toUpperCase() + status.slice(1)}
+                  {orderStatusLabel(status)}
                 </option>
               ))}
             </select>
@@ -100,7 +101,7 @@ export function OrderHistoryTable({ orders }: { orders: CustomerOrderDetail[] })
                   <th className="px-4 py-3 font-medium">Items</th>
                   <th className="px-4 py-3 font-medium">Total</th>
                   <th className="px-4 py-3 font-medium">Payment</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Tracking</th>
                   <th className="px-4 py-3 font-medium">Details</th>
                 </tr>
               </thead>
@@ -267,8 +268,8 @@ function OrderHistoryDetails({ id, order }: { id: string; order: CustomerOrderDe
         ) : null}
       </div>
       <div>
-        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Tracking status</p>
-        <p className="mt-1 capitalize text-neutral-900">{order.status}</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Tracking</p>
+        <p className="mt-1 text-neutral-900">{orderStatusLabel(normalizeOrderStatus(order.status))}</p>
       </div>
       <div className="lg:col-span-2">
         <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Shipping address</p>

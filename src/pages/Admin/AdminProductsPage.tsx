@@ -79,6 +79,7 @@ function AdminProductsContent() {
     },
     onSuccess: () => {
       toast.success('Product deleted')
+      invalidateCatalog('products')
       void queryClient.invalidateQueries({ queryKey: ['admin', 'products'] })
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Delete failed'),

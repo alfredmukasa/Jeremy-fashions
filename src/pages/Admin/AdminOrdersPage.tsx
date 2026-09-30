@@ -4,17 +4,10 @@ import toast from 'react-hot-toast'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { PaymentStatusBadge } from '../../components/account/dashboard/PaymentStatusBadge'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
+import { FULFILLMENT_STATUSES, fulfillmentStatusFromOrder, normalizeOrderStatus, orderStatusLabel } from '../../lib/orderStatus'
 import { formatOrderNumber } from '../../lib/orderNumber'
 import { normalizePaymentStatus, paymentStatusLabel, readPaymentActivity } from '../../lib/paymentStatus'
 import { adminListOrders, adminUpdateOrderStatus, type AdminOrderRow } from '../../services/adminService'
-
-const FULFILLMENT_STATUSES: AdminOrderRow['status'][] = [
-  'pending',
-  'processing',
-  'shipped',
-  'delivered',
-  'cancelled',
-]
 
 export default function AdminOrdersPage() {
   return (
@@ -42,7 +35,7 @@ function AdminOrdersContent() {
       <AdminPageHeader
         eyebrow="Fulfillment"
         title="Orders"
-        description="Payment status is set by Stripe. Fulfillment is separate — do not treat Paid as Shipped."
+        description="Stripe sets payment. You set tracking: received, packaging, out for delivery, then delivered."
       />
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
@@ -55,7 +48,7 @@ function AdminOrdersContent() {
               <th className="px-4 py-3 font-medium">Total</th>
               <th className="px-4 py-3 font-medium">Payment</th>
               <th className="px-4 py-3 font-medium">Stripe activity</th>
-              <th className="px-4 py-3 font-medium">Fulfillment</th>
+              <th className="px-4 py-3 font-medium">Tracking</th>
             </tr>
           </thead>
           <tbody>
@@ -150,20 +143,15 @@ function AdminOrderRowView({
       </td>
       <td className="px-4 py-3">
         <select
-          value={order.status}
+          value={fulfillmentStatusFromOrder(order.status)}
           onChange={(e) => onStatusChange(e.target.value as AdminOrderRow['status'])}
-          className="w-full max-w-[180px] border border-neutral-300 bg-white px-2 py-1 text-xs capitalize"
+          className="w-full max-w-[180px] border border-neutral-300 bg-white px-2 py-1 text-xs"
         >
           {FULFILLMENT_STATUSES.map((status) => (
             <option key={status} value={status}>
-              {status}
+              {orderStatusLabel(normalizeOrderStatus(status))}
             </option>
           ))}
-          {order.status === 'paid' ? (
-            <option value="paid" disabled>
-              paid (set by Stripe)
-            </option>
-          ) : null}
         </select>
       </td>
     </tr>

@@ -203,7 +203,9 @@ export default function TermsPage() {
       <section>
         <h2>18. Contact</h2>
         <p>
-          Questions about these Terms? Reach us at <a href="mailto:support@krewnox.ca">support@krewnox.ca</a>.
+          Questions about these Terms? Reach us through our{' '}
+          <Link to={ROUTES.contact}>Contact us</Link> page or at{' '}
+          <a href="mailto:support@krewnox.ca">support@krewnox.ca</a>.
         </p>
       </section>
     </LegalPageLayout>

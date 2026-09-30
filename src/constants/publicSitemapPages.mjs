@@ -19,6 +19,7 @@ export const PUBLIC_SITEMAP_PAGES = [
   { loc: '/', changefreq: 'daily', priority: '1.0' },
   { loc: '/shop', changefreq: 'daily', priority: '0.9' },
   { loc: '/waitlist', changefreq: 'weekly', priority: '0.4' },
+  { loc: '/contact', changefreq: 'monthly', priority: '0.5' },
   { loc: '/terms', changefreq: 'monthly', priority: '0.3', lastmod: '2026-08-05' },
   { loc: '/privacy', changefreq: 'monthly', priority: '0.3', lastmod: '2026-08-05' },
   { loc: '/refund-policy', changefreq: 'monthly', priority: '0.3', lastmod: '2026-08-05' },

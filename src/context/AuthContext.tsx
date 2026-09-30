@@ -10,6 +10,7 @@ import {
 import type { Session, User } from '@supabase/supabase-js'
 
 import { ROUTES } from '../constants'
+import { AUTH_UNAVAILABLE_MESSAGE } from '../lib/authErrors'
 import { getAuthCallbackUrl } from '../lib/authRedirect'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
@@ -101,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string): Promise<SignInResult> => {
     if (!supabase) {
-      return { error: new Error('Supabase is not configured.') }
+      return { error: new Error(AUTH_UNAVAILABLE_MESSAGE) }
     }
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     return { error: error ? new Error(error.message) : null }
@@ -110,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = useCallback(
     async (args: { email: string; password: string; fullName: string }): Promise<SignUpResult> => {
       if (!supabase) {
-        return { error: new Error('Supabase is not configured.'), session: null }
+        return { error: new Error(AUTH_UNAVAILABLE_MESSAGE), session: null }
       }
       const { data, error } = await supabase.auth.signUp({
         email: args.email,
@@ -130,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async (): Promise<SignInResult> => {
     if (!supabase) {
-      return { error: new Error('Supabase is not configured.') }
+      return { error: new Error(AUTH_UNAVAILABLE_MESSAGE) }
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -148,7 +149,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const resetPasswordForEmail = useCallback(async (email: string): Promise<SignInResult> => {
     if (!supabase) {
-      return { error: new Error('Supabase is not configured.') }
+      return { error: new Error(AUTH_UNAVAILABLE_MESSAGE) }
     }
     const redirectTo = getAuthCallbackUrl({ type: 'recovery', next: ROUTES.resetPassword })
     const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo })
@@ -157,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updatePassword = useCallback(async (password: string): Promise<SignInResult> => {
     if (!supabase) {
-      return { error: new Error('Supabase is not configured.') }
+      return { error: new Error(AUTH_UNAVAILABLE_MESSAGE) }
     }
     const { error } = await supabase.auth.updateUser({ password })
     return { error: error ? new Error(error.message) : null }

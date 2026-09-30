@@ -10,6 +10,7 @@ const AdminProductsPage = lazy(() => import('./AdminProductsPage'))
 const AdminCategoriesPage = lazy(() => import('./AdminCategoriesPage'))
 const AdminOrdersPage = lazy(() => import('./AdminOrdersPage'))
 const AdminWaitlistPage = lazy(() => import('./AdminWaitlistPage'))
+const AdminMessagesPage = lazy(() => import('./AdminMessagesPage'))
 const AdminUsersPage = lazy(() => import('./AdminUsersPage'))
 const AdminTeamPage = lazy(() => import('./AdminTeamPage'))
 const AdminDiscountsPage = lazy(() => import('./AdminDiscountsPage'))
@@ -36,6 +37,7 @@ export default function AdminProtectedEntry() {
             <Route path="categories" element={<AdminCategoriesPage />} />
             <Route path="orders" element={<AdminOrdersPage />} />
             <Route path="waitlist" element={<AdminWaitlistPage />} />
+            <Route path="messages" element={<AdminMessagesPage />} />
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="team" element={<AdminTeamPage />} />
             <Route path="discounts" element={<AdminDiscountsPage />} />

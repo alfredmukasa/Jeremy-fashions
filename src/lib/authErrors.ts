@@ -1,7 +1,17 @@
 /** Map Supabase auth errors to branded, user-safe copy. */
+
+export const AUTH_UNAVAILABLE_MESSAGE = 'Sign-in is temporarily unavailable. Please try again shortly.'
+
 export function friendlyAuthError(message: string): string {
   const lower = message.toLowerCase()
 
+  if (
+    lower.includes('supabase is not configured') ||
+    lower.includes('not configured for this environment') ||
+    lower.includes('sign-in is not configured')
+  ) {
+    return AUTH_UNAVAILABLE_MESSAGE
+  }
   if (lower.includes('expired') || lower.includes('otp_expired')) {
     return 'This link has expired. Request a new confirmation or reset email and try again.'
   }
@@ -18,10 +28,10 @@ export function friendlyAuthError(message: string): string {
     return 'Your browser blocked session storage. Turn off private browsing or allow site data, then try again.'
   }
   if (lower.includes('network') || lower.includes('fetch')) {
-    return 'We could not reach the auth service. Check your connection and try again.'
+    return 'We could not reach the sign-in service. Check your connection and try again.'
   }
   if (lower.includes('provider') && (lower.includes('not enabled') || lower.includes('not found') || lower.includes('unsupported'))) {
-    return 'Google sign-in is not enabled yet. Please use email and password, or try again shortly.'
+    return 'Google sign-in is not available right now. Please use email and password, or try again shortly.'
   }
 
   return message

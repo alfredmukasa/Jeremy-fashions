@@ -16,6 +16,7 @@ export type AdminPermission =
   | 'categories.manage'
   | 'orders.manage'
   | 'waitlist.manage'
+  | 'messages.manage'
   | 'users.manage'
   | 'discounts.manage'
   | 'settings.manage'
@@ -30,6 +31,7 @@ const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     'categories.manage',
     'orders.manage',
     'waitlist.manage',
+    'messages.manage',
     'users.manage',
     'discounts.manage',
     'settings.manage',
@@ -43,9 +45,9 @@ const ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
     'categories.manage',
     'discounts.manage',
   ],
-  ORDER_MANAGER: ['dashboard.view', 'orders.manage'],
+  ORDER_MANAGER: ['dashboard.view', 'orders.manage', 'messages.manage'],
   CONTENT_MANAGER: ['dashboard.view', 'products.manage', 'categories.manage', 'site_content.manage'],
-  SUPPORT_ADMIN: ['dashboard.view', 'waitlist.manage', 'users.manage', 'orders.manage'],
+  SUPPORT_ADMIN: ['dashboard.view', 'waitlist.manage', 'messages.manage', 'users.manage', 'orders.manage'],
 }
 
 export function getAdminRole(user: User | null | undefined): AdminRole {

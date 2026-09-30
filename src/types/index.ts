@@ -83,6 +83,15 @@ export type WaitlistEntry = {
   interestedProductId?: string
 }
 
+export type ContactMessageStatus = 'new' | 'read' | 'replied' | 'archived'
+
+export type ContactMessageInput = {
+  firstName: string
+  lastName: string
+  email: string
+  message: string
+}
+
 export type CartLineSnapshot = {
   name: string
   slug: string

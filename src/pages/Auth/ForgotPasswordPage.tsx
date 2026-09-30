@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
 import { useAuth } from '../../context/AuthContext'
+import { AUTH_UNAVAILABLE_MESSAGE, friendlyAuthError } from '../../lib/authErrors'
 import { isSupabaseConfigured } from '../../lib/supabase'
 
 import { AuthButton } from '../../components/auth/AuthButton'
@@ -18,7 +19,7 @@ export default function ForgotPasswordPage() {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!isSupabaseConfigured) {
-      toast.error('Supabase is not configured.')
+      toast.error(AUTH_UNAVAILABLE_MESSAGE)
       return
     }
     const fd = new FormData(e.currentTarget)
@@ -27,7 +28,7 @@ export default function ForgotPasswordPage() {
     const { error } = await resetPasswordForEmail(email)
     setBusy(false)
     if (error) {
-      toast.error(error.message)
+      toast.error(friendlyAuthError(error.message))
       return
     }
     setSent(true)

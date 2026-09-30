@@ -29,6 +29,7 @@ const ResetPasswordPage = lazy(() => import('./pages/Auth/ResetPasswordPage'))
 const AuthCallbackPage = lazy(() => import('./pages/Auth/AuthCallbackPage'))
 const AccountDashboardPage = lazy(() => import('./pages/Account/AccountDashboardPage'))
 const WaitlistPage = lazy(() => import('./pages/Waitlist/WaitlistPage'))
+const ContactPage = lazy(() => import('./pages/Contact/ContactPage'))
 const TermsPage = lazy(() => import('./pages/Legal/TermsPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/Legal/PrivacyPolicyPage'))
 const RefundPolicyPage = lazy(() => import('./pages/Legal/RefundPolicyPage'))
@@ -128,6 +129,7 @@ export default function App() {
                 <Route path={ROUTES.saved} element={<Navigate to={`${ROUTES.account}#wishlist`} replace />} />
               </Route>
               <Route path={ROUTES.waitlist} element={page(WaitlistPage)} />
+              <Route path={ROUTES.contact} element={page(ContactPage)} />
               <Route path={ROUTES.terms} element={page(TermsPage)} />
               <Route path={ROUTES.privacy} element={page(PrivacyPolicyPage)} />
               <Route path={ROUTES.refundPolicy} element={page(RefundPolicyPage)} />

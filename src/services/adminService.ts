@@ -116,6 +116,20 @@ export type AdminAuditRow = {
   metadata: Record<string, unknown>
 }
 
+export type AdminContactMessageStatus = 'new' | 'read' | 'replied' | 'archived'
+
+export type AdminContactMessageRow = {
+  id: string
+  created_at: string
+  updated_at: string
+  first_name: string
+  last_name: string
+  email: string
+  message: string
+  status: AdminContactMessageStatus
+  user_id: string | null
+}
+
 export type AdminDashboardStats = {
   productCount: number
   waitlistCount: number
@@ -124,6 +138,8 @@ export type AdminDashboardStats = {
   pendingWaitlist: number
   lowStockCount: number
   revenueTotal: number
+  newMessageCount: number
+  messageCount: number
 }
 
 function sizeChartForSave(payload: AdminProductPayload) {
@@ -484,11 +500,12 @@ export async function adminDeleteWaitlistEntry(id: string): Promise<void> {
 
 export async function adminGetDashboardStats(): Promise<AdminDashboardStats> {
   const client = requireClient()
-  const [productsRes, waitlistRes, profilesRes, ordersRes] = await Promise.all([
+  const [productsRes, waitlistRes, profilesRes, ordersRes, messagesRes] = await Promise.all([
     client.from('products').select('id, stock_quantity, price, status'),
     client.from('waitlist').select('id, status'),
     client.from('profiles').select('id', { count: 'exact', head: true }),
     client.from('orders').select('id, status, total_amount, payment_status'),
+    client.from('contact_messages').select('id, status'),
   ])
 
   if (productsRes.error) throw new Error(productsRes.error.message)
@@ -499,6 +516,7 @@ export async function adminGetDashboardStats(): Promise<AdminDashboardStats> {
   const products = productsRes.data ?? []
   const waitlist = waitlistRes.data ?? []
   const orders = ordersRes.data ?? []
+  const messages = messagesRes.error ? [] : (messagesRes.data ?? [])
 
   return {
     productCount: products.length,
@@ -510,5 +528,33 @@ export async function adminGetDashboardStats(): Promise<AdminDashboardStats> {
     revenueTotal: orders
       .filter((o) => o.payment_status === 'paid')
       .reduce((sum, o) => sum + Number(o.total_amount ?? 0), 0),
+    messageCount: messages.length,
+    newMessageCount: messages.filter((m) => m.status === 'new').length,
   }
+}
+
+export async function adminListContactMessages(): Promise<AdminContactMessageRow[]> {
+  const client = requireClient()
+  const { data, error } = await client
+    .from('contact_messages')
+    .select('id, created_at, updated_at, first_name, last_name, email, message, status, user_id')
+    .order('created_at', { ascending: false })
+
+  if (error) throw new Error(error.message)
+  return (data ?? []) as AdminContactMessageRow[]
+}
+
+export async function adminUpdateContactMessageStatus(
+  id: string,
+  status: AdminContactMessageStatus,
+): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.from('contact_messages').update({ status }).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function adminDeleteContactMessage(id: string): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.from('contact_messages').delete().eq('id', id)
+  if (error) throw new Error(error.message)
 }

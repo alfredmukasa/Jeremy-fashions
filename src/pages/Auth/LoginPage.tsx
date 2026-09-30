@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
 import { useAuth } from '../../context/AuthContext'
-import { friendlyAuthError } from '../../lib/authErrors'
+import { AUTH_UNAVAILABLE_MESSAGE, friendlyAuthError } from '../../lib/authErrors'
 import { isSupabaseConfigured } from '../../lib/supabase'
 
 import { AuthButton } from '../../components/auth/AuthButton'
@@ -47,7 +47,7 @@ export default function LoginPage() {
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     if (!isSupabaseConfigured) {
-      toast.error('Supabase is not configured.')
+      toast.error(AUTH_UNAVAILABLE_MESSAGE)
       return
     }
     const fd = new FormData(e.currentTarget)
@@ -60,7 +60,7 @@ export default function LoginPage() {
       toast.error(friendlyAuthError(error.message))
       return
     }
-    toast.success('Signed in')
+    toast.success('Welcome back')
     navigate(redirectTo, { replace: true })
   }
 
@@ -78,7 +78,7 @@ export default function LoginPage() {
       }
     >
       {loading ? (
-        <p className="text-sm text-neutral-500">Checking session…</p>
+        <p className="text-sm text-neutral-500">One moment…</p>
       ) : (
         <div className="space-y-6">
           <GoogleAuthButton label="Continue with Google" />

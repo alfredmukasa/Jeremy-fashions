@@ -75,7 +75,7 @@ export default function AdminLoginPage() {
     return (
       <div className="min-h-svh bg-neutral-950 text-white">
         <Container className="py-16">
-          <p className="text-sm text-white/60">Supabase is not configured.</p>
+          <p className="text-sm text-white/60">Staff sign-in is temporarily unavailable. Please try again shortly.</p>
         </Container>
       </div>
     )
@@ -147,7 +147,7 @@ export default function AdminLoginPage() {
           <BrandLogo variant="light" size="md" className="mb-6" />
           <h1 className="font-serif text-3xl text-white md:text-4xl">Admin sign-in</h1>
           <p className="mt-3 text-sm text-white/55">
-            Authorized staff only. Access is enforced with Supabase Auth and row-level security on the database.
+            Authorized staff only.
           </p>
 
           {blockingSession ? (

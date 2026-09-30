@@ -3,7 +3,7 @@ import { FcGoogle } from 'react-icons/fc'
 import toast from 'react-hot-toast'
 
 import { useAuth } from '../../context/AuthContext'
-import { friendlyAuthError } from '../../lib/authErrors'
+import { AUTH_UNAVAILABLE_MESSAGE, friendlyAuthError } from '../../lib/authErrors'
 import { isSupabaseConfigured } from '../../lib/supabase'
 
 import { AuthButton } from './AuthButton'
@@ -14,7 +14,7 @@ export function GoogleAuthButton({ label = 'Continue with Google' }: { label?: s
 
   async function handleClick() {
     if (!isSupabaseConfigured) {
-      toast.error('Supabase is not configured.')
+      toast.error(AUTH_UNAVAILABLE_MESSAGE)
       return
     }
     setBusy(true)
@@ -37,7 +37,7 @@ export function GoogleAuthButton({ label = 'Continue with Google' }: { label?: s
       className="flex items-center justify-center gap-3"
     >
       <FcGoogle className="h-4 w-4 shrink-0" aria-hidden />
-      {busy ? 'Redirecting…' : label}
+      {busy ? 'Continuing…' : label}
     </AuthButton>
   )
 }

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { AdminStatCard } from '../../components/admin/AdminStatCard'
 import { ROUTES } from '../../constants'
-import { adminGetDashboardStats, adminListOrders, adminListProducts } from '../../services/adminService'
+import { adminGetDashboardStats, adminListContactMessages, adminListOrders, adminListProducts } from '../../services/adminService'
 
 export default function AdminOverviewPage() {
   const statsQuery = useQuery({
@@ -22,18 +22,24 @@ export default function AdminOverviewPage() {
     queryFn: adminListProducts,
   })
 
+  const recentMessagesQuery = useQuery({
+    queryKey: ['admin', 'contact-messages', 'recent'],
+    queryFn: adminListContactMessages,
+  })
+
   const stats = statsQuery.data
   const recentOrders = (recentOrdersQuery.data ?? []).slice(0, 5)
   const topProducts = (topProductsQuery.data ?? [])
     .filter((p) => p.featured)
     .slice(0, 5)
+  const recentMessages = (recentMessagesQuery.data ?? []).slice(0, 5)
 
   return (
     <div className="space-y-10">
       <AdminPageHeader
         eyebrow="Dashboard"
         title="Overview"
-        description="Live metrics from Supabase for products, waitlist, customers, and orders."
+        description="Live metrics from Supabase for products, waitlist, customers, orders, and support messages."
         actions={
           <Link
             to={ROUTES.shop}
@@ -64,6 +70,14 @@ export default function AdminOverviewPage() {
             hint="Active SKUs at 5 units or less"
             tone={stats.lowStockCount > 0 ? 'alert' : 'default'}
           />
+          <Link to={ROUTES.adminMessages} className="block">
+            <AdminStatCard
+              label="Messages"
+              value={stats.messageCount}
+              hint={`${stats.newMessageCount} new`}
+              tone={stats.newMessageCount > 0 ? 'alert' : 'default'}
+            />
+          </Link>
         </div>
       ) : null}
 
@@ -132,6 +146,53 @@ export default function AdminOverviewPage() {
           </div>
         </section>
       </div>
+
+      <section className="border border-neutral-200 bg-white">
+        <div className="flex items-center justify-between border-b border-neutral-100 px-6 py-4">
+          <h2 className="font-serif text-xl text-neutral-950">Recent messages</h2>
+          <Link
+            to={ROUTES.adminMessages}
+            className="text-[10px] font-semibold uppercase tracking-[0.2em] text-neutral-500 underline-offset-4 hover:text-neutral-950 hover:underline"
+          >
+            View all
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] text-left text-sm">
+            <thead className="bg-neutral-50 text-[10px] uppercase tracking-[0.2em] text-neutral-500">
+              <tr>
+                <th className="px-4 py-3 font-medium">Date</th>
+                <th className="px-4 py-3 font-medium">Name</th>
+                <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">Message</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recentMessages.map((row) => (
+                <tr key={row.id} className="border-t border-neutral-100">
+                  <td className="px-4 py-3 text-neutral-600">
+                    {new Date(row.created_at).toLocaleString(undefined, { dateStyle: 'short' })}
+                  </td>
+                  <td className="px-4 py-3 font-medium text-neutral-900">
+                    {row.first_name} {row.last_name}
+                  </td>
+                  <td className="px-4 py-3 text-neutral-600">{row.email}</td>
+                  <td className="px-4 py-3 capitalize text-neutral-600">{row.status}</td>
+                  <td className="max-w-[280px] truncate px-4 py-3 text-neutral-600">{row.message}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {recentMessagesQuery.isError ? (
+            <p className="p-8 text-sm text-neutral-600">
+              Contact messages will appear here after the latest database migration is applied.
+            </p>
+          ) : !recentMessages.length ? (
+            <p className="p-8 text-sm text-neutral-600">No contact messages yet.</p>
+          ) : null}
+        </div>
+      </section>
     </div>
   )
 }

@@ -6,7 +6,7 @@ export function AuthLoader({ className }: { className?: string }) {
     <BrandLoader
       className={cn('min-h-[50vh] bg-[var(--surface-base)] px-6', className)}
       variant="dark"
-      label="Verifying session"
+      label="One moment"
     />
   )
 }

@@ -22,6 +22,7 @@ export const ROUTES = {
   /** Saved pieces (auth); guests use shop wishlist filter locally */
   saved: '/saved',
   waitlist: '/waitlist',
+  contact: '/contact',
   terms: '/terms',
   privacy: '/privacy',
   refundPolicy: '/refund-policy',
@@ -32,6 +33,7 @@ export const ROUTES = {
   adminCategories: `${adminBase}/categories`,
   adminOrders: `${adminBase}/orders`,
   adminWaitlist: `${adminBase}/waitlist`,
+  adminMessages: `${adminBase}/messages`,
   adminUsers: `${adminBase}/users`,
   adminTeam: `${adminBase}/team`,
   adminDiscounts: `${adminBase}/discounts`,

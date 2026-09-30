@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
 import { useAuth } from '../../context/AuthContext'
-import { friendlyAuthError } from '../../lib/authErrors'
+import { AUTH_UNAVAILABLE_MESSAGE, friendlyAuthError } from '../../lib/authErrors'
 import { isSupabaseConfigured } from '../../lib/supabase'
 import { MIN_PASSWORD, validatePassword } from '../../utils/passwordValidation'
 
@@ -29,7 +29,7 @@ export default function RegisterPage() {
     e.preventDefault()
     setFieldError(null)
     if (!isSupabaseConfigured) {
-      toast.error('Supabase is not configured.')
+      toast.error(AUTH_UNAVAILABLE_MESSAGE)
       return
     }
     const fd = new FormData(e.currentTarget)

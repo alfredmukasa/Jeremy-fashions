@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom'
+
+import { ROUTES } from '../../constants'
 import { LegalPageLayout } from './LegalPageLayout'
 
 export default function PrivacyPolicyPage() {
@@ -192,7 +195,8 @@ export default function PrivacyPolicyPage() {
       <section>
         <h2>11. Contact us</h2>
         <p>
-          Questions about this policy or how we handle your data? Email{' '}
+          Questions about this policy or how we handle your data? Visit our{' '}
+          <Link to={ROUTES.contact}>Contact us</Link> page or email{' '}
           <a href="mailto:support@krewnox.ca">support@krewnox.ca</a>.
         </p>
       </section>

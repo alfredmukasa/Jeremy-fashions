@@ -1,3 +1,6 @@
+import { Link } from 'react-router-dom'
+
+import { ROUTES } from '../../constants'
 import { LegalPageLayout } from './LegalPageLayout'
 
 export default function RefundPolicyPage() {
@@ -96,7 +99,8 @@ export default function RefundPolicyPage() {
       <section>
         <h2>9. Questions</h2>
         <p>
-          Reach us any time at <a href="mailto:support@krewnox.ca">support@krewnox.ca</a> and we'll help sort it
+          Reach us any time through our <Link to={ROUTES.contact}>Contact us</Link> page or at{' '}
+          <a href="mailto:support@krewnox.ca">support@krewnox.ca</a> and we'll help sort it
           out.
         </p>
       </section>

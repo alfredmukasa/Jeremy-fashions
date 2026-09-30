@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
-import { friendlyAuthError } from '../../lib/authErrors'
+import { AUTH_UNAVAILABLE_MESSAGE, friendlyAuthError } from '../../lib/authErrors'
 import { sanitizeNextPath } from '../../lib/authRedirect'
 import { isSupabaseConfigured, supabase } from '../../lib/supabase'
 
@@ -22,6 +22,7 @@ export default function AuthCallbackPage() {
   const [searchParams] = useSearchParams()
   const [status, setStatus] = useState<CallbackStatus>('loading')
   const [message, setMessage] = useState('')
+  const [successTitle, setSuccessTitle] = useState('Welcome back')
   const handled = useRef(false)
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function AuthCallbackPage() {
       if (!isSupabaseConfigured || !supabase) {
         if (!cancelled) {
           setStatus('error')
-          setMessage('Sign-in is not configured for this environment.')
+          setMessage(AUTH_UNAVAILABLE_MESSAGE)
         }
         return
       }
@@ -79,7 +80,7 @@ export default function AuthCallbackPage() {
           throw new Error(
             code
               ? 'This confirmation link is invalid or has expired.'
-              : 'We could not establish a session from this link.',
+              : 'This sign-in link did not work. Please try again.',
           )
         }
 
@@ -100,10 +101,11 @@ export default function AuthCallbackPage() {
         const isEmailFlow = flowType === 'signup' || flowType === 'email' || flowType === 'invite'
 
         setStatus('success')
+        setSuccessTitle(isEmailFlow ? 'Email confirmed' : 'Welcome back')
         setMessage(
           isEmailFlow
-            ? 'Your email has been confirmed. Taking you to your account…'
-            : 'You are signed in. Taking you to your account…',
+            ? 'Your email is confirmed. Opening your account…'
+            : 'Welcome back. Opening your account…',
         )
 
         const destination = isEmailFlow ? ROUTES.account : next
@@ -113,7 +115,7 @@ export default function AuthCallbackPage() {
         }, 900)
       } catch (err) {
         if (cancelled) return
-        const raw = err instanceof Error ? err.message : 'Authentication failed.'
+        const raw = err instanceof Error ? err.message : 'We could not finish signing you in. Please try again.'
         setStatus('error')
         setMessage(friendlyAuthError(raw))
       }
@@ -128,9 +130,9 @@ export default function AuthCallbackPage() {
   if (status === 'loading') {
     return (
       <AuthLayout
-        eyebrow="Confirming"
-        title="Verifying your link"
-        subtitle="This only takes a moment. Please keep this tab open."
+        eyebrow="Signing in"
+        title="One moment"
+        subtitle="We're confirming your access. Please keep this tab open."
       >
         <AuthLoader className="min-h-[40vh] bg-transparent text-neutral-400" />
       </AuthLayout>
@@ -140,8 +142,8 @@ export default function AuthCallbackPage() {
   if (status === 'success') {
     return (
       <AuthLayout
-        eyebrow="Confirmed"
-        title="You are signed in"
+        eyebrow="Welcome"
+        title={successTitle}
         subtitle={message}
       >
         <AuthLoader className="min-h-[32vh] bg-transparent text-neutral-400" />

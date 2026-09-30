@@ -56,7 +56,7 @@ export function RequireAdmin({ children }: { children: ReactNode }) {
   if (!ready) {
     return (
       <div className="flex min-h-svh items-center justify-center bg-neutral-950 text-sm text-white/60">
-        Verifying session…
+        Verifying access…
       </div>
     )
   }

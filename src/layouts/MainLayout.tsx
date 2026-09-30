@@ -21,6 +21,7 @@ export function MainLayout() {
   const { waitlistMode, ready } = useWaitlistMode()
   const isHome = location.pathname === ROUTES.home
   const isWaitlist = location.pathname === ROUTES.waitlist
+  const isContact = location.pathname === ROUTES.contact
 
   // Ensure premium-feeling navigation: don't preserve deep scroll positions between pages.
   // Without this, navigating from a scrolled product grid can land the user "below" the new page content,
@@ -33,7 +34,7 @@ export function MainLayout() {
     return <WaitlistLayoutBoot />
   }
 
-  if (waitlistMode && !isWaitlist) {
+  if (waitlistMode && !isWaitlist && !isContact) {
     return <Navigate to={ROUTES.waitlist} replace />
   }
 

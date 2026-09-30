@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { PaymentStatusBadge } from '../../components/account/dashboard/PaymentStatusBadge'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
-import { FULFILLMENT_STATUSES, orderStatusLabel, normalizeOrderStatus } from '../../lib/orderStatus'
+import { FULFILLMENT_STATUSES, fulfillmentStatusFromOrder, normalizeOrderStatus, orderStatusLabel } from '../../lib/orderStatus'
 import { formatOrderNumber } from '../../lib/orderNumber'
 import { normalizePaymentStatus, paymentStatusLabel, readPaymentActivity } from '../../lib/paymentStatus'
 import { adminListOrders, adminUpdateOrderStatus, type AdminOrderRow } from '../../services/adminService'
@@ -143,7 +143,7 @@ function AdminOrderRowView({
       </td>
       <td className="px-4 py-3">
         <select
-          value={order.status === 'paid' ? 'pending' : order.status}
+          value={fulfillmentStatusFromOrder(order.status)}
           onChange={(e) => onStatusChange(e.target.value as AdminOrderRow['status'])}
           className="w-full max-w-[180px] border border-neutral-300 bg-white px-2 py-1 text-xs"
         >

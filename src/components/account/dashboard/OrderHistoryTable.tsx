@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { HiOutlineChevronDown } from 'react-icons/hi2'
 
 import { formatOrderNumber } from '../../../lib/orderNumber'
-import { FULFILLMENT_STATUSES, orderStatusLabel, normalizeOrderStatus } from '../../../lib/orderStatus'
+import { FULFILLMENT_STATUSES, fulfillmentStatusFromOrder, orderStatusLabel, normalizeOrderStatus } from '../../../lib/orderStatus'
 import type { CustomerOrderDetail } from '../../../services/orderService'
 import { cn } from '../../../utils/cn'
 import { formatPrice } from '../../../utils/formatPrice'
@@ -20,7 +20,7 @@ export function OrderHistoryTable({ orders }: { orders: CustomerOrderDetail[] })
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const filtered = orders.filter((order) => {
-    const trackingStatus = order.status === 'paid' ? 'pending' : order.status
+    const trackingStatus = fulfillmentStatusFromOrder(order.status)
     const matchesStatus = statusFilter === 'all' || trackingStatus === statusFilter
     const haystack = [
       order.id,

@@ -22,6 +22,16 @@ export function normalizeOrderStatus(value: string): OrderStatus {
   return 'pending'
 }
 
+/** Stripe payment is separate. Legacy `paid` fulfillment maps to Received. */
+export function fulfillmentStatusFromOrder(status: string): FulfillmentStatus {
+  const normalized = normalizeOrderStatus(status)
+  if (normalized === 'paid') return 'pending'
+  if ((FULFILLMENT_STATUSES as readonly string[]).includes(normalized)) {
+    return normalized as FulfillmentStatus
+  }
+  return 'pending'
+}
+
 export function orderStatusLabel(status: OrderStatus): string {
   switch (status) {
     case 'pending':

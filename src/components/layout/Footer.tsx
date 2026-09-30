@@ -28,12 +28,12 @@ function FooterHelp() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--footer-fg)] transition-opacity hover:opacity-65 sm:gap-2 sm:text-[11px] sm:tracking-[0.22em]"
+        className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--footer-fg)] transition-opacity hover:opacity-65 active:opacity-50 sm:gap-2 sm:text-[11px] sm:tracking-[0.22em] md:text-xs"
         aria-expanded={open}
       >
         Need help?
         <HiOutlineChevronUp
-          className={cn('h-3.5 w-3.5 transition-transform duration-300', !open && 'rotate-180')}
+          className={cn('h-3.5 w-3.5 transition-transform duration-300 sm:h-4 sm:w-4', !open && 'rotate-180')}
         />
       </button>
 
@@ -44,7 +44,7 @@ function FooterHelp() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute bottom-full right-0 z-10 mb-3 w-[min(100vw-2rem,280px)] rounded-xl border border-[var(--footer-border)] bg-[var(--footer-bg-elevated)] p-4 shadow-lg md:right-0 md:w-72"
+            className="absolute bottom-full right-0 z-10 mb-3 w-[min(100vw-2rem,280px)] rounded-xl border border-[var(--footer-border)] bg-[var(--footer-bg-elevated)] p-4 shadow-lg sm:w-72 md:mb-4 md:w-80 md:rounded-2xl md:p-5"
           >
             <ul className="space-y-1">
               {helpNavLinks.map((item) => (
@@ -52,7 +52,7 @@ function FooterHelp() {
                   <Link
                     to={item.to}
                     onClick={() => setOpen(false)}
-                    className="block py-2.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--footer-fg)] transition-opacity hover:opacity-60"
+                    className="block py-2.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--footer-fg)] transition-opacity hover:opacity-60 active:opacity-40 sm:text-[11px] md:py-3"
                   >
                     {item.label}
                   </Link>
@@ -77,18 +77,18 @@ export function Footer() {
     siteContentQuery.data?.footerSocialLinks ?? [...DEFAULT_FOOTER_SOCIAL_LINKS]
 
   return (
-    <footer className="relative z-[2] isolate mt-20 bg-[var(--surface-base)] md:mt-28">
+    <footer className="relative z-[2] isolate mt-auto bg-[var(--surface-base)] pt-12 sm:pt-16 md:pt-20 lg:pt-24">
       <motion.div
         layout
         className="mx-auto max-w-[1440px] border-t border-[var(--border-subtle)] bg-[var(--footer-bg)]"
       >
         <motion.div
           layout
-          className="grid grid-cols-2 items-center gap-x-2 gap-y-3 rounded-[var(--footer-radius)] px-3 py-3 text-[var(--footer-fg)] min-[360px]:gap-x-3 min-[360px]:px-4 min-[360px]:py-3.5 sm:px-6 sm:py-3.5 md:gap-4 md:px-10 md:py-4"
+          className="grid grid-cols-2 items-center gap-x-2 gap-y-3 rounded-[var(--footer-radius)] px-3 py-3 text-[var(--footer-fg)] min-[360px]:gap-x-3 min-[360px]:px-4 min-[360px]:py-3.5 sm:px-6 sm:py-3.5 md:gap-4 md:px-10 md:py-4 lg:px-12 lg:py-5"
         >
           <motion.div
             layout
-            className="flex min-w-0 items-center justify-start gap-2.5 sm:gap-3"
+            className="flex min-w-0 items-center justify-start gap-2 min-[360px]:gap-2.5 sm:gap-3 md:gap-3.5"
           >
             {social.map(({ href, label, icon }) => {
               const Icon = FOOTER_SOCIAL_ICONS[icon] ?? FOOTER_SOCIAL_ICONS.instagram
@@ -99,9 +99,9 @@ export function Footer() {
                   target="_blank"
                   rel="noreferrer"
                   aria-label={label}
-                  className="shrink-0 text-[var(--footer-fg)] transition-opacity hover:opacity-55"
+                  className="shrink-0 text-[var(--footer-fg)] transition-opacity hover:opacity-55 active:opacity-40"
                 >
-                  <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px] md:h-5 md:w-5" />
+                  <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px] md:h-5 md:w-5 lg:h-[22px] lg:w-[22px]" />
                 </a>
               )
             })}

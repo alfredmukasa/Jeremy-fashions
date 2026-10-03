@@ -41,7 +41,7 @@ export function MainLayout() {
   return (
     <motion.div
       className={cn(
-        'min-h-svh text-[var(--text-primary)] transition-colors duration-500',
+        'flex min-h-svh flex-col text-[var(--text-primary)] transition-colors duration-500',
         !isHome && !isWaitlist && 'bg-[var(--surface-base)]',
         isWaitlist && waitlistMode && 'bg-[var(--surface-base)]',
       )}
@@ -52,7 +52,7 @@ export function MainLayout() {
       <CartDrawer />
       <main
         className={cn(
-          'relative z-0',
+          'relative z-0 flex w-full flex-1 flex-col',
           isHome
             ? 'overflow-x-visible pt-0'
             : 'pt-[calc(var(--header-offset)+var(--announcement-height)+1.25rem)] lg:pt-[calc(var(--header-offset)+var(--announcement-height)+0.75rem)]',
@@ -61,6 +61,7 @@ export function MainLayout() {
         <AnimatePresence initial={false}>
           <motion.div
             key={location.pathname}
+            className="flex w-full flex-1 flex-col"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}

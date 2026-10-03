@@ -23,12 +23,12 @@ function FooterHelp() {
   return (
     <motion.div
       layout
-      className="relative flex min-w-0 justify-end justify-self-end"
+      className="relative flex min-w-0 justify-end"
     >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--footer-fg)] transition-opacity hover:opacity-65 sm:gap-2 sm:text-[11px] sm:tracking-[0.22em]"
+        className="inline-flex max-w-full items-center gap-1.5 whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--footer-fg)] transition-opacity hover:opacity-65 min-[360px]:tracking-[0.2em] sm:gap-2 sm:text-[11px] sm:tracking-[0.22em]"
         aria-expanded={open}
       >
         Need help?
@@ -77,18 +77,18 @@ export function Footer() {
     siteContentQuery.data?.footerSocialLinks ?? [...DEFAULT_FOOTER_SOCIAL_LINKS]
 
   return (
-    <footer className="relative z-[2] isolate mt-20 bg-[var(--surface-base)] md:mt-28">
+    <footer className="relative z-[2] isolate mt-20 w-full shrink-0 bg-[var(--surface-base)] pb-[env(safe-area-inset-bottom)] md:mt-28">
       <motion.div
         layout
-        className="mx-auto max-w-[1440px] border-t border-[var(--border-subtle)] bg-[var(--footer-bg)]"
+        className="mx-auto w-full max-w-[1440px] border-t border-[var(--border-subtle)] bg-[var(--footer-bg)]"
       >
         <motion.div
           layout
-          className="grid grid-cols-2 items-center gap-x-2 gap-y-3 rounded-[var(--footer-radius)] px-3 py-3 text-[var(--footer-fg)] min-[360px]:gap-x-3 min-[360px]:px-4 min-[360px]:py-3.5 sm:px-6 sm:py-3.5 md:gap-4 md:px-10 md:py-4"
+          className="flex flex-wrap items-center justify-between gap-x-2 gap-y-3 rounded-[var(--footer-radius)] px-3 py-3 text-[var(--footer-fg)] min-[360px]:gap-x-3 min-[360px]:px-4 min-[360px]:py-3.5 sm:px-6 sm:py-3.5 md:gap-4 md:px-10 md:py-4"
         >
           <motion.div
             layout
-            className="flex min-w-0 items-center justify-start gap-2.5 sm:gap-3"
+            className="flex min-w-0 flex-1 flex-wrap items-center justify-start gap-x-2.5 gap-y-2 sm:gap-3"
           >
             {social.map(({ href, label, icon }) => {
               const Icon = FOOTER_SOCIAL_ICONS[icon] ?? FOOTER_SOCIAL_ICONS.instagram
@@ -107,7 +107,7 @@ export function Footer() {
             })}
           </motion.div>
 
-          <motion.div className="min-w-0 justify-self-end">
+          <motion.div className="ml-auto min-w-0 shrink-0">
             <FooterHelp />
           </motion.div>
         </motion.div>

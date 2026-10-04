@@ -63,5 +63,29 @@ export async function submitContactMessage(entry: ContactMessageInput): Promise<
     }
   }
 
+  await notifyContactRecipient({ firstName, lastName, email, message })
+
   return { ok: true }
+}
+
+const API_BASE = (import.meta.env.VITE_PAYMENTS_API_URL as string | undefined)?.replace(/\/$/, '') ?? '/api'
+
+async function notifyContactRecipient(entry: {
+  firstName: string
+  lastName: string
+  email: string
+  message: string
+}) {
+  try {
+    const response = await fetch(`${API_BASE}/contact/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(entry),
+    })
+    if (!response.ok) {
+      console.error('[contactService.notifyContactRecipient]', response.status)
+    }
+  } catch (error) {
+    console.error('[contactService.notifyContactRecipient]', error)
+  }
 }

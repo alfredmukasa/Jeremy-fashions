@@ -6,6 +6,8 @@ import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
 import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
+import { DEFAULT_CONTACT_EMAIL, SITE_SETTING_KEY_CONTACT_RECIPIENT } from '../../constants/siteContent'
+import { contactRecipientPayload, isValidContactEmail, parseContactRecipient } from '../../lib/contactRecipient'
 import { adminGetSiteSettings, adminUpsertSiteSetting, adminGetWaitlistMode, adminSetWaitlistMode } from '../../services/adminService'
 import { cn } from '../../utils/cn'
 
@@ -34,6 +36,7 @@ export default function AdminSettingsPage() {
 function AdminSettingsContent() {
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<StorefrontSettings | null>(null)
+  const [contactDraft, setContactDraft] = useState<string | null>(null)
 
   const settingsQuery = useQuery({ queryKey: ['admin', 'settings'], queryFn: adminGetSiteSettings })
   const waitlistModeQuery = useQuery({ queryKey: ['admin', 'waitlistMode'], queryFn: adminGetWaitlistMode })
@@ -61,6 +64,25 @@ function AdminSettingsContent() {
   }, [settingsQuery.data])
 
   const form = draft ?? persisted
+  const contactEmail =
+    contactDraft ?? parseContactRecipient(settingsQuery.data?.[SITE_SETTING_KEY_CONTACT_RECIPIENT]) ?? DEFAULT_CONTACT_EMAIL
+  const savedContactEmail = parseContactRecipient(settingsQuery.data?.[SITE_SETTING_KEY_CONTACT_RECIPIENT]) ?? DEFAULT_CONTACT_EMAIL
+
+  const saveContactMutation = useMutation({
+    mutationFn: () => {
+      if (!isValidContactEmail(contactEmail)) {
+        throw new Error('Enter a valid contact email address.')
+      }
+      return adminUpsertSiteSetting(SITE_SETTING_KEY_CONTACT_RECIPIENT, contactRecipientPayload(contactEmail))
+    },
+    onSuccess: () => {
+      toast.success('Contact email saved')
+      setContactDraft(null)
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] })
+      void queryClient.invalidateQueries({ queryKey: ['public', 'site-content'] })
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Save failed'),
+  })
 
   const saveMutation = useMutation({
     mutationFn: () => adminUpsertSiteSetting(SETTINGS_KEY, form),
@@ -150,6 +172,51 @@ function AdminSettingsContent() {
         </div>
         <Button type="submit" disabled={saveMutation.isPending}>
           {saveMutation.isPending ? 'Saving…' : 'Save settings'}
+        </Button>
+      </form>
+
+      <form
+        className="grid max-w-2xl gap-4 border border-neutral-200 bg-white p-6"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (!isValidContactEmail(contactEmail)) {
+            toast.error('Enter a valid contact email address.')
+            return
+          }
+          saveContactMutation.mutate()
+        }}
+      >
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-[0.28em] text-neutral-500">Contact form</p>
+          <h2 className="mt-2 font-serif text-xl text-neutral-900">Recipient email</h2>
+          <p className="mt-2 text-sm text-neutral-600">
+            New contact-form submissions are stored in Messages and emailed to this address. Changing it does not
+            require a code change.
+          </p>
+          <p className="mt-2 text-xs uppercase tracking-[0.16em] text-neutral-500">
+            {settingsQuery.isLoading ? 'Loading current email…' : `Current: ${savedContactEmail}`}
+          </p>
+        </div>
+        {settingsQuery.isError ? (
+          <p className="text-sm text-rose-700">
+            {settingsQuery.error instanceof Error ? settingsQuery.error.message : 'Could not load the contact email.'}
+          </p>
+        ) : null}
+        <div>
+          <FieldLabel id="contactRecipient">Contact form email</FieldLabel>
+          <Input
+            id="contactRecipient"
+            type="email"
+            autoComplete="email"
+            required
+            maxLength={254}
+            value={contactEmail}
+            disabled={settingsQuery.isLoading}
+            onChange={(event) => setContactDraft(event.target.value)}
+          />
+        </div>
+        <Button type="submit" disabled={saveContactMutation.isPending || settingsQuery.isLoading}>
+          {saveContactMutation.isPending ? 'Saving…' : 'Save contact email'}
         </Button>
       </form>
     </div>

@@ -161,7 +161,7 @@ async function warnIfRoutesDrift() {
 
   try {
     const constantsSrc = await readFile(ROUTES_PATH, 'utf8')
-    const publicKeys = ['home', 'shop', 'waitlist', 'contact', 'terms', 'privacy', 'refundPolicy']
+    const publicKeys = ['home', 'shop', 'waitlist', 'contact', 'terms', 'privacy', 'refundPolicy', 'shipping']
     for (const key of publicKeys) {
       const match = constantsSrc.match(new RegExp(`\\b${key}:\\s*'([^']+)'`))
       if (match && !listed.has(match[1])) {
@@ -189,6 +189,7 @@ async function warnIfRoutesDrift() {
           '/terms': 'ROUTES.terms',
           '/privacy': 'ROUTES.privacy',
           '/refund-policy': 'ROUTES.refundPolicy',
+          '/shipping': 'ROUTES.shipping',
         }).some(([loc, token]) => loc === pathLiteral && appSrc.includes(token))
       if (!mentioned) {
         console.warn(

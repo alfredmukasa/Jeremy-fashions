@@ -2,24 +2,56 @@ import type { IconType } from 'react-icons'
 import { FaInstagram, FaPinterestP, FaTiktok, FaWhatsapp } from 'react-icons/fa6'
 
 import {
+  DEFAULT_CONTACT_EMAIL,
   DEFAULT_FOOTER_SOCIAL_LINKS,
   DEFAULT_HERO_SLIDES,
+  DEFAULT_RETURN_POLICY,
+  DEFAULT_SHIPPING_INSTRUCTIONS,
   FOOTER_SOCIAL_ICON_OPTIONS,
   DEFAULT_TOP_BANNER,
+  SITE_SETTING_KEY_CONTACT_RECIPIENT,
   SITE_SETTING_KEY_FOOTER_SOCIAL,
   SITE_SETTING_KEY_HERO_SLIDES,
+  SITE_SETTING_KEY_RETURN_POLICY,
+  SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS,
   SITE_SETTING_KEY_TOP_BANNER,
   type FooterSocialIconKey,
   type FooterSocialLink,
   type HeroSlide,
+  type StorePolicy,
   type TopBanner,
 } from '../constants/siteContent'
+import { parseContactRecipient } from '../lib/contactRecipient'
+import { parseStorePolicy } from '../lib/storePolicy'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 
 export type PublicSiteContent = {
   heroSlides: HeroSlide[]
   footerSocialLinks: FooterSocialLink[]
   topBanner: TopBanner
+  returnPolicy: StorePolicy
+  shippingInstructions: StorePolicy
+  contactEmail: string
+}
+
+const PUBLIC_SETTING_KEYS = [
+  SITE_SETTING_KEY_HERO_SLIDES,
+  SITE_SETTING_KEY_FOOTER_SOCIAL,
+  SITE_SETTING_KEY_TOP_BANNER,
+  SITE_SETTING_KEY_RETURN_POLICY,
+  SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS,
+  SITE_SETTING_KEY_CONTACT_RECIPIENT,
+] as const
+
+function defaultSiteContent(): PublicSiteContent {
+  return {
+    heroSlides: [...DEFAULT_HERO_SLIDES],
+    footerSocialLinks: [...DEFAULT_FOOTER_SOCIAL_LINKS],
+    topBanner: { ...DEFAULT_TOP_BANNER },
+    returnPolicy: { ...DEFAULT_RETURN_POLICY },
+    shippingInstructions: { ...DEFAULT_SHIPPING_INSTRUCTIONS },
+    contactEmail: DEFAULT_CONTACT_EMAIL,
+  }
 }
 
 const FOOTER_ICON_KEYS = new Set(FOOTER_SOCIAL_ICON_OPTIONS.map((o) => o.value))
@@ -99,54 +131,48 @@ function parseTopBanner(raw: unknown): TopBanner | null {
   return banner
 }
 
+export { formatPolicyUpdated, parseStorePolicy, storePolicyPayload, validateStorePolicy } from '../lib/storePolicy'
+
 export async function fetchPublicSiteContent(): Promise<PublicSiteContent> {
   if (!isSupabaseConfigured || !supabase) {
-    return {
-      heroSlides: [...DEFAULT_HERO_SLIDES],
-      footerSocialLinks: [...DEFAULT_FOOTER_SOCIAL_LINKS],
-      topBanner: { ...DEFAULT_TOP_BANNER },
-    }
+    return defaultSiteContent()
   }
 
   const { data, error } = await supabase
     .from('site_settings')
-    .select('key, value')
-    .in('key', [
-      SITE_SETTING_KEY_HERO_SLIDES,
-      SITE_SETTING_KEY_FOOTER_SOCIAL,
-      SITE_SETTING_KEY_TOP_BANNER,
-    ])
+    .select('key, value, updated_at')
+    .in('key', [...PUBLIC_SETTING_KEYS])
 
   if (error) {
     console.error('[siteContentService.fetchPublicSiteContent]', error)
-    return {
-      heroSlides: [...DEFAULT_HERO_SLIDES],
-      footerSocialLinks: [...DEFAULT_FOOTER_SOCIAL_LINKS],
-      topBanner: { ...DEFAULT_TOP_BANNER },
-    }
+    return defaultSiteContent()
   }
 
-  let heroSlides: HeroSlide[] | null = null
-  let footerSocialLinks: FooterSocialLink[] | null = null
-  let topBanner: TopBanner | null = null
+  const content = defaultSiteContent()
 
   for (const row of data ?? []) {
+    const updatedAt = typeof row.updated_at === 'string' ? row.updated_at : undefined
     if (row.key === SITE_SETTING_KEY_HERO_SLIDES) {
-      heroSlides = parseHeroSlides(row.value)
+      content.heroSlides = parseHeroSlides(row.value) ?? content.heroSlides
     }
     if (row.key === SITE_SETTING_KEY_FOOTER_SOCIAL) {
-      footerSocialLinks = parseFooterSocial(row.value)
+      content.footerSocialLinks = parseFooterSocial(row.value) ?? content.footerSocialLinks
     }
     if (row.key === SITE_SETTING_KEY_TOP_BANNER) {
-      topBanner = parseTopBanner(row.value)
+      content.topBanner = parseTopBanner(row.value) ?? content.topBanner
+    }
+    if (row.key === SITE_SETTING_KEY_RETURN_POLICY) {
+      content.returnPolicy = parseStorePolicy(row.value, DEFAULT_RETURN_POLICY, updatedAt)
+    }
+    if (row.key === SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS) {
+      content.shippingInstructions = parseStorePolicy(row.value, DEFAULT_SHIPPING_INSTRUCTIONS, updatedAt)
+    }
+    if (row.key === SITE_SETTING_KEY_CONTACT_RECIPIENT) {
+      content.contactEmail = parseContactRecipient(row.value) ?? DEFAULT_CONTACT_EMAIL
     }
   }
 
-  return {
-    heroSlides: heroSlides ?? [...DEFAULT_HERO_SLIDES],
-    footerSocialLinks: footerSocialLinks ?? [...DEFAULT_FOOTER_SOCIAL_LINKS],
-    topBanner: topBanner ?? { ...DEFAULT_TOP_BANNER },
-  }
+  return content
 }
 
 export function heroSlidesPayload(slides: HeroSlide[]): Record<string, unknown> {

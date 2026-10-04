@@ -10,6 +10,8 @@ import { useCartStore } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore, selectWishlistHas } from '../../store/wishlistStore'
 import { sizeLabelForKind } from '../../lib/productCategoryConfig'
+import { DEFAULT_RETURN_POLICY, DEFAULT_SHIPPING_INSTRUCTIONS } from '../../constants/siteContent'
+import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
 import { sizeChartHasMeasurements } from '../../lib/sizeChart'
 import { formatPrice } from '../../utils/formatPrice'
 import { cn } from '../../utils/cn'
@@ -186,6 +188,13 @@ function ProductDetail({ product }: DetailProps) {
   const wishHas = useWishlistStore(selectWishlistHas(product.id))
 
   const { data: related, loading: relatedLoading } = useRelatedProducts(product, 4)
+  const siteContent = usePublicSiteContent()
+  const shippingCopy = siteContent.data?.shippingInstructions?.published
+    ? siteContent.data.shippingInstructions.body
+    : DEFAULT_SHIPPING_INSTRUCTIONS.body
+  const returnCopy = siteContent.data?.returnPolicy?.published
+    ? siteContent.data.returnPolicy.body
+    : DEFAULT_RETURN_POLICY.body
 
   const unit = product.salePrice ?? product.price
   const compare = product.salePrice ? product.price : null
@@ -403,11 +412,16 @@ function ProductDetail({ product }: DetailProps) {
                 </DetailAccordion>
               ) : null}
               <DetailAccordion title="Shipping">
-                Complimentary standard shipping on orders over $250. Express delivery is available at checkout for
-                domestic addresses.
+                <p className="whitespace-pre-wrap">{shippingCopy}</p>
+                <Link to={ROUTES.shipping} className="mt-3 inline-block underline underline-offset-4">
+                  Shipping details
+                </Link>
               </DetailAccordion>
               <DetailAccordion title="Returns">
-                Unworn pieces may be returned within 30 days. Final sale and altered items are excluded.
+                <p className="whitespace-pre-wrap">{returnCopy}</p>
+                <Link to={ROUTES.refundPolicy} className="mt-3 inline-block underline underline-offset-4">
+                  Return policy
+                </Link>
               </DetailAccordion>
               <DetailAccordion title="Care">
                 Follow the garment label. Store folded or on wide hangers to preserve structure and finish.
@@ -434,7 +448,7 @@ function ProductDetail({ product }: DetailProps) {
       ) : related?.length ? (
         <section className="py-16 md:py-24">
           <Container>
-            <SectionHeading title="You may also like" eyebrow="Related" />
+            <SectionHeading title="Recommended products" eyebrow="Recommended" />
             <ProductGrid products={related} className="mt-12" />
             <div className="mt-10 text-center">
               <button

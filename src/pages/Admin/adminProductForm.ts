@@ -1,5 +1,5 @@
 import { emptyAttributesForKind, resolveProductKind } from '../../lib/productCategoryConfig'
-import { emptySizeChart, parseSizeChart, sizeChartHasMeasurements } from '../../lib/sizeChart'
+import { emptySizeChart, parseSizeChart } from '../../lib/sizeChart'
 import type { AdminProductPayload } from '../../services/adminService'
 import type { ProductRow } from '../../services/mappers'
 import type { Product, ProductAttributes, ProductKind } from '../../types'
@@ -79,7 +79,7 @@ export function productRowToPayload(row: ProductRow): AdminProductPayload {
     sizes: cleanSizes,
     colors: colors.length ? colors : [{ name: 'Default', hex: '#1a1a1a' }],
     attributes: attributesFromRow(row.attributes, kind),
-    sizeChart: storedChart && sizeChartHasMeasurements(storedChart) ? storedChart : emptySizeChart(kind, cleanSizes),
+    sizeChart: storedChart ?? emptySizeChart(kind, cleanSizes),
   }
 }
 

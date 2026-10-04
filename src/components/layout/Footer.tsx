@@ -15,6 +15,7 @@ const helpNavLinks = [
   { label: 'Terms', to: ROUTES.terms },
   { label: 'Privacy', to: ROUTES.privacy },
   { label: 'Refund policy', to: ROUTES.refundPolicy },
+  { label: 'Shipping', to: ROUTES.shipping },
 ]
 
 function FooterHelp() {

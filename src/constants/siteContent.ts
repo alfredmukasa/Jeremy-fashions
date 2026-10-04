@@ -1,6 +1,33 @@
 export const SITE_SETTING_KEY_HERO_SLIDES = 'hero_slides'
 export const SITE_SETTING_KEY_FOOTER_SOCIAL = 'footer_social'
 export const SITE_SETTING_KEY_TOP_BANNER = 'top_banner'
+export const SITE_SETTING_KEY_RETURN_POLICY = 'return_policy'
+export const SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS = 'shipping_instructions'
+export const SITE_SETTING_KEY_CONTACT_RECIPIENT = 'contact_recipient'
+
+export const DEFAULT_CONTACT_EMAIL = 'support@krewnox.ca'
+
+export type StorePolicy = {
+  title: string
+  body: string
+  /** True when an admin has saved a non-empty policy in site settings. */
+  published: boolean
+  updatedAt?: string
+}
+
+/** Shown until an admin publishes a return policy. */
+export const DEFAULT_RETURN_POLICY: StorePolicy = {
+  title: 'Return policy',
+  body: 'Unworn pieces may be returned within 30 days. Final sale and altered items are excluded.',
+  published: false,
+}
+
+/** Shown until an admin publishes shipping instructions. */
+export const DEFAULT_SHIPPING_INSTRUCTIONS: StorePolicy = {
+  title: 'Shipping',
+  body: 'Complimentary standard shipping on orders over $250. Express delivery is available at checkout for domestic addresses.',
+  published: false,
+}
 
 export type TopBanner = {
   enabled: boolean

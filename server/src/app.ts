@@ -5,6 +5,7 @@ import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 
 import { config } from './config.js'
+import { contactRouter } from './routes/contact.js'
 import { ordersRouter } from './routes/orders.js'
 import { paymentsRouter } from './routes/payments.js'
 import { renderSocialPreviewHtml, socialPreviewRouter } from './routes/socialPreview.js'
@@ -84,6 +85,14 @@ const orderLookupLimiter = rateLimit({
   legacyHeaders: false,
 })
 
+const contactNotifyLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many messages. Please wait a moment and try again.' },
+})
+
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true })
 })
@@ -95,6 +104,8 @@ app.use('/api/payments/create-payment-intent', paymentsLimiter)
 app.use('/api/orders/:id/status', orderLookupLimiter)
 app.use('/api/payments', paymentsRouter)
 app.use('/api/orders', ordersRouter)
+app.use('/api/contact/notify', contactNotifyLimiter)
+app.use('/api/contact', contactRouter)
 // Bot-only prerendered HTML for social-crawler Open Graph tags — see socialPreview.ts
 // and the matching `has: user-agent` rewrite in vercel.json.
 app.use('/api/social-preview', socialPreviewRouter)

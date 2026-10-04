@@ -1,22 +1,41 @@
 import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
+import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
+import { formatPolicyUpdated } from '../../services/siteContentService'
 import { LegalPageLayout } from './LegalPageLayout'
 
 export default function RefundPolicyPage() {
+  const siteContent = usePublicSiteContent()
+  const policy = siteContent.data?.returnPolicy
+  const published = policy?.published ? policy : null
+
   return (
     <LegalPageLayout
-      title="Refund Policy"
+      title={published?.title || 'Refund Policy'}
       path="/refund-policy"
-      lastUpdated="August 5, 2026"
+      lastUpdated={published ? formatPolicyUpdated(published.updatedAt) : 'August 5, 2026'}
       metaDescription="Krewnox's return, exchange, and refund policy — return windows, eligibility, and how refunds are issued."
       intro={
-        <p>
-          We want you to be happy with what you ordered. This policy explains how returns, exchanges, and refunds
-          work. It's part of our <a href="/terms">Terms of Service</a>.
-        </p>
+        published ? (
+          <p>This is the current return policy published by the store. It's part of our <Link to={ROUTES.terms}>Terms of Service</Link>.</p>
+        ) : (
+          <p>
+            We want you to be happy with what you ordered. This policy explains how returns, exchanges, and refunds
+            work. It's part of our <a href="/terms">Terms of Service</a>.
+          </p>
+        )
       }
     >
+      {siteContent.isLoading && !siteContent.data ? <p>Loading the current return policy…</p> : null}
+      {published ? <div className="whitespace-pre-wrap">{published.body}</div> : !siteContent.isLoading || siteContent.data ? <StaticRefundPolicy /> : null}
+    </LegalPageLayout>
+  )
+}
+
+function StaticRefundPolicy() {
+  return (
+    <>
       <section>
         <h2>1. Return window</h2>
         <p>
@@ -104,6 +123,6 @@ export default function RefundPolicyPage() {
           out.
         </p>
       </section>
-    </LegalPageLayout>
+    </>
   )
 }

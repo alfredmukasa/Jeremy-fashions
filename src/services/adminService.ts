@@ -145,7 +145,16 @@ export type AdminDashboardStats = {
 function sizeChartForSave(payload: AdminProductPayload) {
   const chart = payload.sizeChart
   if (!chart) return null
-  if (sizeChartHasMeasurements(chart) || chart.notes.trim()) return chart
+  const rows = chart.rows.map((row, index) => ({
+    ...row,
+    size: row.size.trim() || `Size ${index + 1}`,
+  }))
+  const columns = chart.columns
+    .map((column) => ({ ...column, id: column.id.trim(), label: column.label.trim() || 'Column' }))
+    .filter((column) => column.id)
+  if ((rows.length > 0 && columns.length > 0) || chart.notes.trim() || sizeChartHasMeasurements(chart)) {
+    return { ...chart, rows, columns }
+  }
   return null
 }
 

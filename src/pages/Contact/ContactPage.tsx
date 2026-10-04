@@ -5,7 +5,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 
+import { DEFAULT_CONTACT_EMAIL } from '../../constants/siteContent'
 import { useAuth } from '../../context/AuthContext'
+import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
 import { submitContactMessage } from '../../services/contactService'
 
 import { Button } from '../../components/common/Button'
@@ -45,6 +47,8 @@ function splitFullName(fullName: unknown): { firstName: string; lastName: string
 
 export default function ContactPage() {
   const { user } = useAuth()
+  const siteContent = usePublicSiteContent()
+  const contactEmail = siteContent.data?.contactEmail || DEFAULT_CONTACT_EMAIL
   const [sent, setSent] = useState(false)
   const defaults = useMemo(() => {
     const names = splitFullName(user?.user_metadata?.full_name)
@@ -120,10 +124,10 @@ export default function ContactPage() {
                 Email
               </p>
               <a
-                href="mailto:support@krewnox.ca"
+                href={`mailto:${contactEmail}`}
                 className="mt-2 inline-block text-sm text-[var(--text-primary)] underline-offset-4 hover:underline"
               >
-                support@krewnox.ca
+                {contactEmail}
               </a>
             </div>
             <div>

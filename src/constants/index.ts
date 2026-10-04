@@ -26,6 +26,7 @@ export const ROUTES = {
   terms: '/terms',
   privacy: '/privacy',
   refundPolicy: '/refund-policy',
+  shipping: '/shipping',
   /** Staff area — default /krewnox-admin; also reachable via /admin (redirect) */
   admin: adminBase,
   adminLogin: `${adminBase}/login`,

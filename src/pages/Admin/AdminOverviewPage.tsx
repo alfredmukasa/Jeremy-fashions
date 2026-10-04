@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom'
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { AdminStatCard } from '../../components/admin/AdminStatCard'
 import { ROUTES } from '../../constants'
+import { PaymentStatusBadge } from '../../components/account/dashboard/PaymentStatusBadge'
+import { fulfillmentStatusFromOrder, orderStatusLabel } from '../../lib/orderStatus'
 import { adminGetDashboardStats, adminListContactMessages, adminListOrders, adminListProducts } from '../../services/adminService'
 
 export default function AdminOverviewPage() {
@@ -87,12 +89,13 @@ export default function AdminOverviewPage() {
             <h2 className="font-serif text-xl text-neutral-950">Recent orders</h2>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-left text-sm">
+            <table className="w-full min-w-[640px] text-left text-sm">
               <thead className="bg-neutral-50 text-[10px] uppercase tracking-[0.2em] text-neutral-500">
                 <tr>
                   <th className="px-4 py-3 font-medium">Date</th>
                   <th className="px-4 py-3 font-medium">Email</th>
-                  <th className="px-4 py-3 font-medium">Status</th>
+                  <th className="px-4 py-3 font-medium">Payment</th>
+                  <th className="px-4 py-3 font-medium">Tracking</th>
                   <th className="px-4 py-3 font-medium">Total</th>
                 </tr>
               </thead>
@@ -103,7 +106,12 @@ export default function AdminOverviewPage() {
                       {new Date(order.created_at).toLocaleString(undefined, { dateStyle: 'short' })}
                     </td>
                     <td className="px-4 py-3 font-medium text-neutral-900">{order.email}</td>
-                    <td className="px-4 py-3 capitalize text-neutral-600">{order.status}</td>
+                    <td className="px-4 py-3">
+                      <PaymentStatusBadge status={order.payment_status} />
+                    </td>
+                    <td className="px-4 py-3 text-neutral-600">
+                      {orderStatusLabel(fulfillmentStatusFromOrder(order.status))}
+                    </td>
                     <td className="px-4 py-3">${Number(order.total_amount).toFixed(2)}</td>
                   </tr>
                 ))}

@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,6 +8,7 @@ import toast from 'react-hot-toast'
 
 import { useWaitlistMode } from '../../context/WaitlistModeContext'
 import { joinWaitlist } from '../../services/waitlistService'
+import { ROUTES } from '../../constants'
 
 import { Button } from '../../components/common/Button'
 import { Container } from '../../components/layout/Container'
@@ -132,6 +134,15 @@ export default function WaitlistPage() {
               <FieldError message={errors.email?.message} />
             </div>
           </form>
+
+          <p className="mt-8 text-center text-sm text-neutral-500">
+            Need help?{' '}
+            <Link to={ROUTES.contact} className="text-neutral-950 underline-offset-4 hover:underline">
+              Contact us
+            </Link>
+            {' '}
+            — no account required.
+          </p>
         </motion.div>
       </Container>
     </div>

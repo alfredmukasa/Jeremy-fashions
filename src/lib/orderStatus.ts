@@ -9,6 +9,11 @@ export const ORDER_STATUSES = [
 
 export type OrderStatus = (typeof ORDER_STATUSES)[number]
 
+/** Admin-controlled fulfillment steps. Payment lives on payment_status. */
+export const FULFILLMENT_STATUSES = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'] as const
+
+export type FulfillmentStatus = (typeof FULFILLMENT_STATUSES)[number]
+
 export function normalizeOrderStatus(value: string): OrderStatus {
   const normalized = value.toLowerCase()
   if ((ORDER_STATUSES as readonly string[]).includes(normalized)) {
@@ -17,16 +22,40 @@ export function normalizeOrderStatus(value: string): OrderStatus {
   return 'pending'
 }
 
+/** Stripe payment is separate. Legacy `paid` fulfillment maps to Received. */
+export function fulfillmentStatusFromOrder(status: string): FulfillmentStatus {
+  const normalized = normalizeOrderStatus(status)
+  if (normalized === 'paid') return 'pending'
+  if ((FULFILLMENT_STATUSES as readonly string[]).includes(normalized)) {
+    return normalized as FulfillmentStatus
+  }
+  return 'pending'
+}
+
 export function orderStatusLabel(status: OrderStatus): string {
-  return status.charAt(0).toUpperCase() + status.slice(1)
+  switch (status) {
+    case 'pending':
+      return 'Received'
+    case 'paid':
+      return 'Received'
+    case 'processing':
+      return 'Packaging'
+    case 'shipped':
+      return 'Out for delivery'
+    case 'delivered':
+      return 'Delivered'
+    case 'cancelled':
+      return 'Cancelled'
+    default:
+      return 'Received'
+  }
 }
 
 export function orderStatusTone(status: OrderStatus): string {
   switch (status) {
     case 'pending':
-      return 'bg-amber-50 text-amber-900 ring-amber-200/80'
     case 'paid':
-      return 'bg-emerald-50 text-emerald-900 ring-emerald-200/80'
+      return 'bg-amber-50 text-amber-900 ring-amber-200/80'
     case 'processing':
       return 'bg-sky-50 text-sky-900 ring-sky-200/80'
     case 'shipped':

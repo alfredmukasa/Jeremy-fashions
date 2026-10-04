@@ -402,10 +402,11 @@ export async function adminListOrders(): Promise<AdminOrderRow[]> {
 
 export async function adminUpdateOrderStatus(id: string, status: AdminOrderRow['status']): Promise<void> {
   const client = requireClient()
+  const nextStatus = status === 'paid' ? 'pending' : status
   const { error } = await client
     .from('orders')
     .update({
-      status,
+      status: nextStatus,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)

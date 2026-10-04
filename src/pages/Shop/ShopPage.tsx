@@ -9,7 +9,7 @@ import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore } from '../../store/wishlistStore'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { productMatchesQuery } from '../../utils/productSearch'
-import { isNewArrival, sortProducts } from '../../utils/productSort'
+import { NEW_ARRIVAL_LIMIT, latestProducts, sortProducts } from '../../utils/productSort'
 
 import { Container } from '../../components/layout/Container'
 import { FilterSidebar, type FilterState } from '../../components/product/FilterSidebar'
@@ -27,11 +27,13 @@ function effectivePrice(p: Product) {
   return p.salePrice ?? p.price
 }
 
+const OPEN_PRICE_MAX = Number.POSITIVE_INFINITY
+
 const defaultFilters: FilterState = {
   categories: [],
   genders: [],
   priceMin: 0,
-  priceMax: 1000,
+  priceMax: OPEN_PRICE_MAX,
 }
 
 const PER_PAGE = 24
@@ -77,6 +79,12 @@ export default function ShopPage() {
     if (!focusSearch) return
     searchInputRef.current?.focus()
   }, [focusSearch])
+
+  useEffect(() => {
+    if (tagFilter !== 'new') return
+    setSort('newest')
+    setPage(1)
+  }, [tagFilter])
   const activeFilters = useMemo(
     () => ({
       ...filters,
@@ -85,6 +93,12 @@ export default function ShopPage() {
     [categoryParam, filters],
   )
 
+  const catalogPriceCeiling = useMemo(() => {
+    const prices = (products ?? []).map(effectivePrice)
+    if (!prices.length) return 1000
+    return Math.max(1000, Math.ceil(Math.max(...prices)))
+  }, [products])
+
   const filtered = useMemo(() => {
     let list = products ?? []
 
@@ -92,13 +106,13 @@ export default function ShopPage() {
       list = list.filter((p) => wishIds.includes(p.id))
     }
 
-    if (tagFilter === 'new') {
-      list = list.filter(isNewArrival)
-    }
-
     const q = debounced.trim()
     if (q) {
       list = list.filter((product) => productMatchesQuery(product, q))
+    }
+
+    if (tagFilter === 'new') {
+      list = latestProducts(list, NEW_ARRIVAL_LIMIT)
     }
 
     if (activeFilters.categories.length) {
@@ -109,10 +123,13 @@ export default function ShopPage() {
       list = list.filter((p) => activeFilters.genders.includes(p.gender))
     }
 
-    list = list.filter((p) => {
-      const pr = effectivePrice(p)
-      return pr >= activeFilters.priceMin && pr <= activeFilters.priceMax
-    })
+    if (activeFilters.priceMin > 0 || Number.isFinite(activeFilters.priceMax)) {
+      const max = Number.isFinite(activeFilters.priceMax) ? activeFilters.priceMax : Number.POSITIVE_INFINITY
+      list = list.filter((p) => {
+        const pr = effectivePrice(p)
+        return pr >= activeFilters.priceMin && pr <= max
+      })
+    }
 
     return sortProducts(list, sort)
   }, [activeFilters, debounced, sort, tagFilter, wishIds, wishOnly, products])
@@ -131,10 +148,13 @@ export default function ShopPage() {
   const pageTitle =
     tagFilter === 'new' ? 'New arrivals' : wishOnly ? 'Saved pieces' : categoryParam ? categoryParam.replace(/-/g, ' ') : 'Shop all'
 
-  const seoTitle = categoryParam ? `Shop ${categoryParam.replace(/-/g, ' ')}` : 'Shop All'
-  const seoDescription = categoryParam
-    ? `Browse the ${categoryParam.replace(/-/g, ' ')} collection at KREWNOX — tailored outerwear, sculptural sneakers, and studio-grade essentials.`
-    : 'Browse the full KREWNOX collection — tailored outerwear, sculptural sneakers, and studio-grade essentials designed as a system.'
+  const seoTitle = tagFilter === 'new' ? 'New arrivals' : categoryParam ? `Shop ${categoryParam.replace(/-/g, ' ')}` : 'Shop All'
+  const seoDescription =
+    tagFilter === 'new'
+      ? 'The latest KREWNOX drops — newest pieces first, updated as soon as they are uploaded.'
+      : categoryParam
+        ? `Browse the ${categoryParam.replace(/-/g, ' ')} collection at KREWNOX — tailored outerwear, sculptural sneakers, and studio-grade essentials.`
+        : 'Browse the full KREWNOX collection — tailored outerwear, sculptural sneakers, and studio-grade essentials designed as a system.'
 
   return (
     <div className="pb-8">
@@ -214,7 +234,9 @@ export default function ShopPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[var(--text-primary)]">
                 Couldn&rsquo;t load the collection
               </p>
-              <p className="mt-2 text-xs text-[var(--text-muted)]">{productsError.message}</p>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                Live inventory is briefly unavailable. Please refresh in a moment.
+              </p>
               <button
                 type="button"
                 onClick={() => window.location.reload()}
@@ -327,6 +349,7 @@ export default function ShopPage() {
                 setPage(1)
               }}
               categoryOptions={categoryOptions}
+              priceCeiling={catalogPriceCeiling}
             />
           </div>
         </div>

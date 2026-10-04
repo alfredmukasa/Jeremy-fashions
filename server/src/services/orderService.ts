@@ -501,7 +501,7 @@ export async function markOrderPaidFromIntent(paymentIntent: Stripe.PaymentInten
     .from('orders')
     .update({
       payment_status: 'paid',
-      status: 'processing',
+      status: existing.status === 'paid' ? 'pending' : existing.status,
       stripe_payment_intent_id: paymentIntent.id,
       payment_metadata: mergePaymentMetadata(
         existing.payment_metadata,

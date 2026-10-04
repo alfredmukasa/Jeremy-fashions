@@ -274,6 +274,7 @@ function useAsync<T>(key: string | null, fn: Fetcher<T>): AsyncState<T> {
       queueMicrotask(() => {
         if (!cancelled) setState({ key, data: cached, loading: false, error: null })
       })
+      void revalidate(key, fn).catch(() => undefined)
       return () => {
         unsubscribe()
         cancelled = true

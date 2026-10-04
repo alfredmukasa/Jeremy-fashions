@@ -39,9 +39,15 @@ export async function submitContactMessage(entry: ContactMessageInput): Promise<
     }
   }
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  let userId: string | null = null
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+    userId = session?.user?.id ?? null
+  } catch {
+    /* Guests and session errors still submit — no account required. */
+  }
 
   const payload = {
     first_name: firstName,
@@ -49,7 +55,7 @@ export async function submitContactMessage(entry: ContactMessageInput): Promise<
     email,
     message,
     status: 'new' as const,
-    user_id: session?.user?.id ?? null,
+    user_id: userId,
   }
 
   const { error } = await supabase.from('contact_messages').insert(payload)

@@ -14,6 +14,7 @@ type Props = {
   value: FilterState
   onChange: (next: FilterState) => void
   categoryOptions: { slug: string; name: string }[]
+  priceCeiling?: number
   className?: string
 }
 
@@ -66,8 +67,9 @@ function FilterSection({
   )
 }
 
-export function FilterSidebar({ value, onChange, categoryOptions, className }: Props) {
-  const bounds = useMemo(() => ({ min: 0, max: 900 }), [])
+export function FilterSidebar({ value, onChange, categoryOptions, priceCeiling = 1000, className }: Props) {
+  const bounds = useMemo(() => ({ min: 0, max: priceCeiling }), [priceCeiling])
+  const displayMax = Number.isFinite(value.priceMax) ? value.priceMax : priceCeiling
 
   function toggleCategory(slug: string) {
     const set = new Set(value.categories)
@@ -84,7 +86,7 @@ export function FilterSidebar({ value, onChange, categoryOptions, className }: P
   }
 
   const activeCount =
-    value.categories.length + value.genders.length + (value.priceMin > 0 || value.priceMax < 1000 ? 1 : 0)
+    value.categories.length + value.genders.length + (value.priceMin > 0 || Number.isFinite(value.priceMax) ? 1 : 0)
 
   return (
     <aside className={cn('space-y-8', className)}>
@@ -96,7 +98,7 @@ export function FilterSidebar({ value, onChange, categoryOptions, className }: P
               categories: [],
               genders: [],
               priceMin: 0,
-              priceMax: 1000,
+              priceMax: Number.POSITIVE_INFINITY,
             })
           }
           className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)] underline-offset-4 transition hover:text-[var(--text-primary)] hover:underline"
@@ -161,7 +163,7 @@ export function FilterSidebar({ value, onChange, categoryOptions, className }: P
                 type="number"
                 min={bounds.min}
                 max={bounds.max}
-                value={value.priceMax}
+                value={displayMax}
                 onChange={(e) =>
                   onChange({ ...value, priceMax: Math.max(Number(e.target.value) || 0, value.priceMin) })
                 }
@@ -170,7 +172,7 @@ export function FilterSidebar({ value, onChange, categoryOptions, className }: P
             </div>
           </div>
           <p className="mt-3 text-[9px] uppercase tracking-[0.18em] text-[var(--text-muted)]">
-            ${value.priceMin} – ${value.priceMax}
+            ${value.priceMin} – ${displayMax}
           </p>
         </div>
       </FilterSection>

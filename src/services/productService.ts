@@ -115,6 +115,7 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
         .eq('status', 'active')
         .eq('category', product.category)
         .neq('id', product.id)
+        .order('created_at', { ascending: false })
         .limit(limit),
     )
 

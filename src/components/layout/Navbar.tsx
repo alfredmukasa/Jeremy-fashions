@@ -182,14 +182,19 @@ export function Navbar() {
                   </NavLink>
                 ))
               : (
-                  <span
-                    className={cn(
-                      'text-[10px] font-medium uppercase tracking-[0.28em]',
-                      isOverlay ? 'text-white/55' : 'text-neutral-500',
-                    )}
+                  <NavLink
+                    to={ROUTES.contact}
+                    className={({ isActive }) =>
+                      cn(
+                        'text-[11px] font-medium uppercase tracking-[0.2em] transition-opacity duration-300 hover:opacity-50',
+                        isOverlay ? 'text-white' : 'text-neutral-900',
+                        isActive && 'opacity-100',
+                        !isActive && 'opacity-70',
+                      )
+                    }
                   >
-                    Private access
-                  </span>
+                    Contact us
+                  </NavLink>
                 )}
           </nav>
 

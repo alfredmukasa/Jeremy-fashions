@@ -111,6 +111,7 @@ export default function ContactPage() {
         <h1 className="mt-3 font-serif text-3xl text-[var(--text-primary)] sm:text-5xl">Contact us</h1>
         <p className="mt-4 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
           Questions about an order, a fit, or a recent drop? Send a note and our team will follow up by email.
+          You do not need an account — guests and members can both write to us.
         </p>
 
         <div className="mt-12 grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-start">

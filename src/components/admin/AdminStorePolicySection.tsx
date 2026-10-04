@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
 import type { StorePolicy } from '../../constants/siteContent'
-import { adminGetSiteSettings, adminUpsertSiteSetting } from '../../services/adminService'
+import { adminDeleteSiteSetting, adminGetSiteSettings, adminUpsertSiteSetting } from '../../services/adminService'
 import { parseStorePolicy, storePolicyPayload, validateStorePolicy } from '../../services/siteContentService'
 import { Button } from '../common/Button'
 import { FieldLabel, Input } from '../common/Input'
@@ -58,6 +58,17 @@ export function AdminStorePolicySection({
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Restore failed'),
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: () => adminDeleteSiteSetting(settingKey),
+    onSuccess: () => {
+      toast.success(`${heading} removed`)
+      setDraft(null)
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] })
+      void queryClient.invalidateQueries({ queryKey: ['public', 'site-content'] })
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Delete failed'),
+  })
+
   function publish() {
     const error = validateStorePolicy(form)
     if (error) {
@@ -70,6 +81,13 @@ export function AdminStorePolicySection({
   function restore() {
     if (!window.confirm(`Replace the published ${heading.toLowerCase()} with the built-in default?`)) return
     resetMutation.mutate()
+  }
+
+  function removePublished() {
+    if (!window.confirm(`Remove the published ${heading.toLowerCase()}? Customers will see the built-in page again.`)) {
+      return
+    }
+    deleteMutation.mutate()
   }
 
   return (
@@ -119,8 +137,16 @@ export function AdminStorePolicySection({
         <Button type="button" onClick={publish} disabled={saveMutation.isPending || settingsQuery.isLoading}>
           {saveMutation.isPending ? 'Publishing…' : 'Save and publish'}
         </Button>
-        <Button type="button" variant="outline" onClick={restore} disabled={resetMutation.isPending}>
+        <Button type="button" variant="outline" onClick={restore} disabled={resetMutation.isPending || !fallback.body.trim()}>
           {resetMutation.isPending ? 'Restoring…' : 'Restore default'}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={removePublished}
+          disabled={deleteMutation.isPending || settingsQuery.isLoading || !persisted.published}
+        >
+          {deleteMutation.isPending ? 'Removing…' : 'Delete published version'}
         </Button>
       </div>
     </section>

@@ -479,6 +479,12 @@ export async function adminUpsertSiteSetting(key: string, value: Record<string, 
   if (error) throw new Error(error.message)
 }
 
+export async function adminDeleteSiteSetting(key: string): Promise<void> {
+  const client = requireClient()
+  const { error } = await client.from('site_settings').delete().eq('key', key)
+  if (error) throw new Error(error.message)
+}
+
 export async function adminGetWaitlistMode(): Promise<boolean> {
   const client = requireClient()
   const { data, error } = await client

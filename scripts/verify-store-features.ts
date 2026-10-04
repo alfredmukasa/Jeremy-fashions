@@ -12,13 +12,14 @@ import {
   renameSizeChartColumn,
   setSizeChartCell,
 } from '../src/lib/sizeChart.ts'
-import { isValidContactEmail, parseContactRecipient } from '../src/lib/contactRecipient.ts'
+import { isValidContactEmail, parseContactRecipient, resolveConfiguredSupportEmail } from '../src/lib/contactRecipient.ts'
 import { rankRecommendedProducts } from '../src/lib/recommendations.ts'
 import { parseStorePolicy, validateStorePolicy } from '../src/lib/storePolicy.ts'
 import { DEFAULT_RETURN_POLICY } from '../src/constants/siteContent.ts'
 import {
   buildContactEmail,
   deliverContactEmail,
+  resolveConfiguredSupportEmail as resolveServerSupportEmail,
   resolveContactRecipient,
 } from '../server/src/services/contactMail.ts'
 import type { Product } from '../src/types/index.ts'
@@ -112,6 +113,16 @@ assert.equal(parseContactRecipient({ email: 'Hello@Example.com' }), 'hello@examp
 assert.equal(parseContactRecipient({ email: 'bad' }), null)
 assert.equal(resolveContactRecipient({ email: 'ops@krewnox.ca' }), 'ops@krewnox.ca')
 assert.equal(resolveContactRecipient({}), 'support@krewnox.ca')
+assert.equal(
+  resolveConfiguredSupportEmail({ email: 'desk@krewnox.ca' }, { supportEmail: 'old@krewnox.ca' }),
+  'desk@krewnox.ca',
+)
+assert.equal(resolveConfiguredSupportEmail(null, { supportEmail: 'Studio@Krewnox.ca' }), 'studio@krewnox.ca')
+assert.equal(resolveConfiguredSupportEmail({ email: 'nope' }, { supportEmail: 'also-bad' }), 'support@krewnox.ca')
+assert.equal(
+  resolveServerSupportEmail({ email: 'desk@krewnox.ca' }, { supportEmail: 'old@krewnox.ca' }),
+  'desk@krewnox.ca',
+)
 
 const unpublished = parseStorePolicy({}, DEFAULT_RETURN_POLICY)
 assert.equal(unpublished.published, false)

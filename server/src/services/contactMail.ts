@@ -42,6 +42,17 @@ export function resolveContactRecipient(raw: unknown): string {
   return parseContactRecipient(raw) ?? DEFAULT_CONTACT_EMAIL
 }
 
+export function supportEmailFromStorefront(raw: unknown): string | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const email = (raw as { supportEmail?: unknown }).supportEmail
+  if (typeof email !== 'string' || !isValidContactEmail(email)) return null
+  return normalizeContactEmail(email)
+}
+
+export function resolveConfiguredSupportEmail(contactRaw: unknown, storefrontRaw?: unknown): string {
+  return parseContactRecipient(contactRaw) ?? supportEmailFromStorefront(storefrontRaw) ?? DEFAULT_CONTACT_EMAIL
+}
+
 export function buildContactEmail(notice: ContactNotice): { subject: string; text: string } {
   const name = `${notice.firstName} ${notice.lastName}`.trim()
   return {

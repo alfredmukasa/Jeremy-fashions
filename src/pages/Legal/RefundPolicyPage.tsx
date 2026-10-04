@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
-import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
+import { usePublicSiteContent, useSupportEmail } from '../../hooks/usePublicSiteContent'
 import { formatPolicyUpdated } from '../../services/siteContentService'
 import { LegalPageLayout } from './LegalPageLayout'
 
@@ -34,6 +34,7 @@ export default function RefundPolicyPage() {
 }
 
 function StaticRefundPolicy() {
+  const supportEmail = useSupportEmail()
   return (
     <>
       <section>
@@ -62,7 +63,7 @@ function StaticRefundPolicy() {
       <section>
         <h2>3. How to start a return</h2>
         <p>
-          Email <a href="mailto:support@krewnox.ca">support@krewnox.ca</a> with your order number and the item(s)
+          Email <a href={`mailto:${supportEmail}`}>{supportEmail}</a> with your order number and the item(s)
           you'd like to return. We'll confirm eligibility and send you return instructions, including the return
           address. Please don't send items back without contacting us first — returns sent without prior contact
           may be delayed or refused.
@@ -83,7 +84,7 @@ function StaticRefundPolicy() {
         <h2>5. Damaged, defective, or incorrect items</h2>
         <p>
           If an item arrives damaged, defective, or isn't what you ordered, contact us within 7 days of delivery
-          at <a href="mailto:support@krewnox.ca">support@krewnox.ca</a> with your order number and a photo of the
+          at <a href={`mailto:${supportEmail}`}>{supportEmail}</a> with your order number and a photo of the
           issue. We'll cover return shipping and provide a full refund or free replacement, whichever you prefer.
         </p>
       </section>
@@ -110,7 +111,7 @@ function StaticRefundPolicy() {
         <h2>8. Order cancellations</h2>
         <p>
           If you need to cancel or change an order, contact us immediately at{' '}
-          <a href="mailto:support@krewnox.ca">support@krewnox.ca</a>. We can only cancel or modify orders that
+          <a href={`mailto:${supportEmail}`}>{supportEmail}</a>. We can only cancel or modify orders that
           haven't yet shipped — once an order has shipped, it's handled under the return process above.
         </p>
       </section>
@@ -119,7 +120,7 @@ function StaticRefundPolicy() {
         <h2>9. Questions</h2>
         <p>
           Reach us any time through our <Link to={ROUTES.contact}>Contact us</Link> page or at{' '}
-          <a href="mailto:support@krewnox.ca">support@krewnox.ca</a> and we'll help sort it
+          <a href={`mailto:${supportEmail}`}>{supportEmail}</a> and we'll help sort it
           out.
         </p>
       </section>

@@ -3,6 +3,8 @@ export const SITE_SETTING_KEY_FOOTER_SOCIAL = 'footer_social'
 export const SITE_SETTING_KEY_TOP_BANNER = 'top_banner'
 export const SITE_SETTING_KEY_RETURN_POLICY = 'return_policy'
 export const SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS = 'shipping_instructions'
+export const SITE_SETTING_KEY_PRIVACY_POLICY = 'privacy_policy'
+export const SITE_SETTING_KEY_TERMS = 'terms_of_service'
 export const SITE_SETTING_KEY_CONTACT_RECIPIENT = 'contact_recipient'
 
 export const DEFAULT_CONTACT_EMAIL = 'support@krewnox.ca'
@@ -26,6 +28,20 @@ export const DEFAULT_RETURN_POLICY: StorePolicy = {
 export const DEFAULT_SHIPPING_INSTRUCTIONS: StorePolicy = {
   title: 'Shipping',
   body: 'Complimentary standard shipping on orders over $250. Express delivery is available at checkout for domestic addresses.',
+  published: false,
+}
+
+/** Customers keep the built-in privacy page until an admin publishes a replacement. */
+export const DEFAULT_PRIVACY_POLICY: StorePolicy = {
+  title: 'Privacy Policy',
+  body: '',
+  published: false,
+}
+
+/** Customers keep the built-in terms page until an admin publishes a replacement. */
+export const DEFAULT_TERMS: StorePolicy = {
+  title: 'Terms of Service',
+  body: '',
   published: false,
 }
 

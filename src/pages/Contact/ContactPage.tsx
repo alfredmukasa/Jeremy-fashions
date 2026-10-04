@@ -5,9 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 
-import { DEFAULT_CONTACT_EMAIL } from '../../constants/siteContent'
 import { useAuth } from '../../context/AuthContext'
-import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
+import { useSupportEmail } from '../../hooks/usePublicSiteContent'
 import { submitContactMessage } from '../../services/contactService'
 
 import { Button } from '../../components/common/Button'
@@ -47,8 +46,7 @@ function splitFullName(fullName: unknown): { firstName: string; lastName: string
 
 export default function ContactPage() {
   const { user } = useAuth()
-  const siteContent = usePublicSiteContent()
-  const contactEmail = siteContent.data?.contactEmail || DEFAULT_CONTACT_EMAIL
+  const supportEmail = useSupportEmail()
   const [sent, setSent] = useState(false)
   const defaults = useMemo(() => {
     const names = splitFullName(user?.user_metadata?.full_name)
@@ -121,14 +119,17 @@ export default function ContactPage() {
           <div className="space-y-8 border-t border-[var(--border-subtle)] pt-8 lg:border-t-0 lg:pt-0">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">
-                Email
+                Support email
               </p>
               <a
-                href={`mailto:${contactEmail}`}
+                href={`mailto:${supportEmail}`}
                 className="mt-2 inline-block text-sm text-[var(--text-primary)] underline-offset-4 hover:underline"
               >
-                {contactEmail}
+                {supportEmail}
               </a>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--text-secondary)]">
+                Messages from this form are sent to this address. Use your own email in the form so we can reply.
+              </p>
             </div>
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--text-muted)]">

@@ -4,12 +4,13 @@ import { supabaseAdmin, supabaseAnon } from '../lib/supabase.js'
 import {
   deliverContactEmail,
   isValidContactEmail,
-  resolveContactRecipient,
+  resolveConfiguredSupportEmail,
 } from '../services/contactMail.js'
 
 export const contactRouter = Router()
 
 const CONTACT_RECIPIENT_KEY = 'contact_recipient'
+const STOREFRONT_KEY = 'storefront'
 
 function readField(value: unknown, max: number): string {
   return typeof value === 'string' ? value.trim().slice(0, max) : ''
@@ -19,16 +20,17 @@ async function readConfiguredRecipient(): Promise<string> {
   const client = supabaseAdmin ?? supabaseAnon
   const { data, error } = await client
     .from('site_settings')
-    .select('value')
-    .eq('key', CONTACT_RECIPIENT_KEY)
-    .maybeSingle()
+    .select('key, value')
+    .in('key', [CONTACT_RECIPIENT_KEY, STOREFRONT_KEY])
 
   if (error) {
     console.error('[contact] unable to read recipient', error.message)
-    return resolveContactRecipient(null)
+    return resolveConfiguredSupportEmail(null)
   }
 
-  return resolveContactRecipient(data?.value)
+  const contact = data?.find((row) => row.key === CONTACT_RECIPIENT_KEY)?.value
+  const storefront = data?.find((row) => row.key === STOREFRONT_KEY)?.value
+  return resolveConfiguredSupportEmail(contact, storefront)
 }
 
 contactRouter.post('/notify', async (req, res) => {

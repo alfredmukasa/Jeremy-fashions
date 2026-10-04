@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 
+import { DEFAULT_CONTACT_EMAIL } from '../constants/siteContent'
 import { fetchPublicSiteContent } from '../services/siteContentService'
 
 export function usePublicSiteContent() {
@@ -8,4 +9,9 @@ export function usePublicSiteContent() {
     queryFn: fetchPublicSiteContent,
     staleTime: 30_000,
   })
+}
+
+export function useSupportEmail(): string {
+  const siteContent = usePublicSiteContent()
+  return siteContent.data?.contactEmail || DEFAULT_CONTACT_EMAIL
 }

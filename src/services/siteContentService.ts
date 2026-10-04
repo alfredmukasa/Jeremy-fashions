@@ -5,15 +5,19 @@ import {
   DEFAULT_CONTACT_EMAIL,
   DEFAULT_FOOTER_SOCIAL_LINKS,
   DEFAULT_HERO_SLIDES,
+  DEFAULT_PRIVACY_POLICY,
   DEFAULT_RETURN_POLICY,
   DEFAULT_SHIPPING_INSTRUCTIONS,
+  DEFAULT_TERMS,
   FOOTER_SOCIAL_ICON_OPTIONS,
   DEFAULT_TOP_BANNER,
   SITE_SETTING_KEY_CONTACT_RECIPIENT,
   SITE_SETTING_KEY_FOOTER_SOCIAL,
   SITE_SETTING_KEY_HERO_SLIDES,
+  SITE_SETTING_KEY_PRIVACY_POLICY,
   SITE_SETTING_KEY_RETURN_POLICY,
   SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS,
+  SITE_SETTING_KEY_TERMS,
   SITE_SETTING_KEY_TOP_BANNER,
   type FooterSocialIconKey,
   type FooterSocialLink,
@@ -31,6 +35,8 @@ export type PublicSiteContent = {
   topBanner: TopBanner
   returnPolicy: StorePolicy
   shippingInstructions: StorePolicy
+  privacyPolicy: StorePolicy
+  terms: StorePolicy
   contactEmail: string
 }
 
@@ -40,6 +46,8 @@ const PUBLIC_SETTING_KEYS = [
   SITE_SETTING_KEY_TOP_BANNER,
   SITE_SETTING_KEY_RETURN_POLICY,
   SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS,
+  SITE_SETTING_KEY_PRIVACY_POLICY,
+  SITE_SETTING_KEY_TERMS,
   SITE_SETTING_KEY_CONTACT_RECIPIENT,
 ] as const
 
@@ -50,6 +58,8 @@ function defaultSiteContent(): PublicSiteContent {
     topBanner: { ...DEFAULT_TOP_BANNER },
     returnPolicy: { ...DEFAULT_RETURN_POLICY },
     shippingInstructions: { ...DEFAULT_SHIPPING_INSTRUCTIONS },
+    privacyPolicy: { ...DEFAULT_PRIVACY_POLICY },
+    terms: { ...DEFAULT_TERMS },
     contactEmail: DEFAULT_CONTACT_EMAIL,
   }
 }
@@ -166,6 +176,12 @@ export async function fetchPublicSiteContent(): Promise<PublicSiteContent> {
     }
     if (row.key === SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS) {
       content.shippingInstructions = parseStorePolicy(row.value, DEFAULT_SHIPPING_INSTRUCTIONS, updatedAt)
+    }
+    if (row.key === SITE_SETTING_KEY_PRIVACY_POLICY) {
+      content.privacyPolicy = parseStorePolicy(row.value, DEFAULT_PRIVACY_POLICY, updatedAt)
+    }
+    if (row.key === SITE_SETTING_KEY_TERMS) {
+      content.terms = parseStorePolicy(row.value, DEFAULT_TERMS, updatedAt)
     }
     if (row.key === SITE_SETTING_KEY_CONTACT_RECIPIENT) {
       content.contactEmail = parseContactRecipient(row.value) ?? DEFAULT_CONTACT_EMAIL

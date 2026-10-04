@@ -1,9 +1,46 @@
 import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
+import { usePublicSiteContent, useSupportEmail } from '../../hooks/usePublicSiteContent'
+import { formatPolicyUpdated } from '../../services/siteContentService'
 import { LegalPageLayout } from './LegalPageLayout'
 
 export default function TermsPage() {
+  const siteContent = usePublicSiteContent()
+  const policy = siteContent.data?.terms
+  const published = policy?.published ? policy : null
+
+  if (published) {
+    return (
+      <LegalPageLayout
+        title={published.title}
+        path="/terms"
+        lastUpdated={formatPolicyUpdated(published.updatedAt)}
+        metaDescription="The terms that govern your use of Krewnox and any purchase you make on the site."
+      >
+        <div className="whitespace-pre-wrap">{published.body}</div>
+      </LegalPageLayout>
+    )
+  }
+
+  if (siteContent.isLoading && !siteContent.data) {
+    return (
+      <LegalPageLayout
+        title="Terms of Service"
+        path="/terms"
+        lastUpdated="Current"
+        metaDescription="The terms that govern your use of Krewnox and any purchase you make on the site."
+      >
+        <p>Loading the current terms…</p>
+      </LegalPageLayout>
+    )
+  }
+
+  return <StaticTermsPage />
+}
+
+function StaticTermsPage() {
+  const supportEmail = useSupportEmail()
   return (
     <LegalPageLayout
       title="Terms of Service"
@@ -25,7 +62,7 @@ export default function TermsPage() {
           accessories. Krewnox is operated by{' '}
           <strong>[INSERT REGISTERED BUSINESS NAME AND ENTITY TYPE, e.g. "Krewnox Inc., a corporation"]</strong>,
           located at <strong>[INSERT REGISTERED BUSINESS ADDRESS]</strong>. You can reach us at{' '}
-          <a href="mailto:support@krewnox.ca">support@krewnox.ca</a>.
+          <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
         </p>
       </section>
 
@@ -44,7 +81,7 @@ export default function TermsPage() {
           You can browse and check out as a guest, or create an account (by email and password, or by signing in
           with Google) to save addresses, view order history, and maintain a wishlist. You're responsible for
           keeping your login credentials confidential and for all activity under your account. Tell us right away
-          at <a href="mailto:support@krewnox.ca">support@krewnox.ca</a> if you suspect unauthorized access.
+          at <a href={`mailto:${supportEmail}`}>{supportEmail}</a> if you suspect unauthorized access.
         </p>
       </section>
 
@@ -205,7 +242,7 @@ export default function TermsPage() {
         <p>
           Questions about these Terms? Reach us through our{' '}
           <Link to={ROUTES.contact}>Contact us</Link> page or at{' '}
-          <a href="mailto:support@krewnox.ca">support@krewnox.ca</a>.
+          <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
         </p>
       </section>
     </LegalPageLayout>

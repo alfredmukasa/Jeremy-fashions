@@ -7,7 +7,9 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 
+import { DEFAULT_SHIPPING_INSTRUCTIONS } from '../../constants/siteContent'
 import { ROUTES } from '../../constants'
+import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
 import { useAuth } from '../../context/AuthContext'
 import { findCountryByCode, getRegionOptions } from '../../lib/countryRegionData'
 import { detectLocation } from '../../lib/geolocation'
@@ -392,6 +394,11 @@ function CheckoutGrid(props: {
   onPaymentSuccess: () => void
   onPaymentError: (message: string) => void
 }) {
+  const siteContent = usePublicSiteContent()
+  const shippingCopy = siteContent.data?.shippingInstructions?.published
+    ? siteContent.data.shippingInstructions.body
+    : DEFAULT_SHIPPING_INSTRUCTIONS.body
+
   return (
     <div className="grid gap-12 lg:grid-cols-[1fr_400px]">
       <div className="space-y-12">
@@ -419,6 +426,13 @@ function CheckoutGrid(props: {
 
             <section>
               <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-900">Shipping</h2>
+              <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm leading-relaxed text-neutral-600">{shippingCopy}</p>
+              <Link
+                to={ROUTES.shipping}
+                className="mt-2 inline-block text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-600 underline-offset-4 hover:underline"
+              >
+                Shipping details
+              </Link>
               <div className="mt-6">
                 <CheckoutShippingSelector
                   addresses={props.shippingAddresses}

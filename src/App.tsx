@@ -33,6 +33,7 @@ const ContactPage = lazy(() => import('./pages/Contact/ContactPage'))
 const TermsPage = lazy(() => import('./pages/Legal/TermsPage'))
 const PrivacyPolicyPage = lazy(() => import('./pages/Legal/PrivacyPolicyPage'))
 const RefundPolicyPage = lazy(() => import('./pages/Legal/RefundPolicyPage'))
+const ShippingPage = lazy(() => import('./pages/Legal/ShippingPage'))
 
 const adminLazy = isAdminPortalMounted()
   ? {
@@ -133,6 +134,7 @@ export default function App() {
               <Route path={ROUTES.terms} element={page(TermsPage)} />
               <Route path={ROUTES.privacy} element={page(PrivacyPolicyPage)} />
               <Route path={ROUTES.refundPolicy} element={page(RefundPolicyPage)} />
+              <Route path={ROUTES.shipping} element={page(ShippingPage)} />
               <Route path="*" element={<Navigate to={ROUTES.home} replace />} />
             </Route>
           </Routes>

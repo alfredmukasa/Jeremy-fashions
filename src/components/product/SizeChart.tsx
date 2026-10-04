@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { HiOutlineXMark } from 'react-icons/hi2'
 
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
-import { convertMeasurement, howToMeasureCopy } from '../../lib/sizeChart'
+import { convertMeasurement, howToMeasureCopy, sizeChartColumnKind } from '../../lib/sizeChart'
 import type { ProductKind, SizeChart, SizeChartUnit } from '../../types'
 import { cn } from '../../utils/cn'
 
@@ -37,11 +37,11 @@ export function SizeChartTable({ chart, displayUnit, highlightSize, compact = fa
           </tr>
         </thead>
         <tbody>
-          {chart.rows.map((row) => {
+          {chart.rows.map((row, rowIndex) => {
             const active = highlightSize === row.size
             return (
               <tr
-                key={row.size}
+                key={row.id ?? `${row.size}-${rowIndex}`}
                 className={cn(
                   'border-b border-[var(--border-subtle)] last:border-b-0',
                   active && 'bg-[var(--surface-muted)]',
@@ -64,7 +64,7 @@ export function SizeChartTable({ chart, displayUnit, highlightSize, compact = fa
                       compact && 'py-2 text-xs',
                     )}
                   >
-                    {formatCell(row.values[column.id] ?? '', chart.unit, unit, column.id)}
+                    {formatCell(row.values[column.id] ?? '', chart.unit, unit, column)}
                   </td>
                 ))}
               </tr>
@@ -76,12 +76,17 @@ export function SizeChartTable({ chart, displayUnit, highlightSize, compact = fa
   )
 }
 
-function formatCell(value: string, from: SizeChartUnit, to: SizeChartUnit, columnId: string) {
+function formatCell(
+  value: string,
+  from: SizeChartUnit,
+  to: SizeChartUnit,
+  column: SizeChart['columns'][number],
+) {
   if (!value.trim()) return '—'
-  if (columnId === 'us' || columnId === 'uk' || columnId === 'eu') return value
+  if (sizeChartColumnKind(column) === 'text') return value
   const converted = convertMeasurement(value, from, to)
   if (to === from) return value
-  if (columnId === 'cm') return converted
+  if (column.id === 'cm') return converted
   return `${converted} ${to}`
 }
 

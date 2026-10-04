@@ -3,14 +3,23 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
+import { AdminStorePolicySection } from '../../components/admin/AdminStorePolicySection'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
 import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
 import {
   DEFAULT_FOOTER_SOCIAL_LINKS,
   DEFAULT_HERO_SLIDES,
+  DEFAULT_PRIVACY_POLICY,
+  DEFAULT_RETURN_POLICY,
+  DEFAULT_SHIPPING_INSTRUCTIONS,
+  DEFAULT_TERMS,
   DEFAULT_TOP_BANNER,
   FOOTER_SOCIAL_ICON_OPTIONS,
+  SITE_SETTING_KEY_PRIVACY_POLICY,
+  SITE_SETTING_KEY_RETURN_POLICY,
+  SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS,
+  SITE_SETTING_KEY_TERMS,
   SITE_SETTING_KEY_FOOTER_SOCIAL,
   SITE_SETTING_KEY_HERO_SLIDES,
   SITE_SETTING_KEY_TOP_BANNER,
@@ -220,7 +229,7 @@ function AdminSiteContentContent() {
       <AdminPageHeader
         eyebrow="Storefront"
         title="Site content"
-        description="Hero backgrounds, top announcement bar, and footer social links."
+        description="Hero backgrounds, announcement bar, footer links, return policy, and shipping instructions."
       />
 
       <TopBannerEditor
@@ -248,6 +257,34 @@ function AdminSiteContentContent() {
         onReset={() => resetSocialMutation.mutate()}
         saving={saveSocialMutation.isPending}
         resetting={resetSocialMutation.isPending}
+      />
+
+      <AdminStorePolicySection
+        settingKey={SITE_SETTING_KEY_PRIVACY_POLICY}
+        fallback={DEFAULT_PRIVACY_POLICY}
+        heading="Privacy policy"
+        description="Publish a replacement for the privacy page, edit it anytime, or delete the published version to restore the built-in policy."
+      />
+
+      <AdminStorePolicySection
+        settingKey={SITE_SETTING_KEY_TERMS}
+        fallback={DEFAULT_TERMS}
+        heading="Terms of service"
+        description="Publish a replacement for the terms page, edit it anytime, or delete the published version to restore the built-in terms."
+      />
+
+      <AdminStorePolicySection
+        settingKey={SITE_SETTING_KEY_RETURN_POLICY}
+        fallback={DEFAULT_RETURN_POLICY}
+        heading="Return policy"
+        description="One published version is shown on the product page, the refund policy page, and the footer. Delete it to restore the built-in refund policy."
+      />
+
+      <AdminStorePolicySection
+        settingKey={SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS}
+        fallback={DEFAULT_SHIPPING_INSTRUCTIONS}
+        heading="Shipping instructions"
+        description="One published version is shown on the product page, checkout, and the shipping page. Delete it to restore the built-in shipping text."
       />
     </div>
   )

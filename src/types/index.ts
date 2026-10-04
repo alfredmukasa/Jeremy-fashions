@@ -23,12 +23,17 @@ export type ProductAttributes = {
 
 export type SizeChartUnit = 'in' | 'cm'
 
+export type SizeChartColumnKind = 'measurement' | 'text'
+
 export type SizeChartColumn = {
   id: string
   label: string
+  /** Measurement cells convert between in/cm. Text cells stay as entered. */
+  kind?: SizeChartColumnKind
 }
 
 export type SizeChartRow = {
+  id?: string
   size: string
   values: Record<string, string>
 }

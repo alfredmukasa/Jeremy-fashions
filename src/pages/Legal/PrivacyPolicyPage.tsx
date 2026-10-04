@@ -1,9 +1,46 @@
 import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
+import { usePublicSiteContent, useSupportEmail } from '../../hooks/usePublicSiteContent'
+import { formatPolicyUpdated } from '../../services/siteContentService'
 import { LegalPageLayout } from './LegalPageLayout'
 
 export default function PrivacyPolicyPage() {
+  const siteContent = usePublicSiteContent()
+  const policy = siteContent.data?.privacyPolicy
+  const published = policy?.published ? policy : null
+
+  if (published) {
+    return (
+      <LegalPageLayout
+        title={published.title}
+        path="/privacy"
+        lastUpdated={formatPolicyUpdated(published.updatedAt)}
+        metaDescription="What personal data Krewnox collects, how it's used, who it's shared with, and how to request access or deletion."
+      >
+        <div className="whitespace-pre-wrap">{published.body}</div>
+      </LegalPageLayout>
+    )
+  }
+
+  if (siteContent.isLoading && !siteContent.data) {
+    return (
+      <LegalPageLayout
+        title="Privacy Policy"
+        path="/privacy"
+        lastUpdated="Current"
+        metaDescription="What personal data Krewnox collects, how it's used, who it's shared with, and how to request access or deletion."
+      >
+        <p>Loading the current privacy policy…</p>
+      </LegalPageLayout>
+    )
+  }
+
+  return <StaticPrivacyPolicy />
+}
+
+function StaticPrivacyPolicy() {
+  const supportEmail = useSupportEmail()
   return (
     <LegalPageLayout
       title="Privacy Policy"
@@ -41,7 +78,7 @@ export default function PrivacyPolicyPage() {
           </li>
           <li>
             <strong>Customer support</strong> — anything you tell us when you email{' '}
-            <a href="mailto:support@krewnox.ca">support@krewnox.ca</a>.
+            <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
           </li>
         </ul>
         <h3>Information collected automatically</h3>
@@ -140,7 +177,7 @@ export default function PrivacyPolicyPage() {
           Depending on where you live, you may have the right to access, correct, or request deletion of your
           personal information, object to or restrict certain processing, or request a copy of your data in a
           portable format. To exercise any of these, email{' '}
-          <a href="mailto:support@krewnox.ca">support@krewnox.ca</a> from the email address on your account — we'll
+          <a href={`mailto:${supportEmail}`}>{supportEmail}</a> from the email address on your account — we'll
           verify your identity and respond within a reasonable time.
         </p>
         <p>
@@ -197,7 +234,7 @@ export default function PrivacyPolicyPage() {
         <p>
           Questions about this policy or how we handle your data? Visit our{' '}
           <Link to={ROUTES.contact}>Contact us</Link> page or email{' '}
-          <a href="mailto:support@krewnox.ca">support@krewnox.ca</a>.
+          <a href={`mailto:${supportEmail}`}>{supportEmail}</a>.
         </p>
       </section>
     </LegalPageLayout>

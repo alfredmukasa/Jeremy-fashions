@@ -6,6 +6,8 @@ import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
 import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
+import { SITE_SETTING_KEY_CONTACT_RECIPIENT } from '../../constants/siteContent'
+import { contactRecipientPayload, isValidContactEmail, resolveConfiguredSupportEmail } from '../../lib/contactRecipient'
 import { adminGetSiteSettings, adminUpsertSiteSetting, adminGetWaitlistMode, adminSetWaitlistMode } from '../../services/adminService'
 import { cn } from '../../utils/cn'
 
@@ -50,11 +52,10 @@ function AdminSettingsContent() {
 
   const persisted = useMemo<StorefrontSettings>(() => {
     const raw = settingsQuery.data?.[SETTINGS_KEY]
-    if (!raw || typeof raw !== 'object') return defaults
-    const value = raw as Partial<StorefrontSettings>
+    const value = raw && typeof raw === 'object' ? (raw as Partial<StorefrontSettings>) : {}
     return {
       brandName: typeof value.brandName === 'string' ? value.brandName : defaults.brandName,
-      supportEmail: typeof value.supportEmail === 'string' ? value.supportEmail : defaults.supportEmail,
+      supportEmail: resolveConfiguredSupportEmail(settingsQuery.data?.[SITE_SETTING_KEY_CONTACT_RECIPIENT], raw),
       lowStockThreshold:
         typeof value.lowStockThreshold === 'number' ? value.lowStockThreshold : defaults.lowStockThreshold,
     }
@@ -63,11 +64,19 @@ function AdminSettingsContent() {
   const form = draft ?? persisted
 
   const saveMutation = useMutation({
-    mutationFn: () => adminUpsertSiteSetting(SETTINGS_KEY, form),
+    mutationFn: async () => {
+      if (!isValidContactEmail(form.supportEmail)) {
+        throw new Error('Enter a valid support email address.')
+      }
+      const supportEmail = form.supportEmail.trim().toLowerCase()
+      await adminUpsertSiteSetting(SETTINGS_KEY, { ...form, supportEmail })
+      await adminUpsertSiteSetting(SITE_SETTING_KEY_CONTACT_RECIPIENT, contactRecipientPayload(supportEmail))
+    },
     onSuccess: () => {
-      toast.success('Settings saved')
+      toast.success('Settings saved. The support form now uses this email.')
       setDraft(null)
       void queryClient.invalidateQueries({ queryKey: ['admin', 'settings'] })
+      void queryClient.invalidateQueries({ queryKey: ['public', 'site-content'] })
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Save failed'),
   })
@@ -132,9 +141,22 @@ function AdminSettingsContent() {
           <Input
             id="supportEmail"
             type="email"
+            autoComplete="email"
+            required
+            maxLength={254}
             value={form.supportEmail}
+            disabled={settingsQuery.isLoading}
             onChange={(e) => setDraft((current) => ({ ...(current ?? persisted), supportEmail: e.target.value }))}
           />
+          <p className="mt-2 text-xs text-neutral-500">
+            This address is shown on the support form and receives new messages. Change it here and save — no code
+            change is required.
+          </p>
+          {settingsQuery.isError ? (
+            <p className="mt-2 text-sm text-rose-700">
+              {settingsQuery.error instanceof Error ? settingsQuery.error.message : 'Could not load settings.'}
+            </p>
+          ) : null}
         </div>
         <div>
           <FieldLabel id="lowStockThreshold">Low stock threshold</FieldLabel>
@@ -148,7 +170,7 @@ function AdminSettingsContent() {
             }
           />
         </div>
-        <Button type="submit" disabled={saveMutation.isPending}>
+        <Button type="submit" disabled={saveMutation.isPending || settingsQuery.isLoading}>
           {saveMutation.isPending ? 'Saving…' : 'Save settings'}
         </Button>
       </form>

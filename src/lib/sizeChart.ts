@@ -1,4 +1,4 @@
-import type { ProductKind, SizeChart, SizeChartColumn, SizeChartUnit } from '../types'
+import type { ProductKind, SizeChart, SizeChartColumn, SizeChartColumnKind, SizeChartUnit } from '../types'
 
 export const SIZE_CHART_ATTRIBUTE_KEY = 'sizeChart'
 
@@ -11,10 +11,10 @@ const APPAREL_COLUMNS: SizeChartColumn[] = [
 ]
 
 const FOOTWEAR_COLUMNS: SizeChartColumn[] = [
-  { id: 'us', label: 'US' },
-  { id: 'uk', label: 'UK' },
-  { id: 'eu', label: 'EU' },
-  { id: 'cm', label: 'Foot (cm)' },
+  { id: 'us', label: 'US', kind: 'text' },
+  { id: 'uk', label: 'UK', kind: 'text' },
+  { id: 'eu', label: 'EU', kind: 'text' },
+  { id: 'cm', label: 'Foot (cm)', kind: 'measurement' },
 ]
 
 const ACCESSORY_COLUMNS: SizeChartColumn[] = [
@@ -57,6 +57,157 @@ function notesForKind(kind: ProductKind): string {
     return 'Dimensions are approximate and measured at the widest points of the piece.'
   }
   return 'Garment measurements, not body measurements. If you are between sizes, size up for a relaxed fit.'
+}
+
+const TEXT_COLUMN_IDS = new Set(['us', 'uk', 'eu'])
+
+export function sizeChartColumnKind(column: SizeChartColumn): SizeChartColumnKind {
+  if (column.kind === 'text' || column.kind === 'measurement') return column.kind
+  return TEXT_COLUMN_IDS.has(column.id) ? 'text' : 'measurement'
+}
+
+function createChartId(prefix: string): string {
+  return `${prefix}-${Math.random().toString(36).slice(2, 8)}`
+}
+
+function moveItem<T>(items: T[], index: number, direction: -1 | 1): T[] {
+  const target = index + direction
+  if (index < 0 || index >= items.length || target < 0 || target >= items.length) return items
+  const next = items.slice()
+  const [item] = next.splice(index, 1)
+  next.splice(target, 0, item)
+  return next
+}
+
+function uniqueColumnId(chart: SizeChart, label: string): string {
+  const base = label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || 'column'
+  const ids = new Set(chart.columns.map((column) => column.id))
+  let id = base
+  let suffix = 2
+  while (ids.has(id)) {
+    id = `${base}-${suffix}`
+    suffix += 1
+  }
+  return id
+}
+
+function uniqueRowLabel(chart: SizeChart, label: string): string {
+  const labels = new Set(chart.rows.map((row) => row.size.trim().toLowerCase()))
+  const base = label.trim() || 'New size'
+  if (!labels.has(base.toLowerCase())) return base
+  let suffix = 2
+  let next = `${base} ${suffix}`
+  while (labels.has(next.toLowerCase())) {
+    suffix += 1
+    next = `${base} ${suffix}`
+  }
+  return next
+}
+
+export function ensureSizeChartIds(chart: SizeChart): SizeChart {
+  let changed = false
+  const columns = chart.columns.map((column, index) => {
+    if (column.id.trim()) return column
+    changed = true
+    return { ...column, id: `col-${index + 1}` }
+  })
+  const rows = chart.rows.map((row, index) => {
+    if (row.id) return row
+    changed = true
+    return { ...row, id: `row-${index + 1}` }
+  })
+  return changed ? { ...chart, columns, rows } : chart
+}
+
+export function addSizeChartColumn(chart: SizeChart, label = 'New column'): SizeChart {
+  const next = ensureSizeChartIds(chart)
+  const name = label.trim() || 'New column'
+  return {
+    ...next,
+    columns: [...next.columns, { id: uniqueColumnId(next, name), label: name, kind: 'measurement' }],
+  }
+}
+
+export function removeSizeChartColumn(chart: SizeChart, columnId: string): SizeChart {
+  return {
+    ...chart,
+    columns: chart.columns.filter((column) => column.id !== columnId),
+    rows: chart.rows.map((row) => {
+      if (!(columnId in row.values)) return row
+      const values = { ...row.values }
+      delete values[columnId]
+      return { ...row, values }
+    }),
+  }
+}
+
+export function renameSizeChartColumn(chart: SizeChart, columnId: string, label: string): SizeChart {
+  return {
+    ...chart,
+    columns: chart.columns.map((column) => (column.id === columnId ? { ...column, label } : column)),
+  }
+}
+
+export function setSizeChartColumnKind(chart: SizeChart, columnId: string, kind: SizeChartColumnKind): SizeChart {
+  return {
+    ...chart,
+    columns: chart.columns.map((column) => (column.id === columnId ? { ...column, kind } : column)),
+  }
+}
+
+export function moveSizeChartColumn(chart: SizeChart, index: number, direction: -1 | 1): SizeChart {
+  return { ...ensureSizeChartIds(chart), columns: moveItem(chart.columns, index, direction) }
+}
+
+export function addSizeChartRow(chart: SizeChart, size = 'New size'): SizeChart {
+  const next = ensureSizeChartIds(chart)
+  return {
+    ...next,
+    rows: [...next.rows, { id: createChartId('row'), size: uniqueRowLabel(next, size), values: {} }],
+  }
+}
+
+export function removeSizeChartRow(chart: SizeChart, index: number): SizeChart {
+  return { ...chart, rows: chart.rows.filter((_, rowIndex) => rowIndex !== index) }
+}
+
+export function renameSizeChartRow(chart: SizeChart, index: number, size: string): SizeChart {
+  return {
+    ...chart,
+    rows: chart.rows.map((row, rowIndex) => (rowIndex === index ? { ...row, size } : row)),
+  }
+}
+
+export function moveSizeChartRow(chart: SizeChart, index: number, direction: -1 | 1): SizeChart {
+  const next = ensureSizeChartIds(chart)
+  return { ...next, rows: moveItem(next.rows, index, direction) }
+}
+
+export function setSizeChartCell(chart: SizeChart, rowIndex: number, columnId: string, value: string): SizeChart {
+  return {
+    ...chart,
+    rows: chart.rows.map((row, index) =>
+      index === rowIndex ? { ...row, values: { ...row.values, [columnId]: value } } : row,
+    ),
+  }
+}
+
+/** Adds product sizes that are not already rows, without removing custom rows. */
+export function appendMissingSizeRows(chart: SizeChart, sizes: string[]): SizeChart {
+  const existing = new Set(chart.rows.map((row) => row.size.trim().toLowerCase()))
+  const additions = sizes.filter((size) => size.trim() && !existing.has(size.trim().toLowerCase()))
+  if (!additions.length) return chart
+  return {
+    ...ensureSizeChartIds(chart),
+    rows: [
+      ...chart.rows.map((row, index) => (row.id ? row : { ...row, id: `row-${index + 1}` })),
+      ...additions.map((size) => ({ id: createChartId('row'), size: size.trim(), values: {} })),
+    ],
+  }
 }
 
 export function sizeChartColumnsForKind(kind: ProductKind): SizeChartColumn[] {
@@ -143,18 +294,24 @@ export function parseSizeChart(raw: unknown): SizeChart | null {
   const unit: SizeChartUnit = nested.unit === 'cm' ? 'cm' : 'in'
   const columns = Array.isArray(nested.columns)
     ? nested.columns
-        .filter((column): column is { id?: unknown; label?: unknown } => !!column && typeof column === 'object')
-        .map((column, index) => ({
-          id: typeof column.id === 'string' && column.id.trim() ? column.id.trim() : `col-${index}`,
-          label: typeof column.label === 'string' && column.label.trim() ? column.label.trim() : `Column ${index + 1}`,
-        }))
+        .filter((column): column is { id?: unknown; label?: unknown; kind?: unknown } => !!column && typeof column === 'object')
+        .map((column, index) => {
+          const id = typeof column.id === 'string' && column.id.trim() ? column.id.trim() : `col-${index}`
+          const kind: SizeChartColumnKind | undefined =
+            column.kind === 'text' || column.kind === 'measurement' ? column.kind : undefined
+          return {
+            id,
+            label: typeof column.label === 'string' && column.label.trim() ? column.label.trim() : `Column ${index + 1}`,
+            ...(kind ? { kind } : {}),
+          }
+        })
         .filter((column) => column.id)
     : []
 
   const rows = Array.isArray(nested.rows)
     ? nested.rows
-        .filter((row): row is { size?: unknown; values?: unknown } => !!row && typeof row === 'object')
-        .map((row) => {
+        .filter((row): row is { id?: unknown; size?: unknown; values?: unknown } => !!row && typeof row === 'object')
+        .map((row, index) => {
           const values: Record<string, string> = {}
           if (row.values && typeof row.values === 'object' && !Array.isArray(row.values)) {
             for (const [key, value] of Object.entries(row.values as Record<string, unknown>)) {
@@ -162,7 +319,9 @@ export function parseSizeChart(raw: unknown): SizeChart | null {
               else if (typeof value === 'number' && Number.isFinite(value)) values[key] = String(value)
             }
           }
+          const id = typeof row.id === 'string' && row.id.trim() ? row.id.trim() : `row-${index + 1}`
           return {
+            id,
             size: typeof row.size === 'string' ? row.size : '',
             values,
           }

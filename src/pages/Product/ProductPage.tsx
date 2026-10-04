@@ -3,13 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { HiOutlineChevronDown, HiOutlineHeart, HiOutlineShoppingBag } from 'react-icons/hi2'
 
-import type { Product, SizeChartUnit } from '../../types'
+import type { Product } from '../../types'
 import { ROUTES } from '../../constants'
 import { useProduct, useRelatedProducts } from '../../hooks/useCatalog'
 import { useCartStore } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore, selectWishlistHas } from '../../store/wishlistStore'
-import { sizeLabelForKind } from '../../lib/productCategoryConfig'
+import { DEFAULT_RETURN_POLICY, DEFAULT_SHIPPING_INSTRUCTIONS } from '../../constants/siteContent'
+import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
 import { sizeChartHasMeasurements } from '../../lib/sizeChart'
 import { formatPrice } from '../../utils/formatPrice'
 import { cn } from '../../utils/cn'
@@ -19,7 +20,7 @@ import { Button } from '../../components/common/Button'
 import { Container } from '../../components/layout/Container'
 import { ProductGallery } from '../../components/product/ProductGallery'
 import { ProductGrid } from '../../components/product/ProductGrid'
-import { SizeChartDialog, SizeChartTable } from '../../components/product/SizeChart'
+import { SizeChartTable } from '../../components/product/SizeChart'
 import { SectionHeading } from '../../components/common/SectionHeading'
 import { Seo } from '../../components/seo/Seo'
 import { breadcrumbJsonLd, productJsonLd } from '../../lib/structuredData'
@@ -173,12 +174,11 @@ function ProductDetail({ product }: DetailProps) {
   const sizes = product.sizes ?? []
   const colors = product.colors ?? []
   const tags = product.tags ?? []
-  const [size, setSize] = useState(sizes[0] ?? '')
+  const size = sizes[0] ?? ''
   const [color, setColor] = useState(colors[0]?.name ?? '')
   const [qty, setQty] = useState(1)
-  const [sizeChartOpen, setSizeChartOpen] = useState(false)
   const sizeChart = sizeChartHasMeasurements(product.sizeChart) ? product.sizeChart : null
-  const [chartUnit, setChartUnit] = useState<SizeChartUnit>(sizeChart?.unit ?? 'in')
+  const chartUnit = sizeChart?.unit ?? 'in'
 
   const addLine = useCartStore((s) => s.addLine)
   const openCart = useUiStore((s) => s.openCart)
@@ -186,11 +186,20 @@ function ProductDetail({ product }: DetailProps) {
   const wishHas = useWishlistStore(selectWishlistHas(product.id))
 
   const { data: related, loading: relatedLoading } = useRelatedProducts(product, 4)
+  const siteContent = usePublicSiteContent()
+  const shippingCopy = siteContent.data?.shippingInstructions?.published
+    ? siteContent.data.shippingInstructions.body
+    : DEFAULT_SHIPPING_INSTRUCTIONS.body
+  const returnCopy = siteContent.data?.returnPolicy?.published
+    ? siteContent.data.returnPolicy.body
+    : DEFAULT_RETURN_POLICY.body
 
   const unit = product.salePrice ?? product.price
   const compare = product.salePrice ? product.price : null
   const hasOptions = sizes.length > 0 || colors.length > 0
-  const attributeEntries = Object.entries(product.attributes).filter(([, value]) => value?.trim())
+  const attributeEntries = Object.entries(product.attributes).filter(
+    ([key, value]) => key !== 'care' && value?.trim(),
+  )
   const soldOut = product.stock === 0
 
   function addToCart() {
@@ -319,39 +328,6 @@ function ProductDetail({ product }: DetailProps) {
                   </div>
                 </div>
               ) : null}
-              {sizes.length ? (
-                <motion.div>
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-[var(--text-muted)]">
-                      {sizeLabelForKind(product.productKind)}
-                    </p>
-                    {sizeChart ? (
-                      <button
-                        type="button"
-                        onClick={() => setSizeChartOpen(true)}
-                        className="text-[10px] font-medium uppercase tracking-[0.22em] text-[var(--text-secondary)] underline-offset-4 transition hover:text-[var(--text-primary)] hover:underline"
-                      >
-                        Size chart
-                      </button>
-                    ) : null}
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {sizes.map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setSize(s)}
-                        className={cn(
-                          'min-w-[48px] border border-[var(--border-subtle)] px-3 py-2 text-xs tabular-nums transition',
-                          size === s && 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]',
-                        )}
-                      >
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                </motion.div>
-              ) : null}
               {!hasOptions ? (
                 <p className="text-xs text-[var(--text-muted)]">This piece has no selectable options.</p>
               ) : null}
@@ -403,14 +379,16 @@ function ProductDetail({ product }: DetailProps) {
                 </DetailAccordion>
               ) : null}
               <DetailAccordion title="Shipping">
-                Complimentary standard shipping on orders over $250. Express delivery is available at checkout for
-                domestic addresses.
+                <p className="whitespace-pre-wrap">{shippingCopy}</p>
+                <Link to={ROUTES.shipping} className="mt-3 inline-block underline underline-offset-4">
+                  Shipping details
+                </Link>
               </DetailAccordion>
               <DetailAccordion title="Returns">
-                Unworn pieces may be returned within 30 days. Final sale and altered items are excluded.
-              </DetailAccordion>
-              <DetailAccordion title="Care">
-                Follow the garment label. Store folded or on wide hangers to preserve structure and finish.
+                <p className="whitespace-pre-wrap">{returnCopy}</p>
+                <Link to={ROUTES.refundPolicy} className="mt-3 inline-block underline underline-offset-4">
+                  Return policy
+                </Link>
               </DetailAccordion>
             </div>
           </div>
@@ -434,7 +412,7 @@ function ProductDetail({ product }: DetailProps) {
       ) : related?.length ? (
         <section className="py-16 md:py-24">
           <Container>
-            <SectionHeading title="You may also like" eyebrow="Related" />
+            <SectionHeading title="Recommended products" eyebrow="Recommended" />
             <ProductGrid products={related} className="mt-12" />
             <div className="mt-10 text-center">
               <button
@@ -449,18 +427,6 @@ function ProductDetail({ product }: DetailProps) {
         </section>
       ) : null}
 
-      {sizeChart ? (
-        <SizeChartDialog
-          open={sizeChartOpen}
-          title={product.name}
-          kind={product.productKind}
-          chart={sizeChart}
-          highlightSize={size}
-          displayUnit={chartUnit}
-          onDisplayUnitChange={setChartUnit}
-          onClose={() => setSizeChartOpen(false)}
-        />
-      ) : null}
     </div>
   )
 }

@@ -5,7 +5,7 @@ import {
   sizeLabelForKind,
   sizePresetsForKind,
 } from '../../lib/productCategoryConfig'
-import { emptySizeChart, syncSizeChartRows } from '../../lib/sizeChart'
+import { appendMissingSizeRows, emptySizeChart } from '../../lib/sizeChart'
 import type { AdminProductPayload } from '../../services/adminService'
 import { FieldLabel, Input } from '../common/Input'
 
@@ -29,7 +29,7 @@ export function AdminProductCategoryFields({ form, categories, onChange }: Admin
     onChange({
       ...form,
       sizes,
-      sizeChart: syncSizeChartRows(form.sizeChart ?? emptySizeChart(productKind, sizes), sizes, productKind),
+      sizeChart: appendMissingSizeRows(form.sizeChart ?? emptySizeChart(productKind, sizes), sizes),
     })
   }
 
@@ -99,7 +99,7 @@ export function AdminProductCategoryFields({ form, categories, onChange }: Admin
             onChange({
               ...form,
               sizes,
-              sizeChart: syncSizeChartRows(form.sizeChart ?? emptySizeChart(productKind, sizes), sizes, productKind),
+              sizeChart: appendMissingSizeRows(form.sizeChart ?? emptySizeChart(productKind, sizes), sizes),
             })
           }}
           placeholder="Custom sizes, comma-separated"

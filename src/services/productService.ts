@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { Category, Product } from '../types'
 
+import { rankRecommendedProducts } from '../lib/recommendations'
 import { mapCategoryRow, mapProductRow, type CategoryRow, type ProductRow } from './mappers'
 
 const PRODUCT_COLUMNS =
@@ -108,17 +109,36 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
   const client = requireCatalogClient()
 
   try {
-    const data = await runQuery('getRelatedProducts', () =>
-      client
-        .from('products')
-        .select(PRODUCT_COLUMNS)
-        .eq('status', 'active')
-        .eq('category', product.category)
-        .neq('id', product.id)
-        .limit(limit),
-    )
+    const sameCategory = product.category
+      ? await runQuery('getRelatedProducts', () =>
+          client
+            .from('products')
+            .select(PRODUCT_COLUMNS)
+            .eq('status', 'active')
+            .eq('category', product.category)
+            .neq('id', product.id)
+            .limit(Math.max(limit, 12)),
+        )
+      : []
 
-    return ((data ?? []) as unknown as ProductRow[]).map(mapProductRow)
+    const pool = ((sameCategory ?? []) as unknown as ProductRow[]).map(mapProductRow)
+    if (pool.length < limit) {
+      const more = await runQuery('getRelatedProductsFallback', () =>
+        client
+          .from('products')
+          .select(PRODUCT_COLUMNS)
+          .eq('status', 'active')
+          .neq('id', product.id)
+          .order('rating', { ascending: false })
+          .limit(40),
+      )
+      const seen = new Set(pool.map((item) => item.id))
+      for (const candidate of ((more ?? []) as unknown as ProductRow[]).map(mapProductRow)) {
+        if (!seen.has(candidate.id)) pool.push(candidate)
+      }
+    }
+
+    return rankRecommendedProducts(product, pool, limit)
   } catch {
     return []
   }

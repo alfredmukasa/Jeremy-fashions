@@ -1,6 +1,7 @@
 import { Suspense, lazy, type ElementType, type ReactElement } from 'react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 
 import { AdminLegacyRedirect } from './routes/AdminLegacyRedirect'
 import { Toaster } from 'react-hot-toast'
@@ -83,6 +84,7 @@ export default function App() {
               },
             }}
           />
+          <Analytics />
           <Routes>
             {adminLazy ? (
               <>

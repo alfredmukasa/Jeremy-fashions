@@ -91,7 +91,7 @@ function quantityLabel(quantity: number): string {
 }
 
 const ORDER_ROW_GRID =
-  'xl:grid-cols-[minmax(0,1.7fr)_minmax(0,0.95fr)_minmax(0,1.15fr)_minmax(7rem,0.75fr)_minmax(6.5rem,0.95fr)_minmax(0,0.9fr)]'
+  'xl:grid-cols-[minmax(0,1.55fr)_minmax(11.5rem,1fr)_minmax(0,1.15fr)_minmax(7rem,0.75fr)_minmax(6.5rem,0.95fr)_minmax(8.5rem,0.9fr)]'
 
 function OrderPreview({ items }: { items: AdminOrderItem[] }) {
   const first = items[0]
@@ -235,7 +235,7 @@ function AdminOrderRowView({
         </div>
         <div className="min-w-0">
           <FieldLabel>Order</FieldLabel>
-          <button type="button" className="break-words text-left font-medium text-neutral-900 underline-offset-4 hover:underline" onClick={onToggle}>
+          <button type="button" className="whitespace-nowrap text-left font-medium text-neutral-900 underline-offset-4 hover:underline" onClick={onToggle}>
             {formatOrderNumber({ id: order.id, orderNumber: order.order_number })}
           </button>
           <p className="mt-1 text-xs text-neutral-500">

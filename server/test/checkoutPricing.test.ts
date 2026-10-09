@@ -4,6 +4,7 @@ import test from 'node:test'
 import {
   STORE_CURRENCY,
   calculateOrderTotals,
+  canReusePaymentIntent,
   canonicalSize,
   compareStripePayment,
   evaluateDiscount,
@@ -157,6 +158,32 @@ test('compares Stripe minor units and currency before marking paid', () => {
   })
   assert.equal(amountMismatch.matches, false)
   assert.equal(amountMismatch.reason, 'amount_mismatch')
+})
+
+test('does not reuse a payment intent whose currency differs', () => {
+  const reusable = new Set(['requires_payment_method'])
+  assert.equal(
+    canReusePaymentIntent({
+      status: 'requires_payment_method',
+      amount: 1308,
+      currency: 'usd',
+      expectedMinor: 1308,
+      expectedCurrency: 'CAD',
+      reusableStatuses: reusable,
+    }),
+    false,
+  )
+  assert.equal(
+    canReusePaymentIntent({
+      status: 'requires_payment_method',
+      amount: 1308,
+      currency: 'cad',
+      expectedMinor: 1308,
+      expectedCurrency: 'CAD',
+      reusableStatuses: reusable,
+    }),
+    true,
+  )
 })
 
 test('describes checkout lines with size for Stripe', () => {

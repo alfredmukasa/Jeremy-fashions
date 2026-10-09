@@ -208,6 +208,21 @@ export function compareStripePayment(input: {
   return { matches: true, expectedMinor, receivedMinor, orderCurrency, stripeCurrency }
 }
 
+export function canReusePaymentIntent(input: {
+  status: string
+  amount: number
+  currency: string
+  expectedMinor: number
+  expectedCurrency: string
+  reusableStatuses: ReadonlySet<string>
+}): boolean {
+  return (
+    input.reusableStatuses.has(input.status) &&
+    input.amount === input.expectedMinor &&
+    input.currency.trim().toLowerCase() === input.expectedCurrency.trim().toLowerCase()
+  )
+}
+
 export function stripeLineDescription(
   items: Array<{ title: string; size?: string; quantity: number }>,
 ): string {

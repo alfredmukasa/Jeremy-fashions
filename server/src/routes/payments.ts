@@ -6,7 +6,7 @@ import { stripe } from '../lib/stripe.js'
 import type { AuthedRequest } from '../middleware/auth.js'
 import { optionalUser } from '../middleware/auth.js'
 import { validateCreatePaymentIntent } from '../middleware/validateCheckout.js'
-import { CHECKOUT_SESSION_PRICING, stripeLineDescription, toMinorUnits } from '../domain/checkoutPricing.js'
+import { CHECKOUT_SESSION_PRICING, canReusePaymentIntent, stripeLineDescription, toMinorUnits } from '../domain/checkoutPricing.js'
 import {
   attachPaymentIntent,
   CheckoutError,
@@ -105,8 +105,14 @@ paymentsRouter.post(
           const paymentIntent = await stripe.paymentIntents.retrieve(existing.stripe_payment_intent_id)
           if (
             paymentIntent.client_secret &&
-            REUSABLE_PI_STATUSES.has(paymentIntent.status) &&
-            paymentIntent.amount === amountInCents
+            canReusePaymentIntent({
+              status: paymentIntent.status,
+              amount: paymentIntent.amount,
+              currency: paymentIntent.currency,
+              expectedMinor: amountInCents,
+              expectedCurrency: totals.currency,
+              reusableStatuses: REUSABLE_PI_STATUSES,
+            })
           ) {
             return res.json({
               orderId: existing.id,

@@ -2,8 +2,10 @@ import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { HiOutlineTrash, HiOutlineXMark } from 'react-icons/hi2'
 
+import { CheckoutLineOptions } from '../checkout/CheckoutLineOptions'
 import { ROUTES } from '../../constants'
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
+import { useProducts } from '../../hooks/useCatalog'
 import { useCartStore, selectCartSubtotal } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
 import { formatPrice } from '../../utils/formatPrice'
@@ -18,6 +20,7 @@ export function CartDrawer() {
   const updateQty = useCartStore((s) => s.updateQuantity)
   const removeLine = useCartStore((s) => s.removeLine)
   const subtotal = useCartStore(selectCartSubtotal)
+  const { data: products } = useProducts()
   const navigate = useNavigate()
   useBodyScrollLock(open)
 
@@ -95,9 +98,11 @@ export function CartDrawer() {
                           >
                             {snapshot.name}
                           </Link>
-                          <p className="mt-1 text-xs text-[var(--text-muted)]">
-                            {line.colorName} / {line.size}
-                          </p>
+                          <CheckoutLineOptions
+                            line={line}
+                            product={products?.find((product) => product.id === line.productId)}
+                            className="mt-1"
+                          />
                           <div className="mt-3 flex items-center gap-3">
                             <div className="inline-flex items-center border border-[var(--border-subtle)]">
                               <button

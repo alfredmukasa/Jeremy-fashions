@@ -1,11 +1,14 @@
 import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
+import { useProducts } from '../../hooks/useCatalog'
 import type { CartLine } from '../../types'
 import { formatPrice } from '../../utils/formatPrice'
 import type { CheckoutTotals } from '../../utils/checkoutTotals'
 
 import { Button } from '../common/Button'
+import { CheckoutLineOptions } from './CheckoutLineOptions'
+import { CompleteTheSet } from './CompleteTheSet'
 
 type CheckoutCartSummaryProps = {
   lines: CartLine[]
@@ -22,6 +25,7 @@ type CheckoutCartSummaryProps = {
   onApplyDiscount?: () => void
   onRemoveDiscount?: () => void
   discountInputId?: string
+  showAddOn?: boolean
 }
 
 export function CheckoutCartSummary({
@@ -39,7 +43,9 @@ export function CheckoutCartSummary({
   onApplyDiscount,
   onRemoveDiscount,
   discountInputId = 'discount-code',
+  showAddOn = showSubmit,
 }: CheckoutCartSummaryProps) {
+  const { data: products } = useProducts()
   const price = (amount: number) => formatPrice(amount, currency)
   return (
     <aside className="h-fit border border-neutral-200 bg-neutral-50 p-6 sm:p-8">
@@ -55,15 +61,18 @@ export function CheckoutCartSummary({
               </div>
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium text-neutral-950">{snapshot.name}</p>
-                <p className="text-xs text-neutral-500">
-                  ×{line.quantity} · {line.colorName} · Size {line.size}
-                </p>
+                <p className="text-xs text-neutral-500">Qty {line.quantity}</p>
+                <CheckoutLineOptions
+                  line={line}
+                  product={products?.find((product) => product.id === line.productId)}
+                />
                 <p className="mt-1 text-xs tabular-nums text-neutral-800">{price(unit * line.quantity)}</p>
               </div>
             </li>
           )
         })}
       </ul>
+      {showAddOn ? <CompleteTheSet className="mt-6" /> : null}
       <div className="mt-8 space-y-2 border-t border-neutral-200 pt-6 text-sm">
         <div className="flex justify-between text-neutral-600">
           <span>Subtotal</span>
@@ -108,8 +117,16 @@ export function CheckoutCartSummary({
               {isApplyingDiscount ? 'Checking' : 'Apply'}
             </button>
           </div>
-          {discountMessage ? <p className="mt-2 text-xs text-emerald-800">{discountMessage}</p> : null}
-          {discountError ? <p className="mt-2 text-xs text-rose-700">{discountError}</p> : null}
+          {discountMessage ? (
+            <p className="mt-3 border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs leading-relaxed text-emerald-900" role="status">
+              {discountMessage}
+            </p>
+          ) : null}
+          {discountError ? (
+            <p className="mt-3 border border-rose-200 bg-rose-50 px-3 py-2 text-xs leading-relaxed text-rose-700" role="alert">
+              {discountError}
+            </p>
+          ) : null}
           {onRemoveDiscount && totals.discount > 0 ? (
             <button type="button" onClick={onRemoveDiscount} className="mt-2 text-xs text-neutral-600 underline">
               Remove code

@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom'
 
+import { CheckoutAssuranceNotes } from '../../components/checkout/CheckoutPolicyNote'
+import { CheckoutLineOptions } from '../../components/checkout/CheckoutLineOptions'
+import { CompleteTheSet } from '../../components/checkout/CompleteTheSet'
 import { ROUTES } from '../../constants'
+import { useProducts } from '../../hooks/useCatalog'
 import { useCartStore } from '../../store/cartStore'
 import { formatPrice } from '../../utils/formatPrice'
 
@@ -13,6 +17,7 @@ export default function CartPage() {
   const updateQty = useCartStore((s) => s.updateQuantity)
   const removeLine = useCartStore((s) => s.removeLine)
   const subtotal = useCartStore((s) => s.subtotal())
+  const { data: products } = useProducts()
 
   return (
     <div className="pb-24">
@@ -34,6 +39,7 @@ export default function CartPage() {
           </div>
         ) : (
           <div className="grid gap-12 lg:grid-cols-[1fr_380px]">
+            <div>
             <ul className="divide-y divide-neutral-200 border-t border-neutral-200">
               {lines.map((line) => {
                 const { snapshot } = line
@@ -55,9 +61,10 @@ export default function CartPage() {
                           >
                             {snapshot.name}
                           </Link>
-                          <p className="mt-2 text-xs text-neutral-500">
-                            {line.colorName} · Size {line.size}
-                          </p>
+                          <CheckoutLineOptions
+                            line={line}
+                            product={products?.find((product) => product.id === line.productId)}
+                          />
                         </div>
                         <p className="text-sm font-medium tabular-nums text-neutral-950">
                           {formatPrice(unit * line.quantity)}
@@ -94,6 +101,8 @@ export default function CartPage() {
                 )
               })}
             </ul>
+            <CompleteTheSet className="mt-10" />
+            </div>
 
             <aside className="h-fit border border-neutral-200 bg-neutral-50 p-8">
               <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Summary</p>
@@ -104,10 +113,11 @@ export default function CartPage() {
                 </div>
                 <div className="flex justify-between text-neutral-600">
                   <span>Shipping</span>
-                  <span className="text-neutral-500">Calculated next</span>
+                  <span className="text-neutral-500">At checkout</span>
                 </div>
               </div>
-              <p className="my-6 border-t border-neutral-200 pt-6 text-xs leading-relaxed text-neutral-500">
+              <CheckoutAssuranceNotes />
+              <p className="mt-4 text-xs leading-relaxed text-neutral-500">
                 Discount codes are checked at checkout and applied to the total before payment.
               </p>
               <div className="flex items-center justify-between text-base font-medium">

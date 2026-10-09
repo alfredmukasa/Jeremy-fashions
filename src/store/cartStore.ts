@@ -22,6 +22,7 @@ type CartState = {
   lines: CartLine[]
   addLine: (product: Product, size: string, colorName: string, quantity?: number) => void
   updateQuantity: (key: string, quantity: number) => void
+  setLineVariant: (key: string, patch: { size?: string; colorName?: string }) => void
   removeLine: (key: string) => void
   clear: () => void
   reconcileCatalogPrices: (products: Product[]) => void
@@ -77,6 +78,32 @@ export const useCartStore = create<CartState>()(
         }
         set({
           lines: get().lines.map((l) => (l.key === key ? { ...l, quantity } : l)),
+        })
+      },
+      setLineVariant: (key, patch) => {
+        const current = get().lines.find((line) => line.key === key)
+        if (!current) return
+        const size = patch.size ?? current.size
+        const colorName = patch.colorName ?? current.colorName
+        const nextKey = lineKey(current.productId, size, colorName)
+        if (nextKey === current.key) {
+          set({
+            lines: get().lines.map((line) => (line.key === key ? { ...line, size, colorName } : line)),
+          })
+          return
+        }
+        const withoutCurrent = get().lines.filter((line) => line.key !== key)
+        const existing = withoutCurrent.find((line) => line.key === nextKey)
+        if (existing) {
+          set({
+            lines: withoutCurrent.map((line) =>
+              line.key === nextKey ? { ...line, quantity: line.quantity + current.quantity } : line,
+            ),
+          })
+          return
+        }
+        set({
+          lines: [...withoutCurrent, { ...current, key: nextKey, size, colorName }],
         })
       },
       removeLine: (key) => set({ lines: get().lines.filter((l) => l.key !== key) }),

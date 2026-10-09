@@ -97,6 +97,11 @@ export type AdminDiscountPayload = {
   usage_limit: number | null
 }
 
+export type AdminOrderItemProduct = {
+  image_url?: string | null
+  gallery_images?: string[] | null
+}
+
 export type AdminOrderItem = {
   id: string
   product_id: string | null
@@ -107,6 +112,7 @@ export type AdminOrderItem = {
   size?: string | null
   color_name?: string | null
   line_total?: number | null
+  products?: AdminOrderItemProduct | AdminOrderItemProduct[] | null
 }
 
 export type AdminOrderRow = {
@@ -432,10 +438,18 @@ export async function adminDeleteDiscount(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+const ORDER_ITEM_SNAPSHOT =
+  'id, product_id, title, quantity, unit_price, sku, size, color_name, line_total, products (image_url, gallery_images)'
+const ORDER_ITEM_SNAPSHOT_NO_IMAGE = 'id, product_id, title, quantity, unit_price, sku, size, color_name, line_total'
+const ORDER_ITEM_BASIC_WITH_IMAGE = 'id, product_id, title, quantity, unit_price, sku, products (image_url, gallery_images)'
+const ORDER_ITEM_BASIC = 'id, product_id, title, quantity, unit_price, sku'
+
 const ADMIN_ORDER_SELECTS = [
-  `id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, subtotal_amount, shipping_amount, tax_amount, discount_amount, refund_amount, currency, notes, stripe_payment_intent_id, stripe_checkout_session_id, shipping_address, billing_address, payment_metadata, order_items (id, product_id, title, quantity, unit_price, sku, size, color_name, line_total)`,
-  `id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, refund_amount, currency, notes, stripe_payment_intent_id, shipping_address, billing_address, payment_metadata, order_items (id, product_id, title, quantity, unit_price, sku)`,
-  `id, created_at, updated_at, user_id, email, status, payment_status, total_amount, currency, notes, stripe_payment_intent_id, shipping_address, billing_address, payment_metadata, order_items (id, product_id, title, quantity, unit_price, sku)`,
+  `id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, subtotal_amount, shipping_amount, tax_amount, discount_amount, refund_amount, currency, notes, stripe_payment_intent_id, stripe_checkout_session_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_SNAPSHOT})`,
+  `id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, subtotal_amount, shipping_amount, tax_amount, discount_amount, refund_amount, currency, notes, stripe_payment_intent_id, stripe_checkout_session_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_SNAPSHOT_NO_IMAGE})`,
+  `id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, refund_amount, currency, notes, stripe_payment_intent_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_BASIC_WITH_IMAGE})`,
+  `id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, refund_amount, currency, notes, stripe_payment_intent_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_BASIC})`,
+  `id, created_at, updated_at, user_id, email, status, payment_status, total_amount, currency, notes, stripe_payment_intent_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_BASIC})`,
 ]
 
 export async function adminListOrders(): Promise<AdminOrderRow[]> {

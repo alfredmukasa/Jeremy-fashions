@@ -48,6 +48,7 @@ export default function ContactPage() {
   const { user } = useAuth()
   const supportEmail = useSupportEmail()
   const [sent, setSent] = useState(false)
+  const [emailed, setEmailed] = useState(false)
   const defaults = useMemo(() => {
     const names = splitFullName(user?.user_metadata?.full_name)
     return {
@@ -80,6 +81,7 @@ export default function ContactPage() {
 
   async function onSubmit(values: ContactFormValues) {
     if (values.website?.trim()) {
+      setEmailed(true)
       setSent(true)
       toast.success('Message sent. We will get back to you soon.')
       return
@@ -98,7 +100,12 @@ export default function ContactPage() {
     }
 
     setSent(true)
-    toast.success('Message sent. We will get back to you soon.')
+    setEmailed(result.emailed)
+    if (result.emailed) {
+      toast.success('Message sent. We will get back to you soon.')
+    } else {
+      toast.success('Message saved. Email delivery is not confirmed yet.')
+    }
   }
 
   return (
@@ -159,7 +166,9 @@ export default function ContactPage() {
               <div className="space-y-5">
                 <h2 className="font-serif text-2xl text-[var(--text-primary)]">Message received</h2>
                 <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-                  Thank you. We have your note and will reply to the email you provided.
+                  {emailed
+                    ? 'Thank you. We have your note and will reply to the email you provided.'
+                    : 'Thank you. Your message is in our inbox. Email delivery could not be confirmed, so a reply may take longer.'}
                 </p>
                 <Button
                   type="button"

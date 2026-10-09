@@ -6,6 +6,7 @@ import { stripe } from '../lib/stripe.js'
 import type { AuthedRequest } from '../middleware/auth.js'
 import { optionalUser } from '../middleware/auth.js'
 import { validateCreatePaymentIntent } from '../middleware/validateCheckout.js'
+import { CHECKOUT_SESSION_PRICING, stripeLineDescription, toMinorUnits } from '../domain/checkoutPricing.js'
 import {
   attachPaymentIntent,
   CheckoutError,
@@ -69,8 +70,11 @@ paymentsRouter.post(
         db = requireSupabaseAdmin()
       }
 
-      const { items, totals } = await validateCheckoutItems(body.items)
-      const amountInCents = Math.round(totals.total * 100)
+      const { items, totals, discount } = await validateCheckoutItems(body.items, {
+        email: body.email,
+        discountCode: body.discountCode,
+      })
+      const amountInCents = toMinorUnits(totals.total)
       if (amountInCents < 50) {
         throw new CheckoutError('Order total must be at least $0.50 before payment can start.', 400)
       }
@@ -87,6 +91,7 @@ paymentsRouter.post(
           shippingAddress: body.shippingAddress,
           billingAddress: body.billingAddress,
           billingSameAsShipping: body.billingSameAsShipping,
+          discount,
         })
       }
 
@@ -109,6 +114,7 @@ paymentsRouter.post(
               clientSecret: paymentIntent.client_secret,
               paymentIntentId: paymentIntent.id,
               totals,
+              discount: discount ? { code: discount.code, amount: discount.amount } : null,
               reused: true,
             })
           }
@@ -146,23 +152,35 @@ paymentsRouter.post(
           shippingAddress: body.shippingAddress,
           billingAddress: body.billingAddress,
           billingSameAsShipping: body.billingSameAsShipping,
+          discount,
         }))
 
       const orderNumber =
         order && 'order_number' in order && typeof order.order_number === 'string' ? order.order_number : null
 
+      const lineSummary = items
+        .map((item) => `${item.title}|${item.size}|${item.quantity}|${toMinorUnits(item.unitPrice)}`)
+        .join(';')
+        .slice(0, 500)
+
       const paymentIntent = await stripe.paymentIntents.create(
         {
           amount: amountInCents,
           currency: totals.currency.toLowerCase(),
+          // One charge in CAD. Checkout adaptive pricing stays off; this PaymentIntent is the charge.
           automatic_payment_methods: { enabled: true },
           receipt_email: body.email,
-          description: `KREWNOX ${orderNumber ?? order.id}`,
+          description: stripeLineDescription(items) || `KREWNOX ${orderNumber ?? order.id}`,
           metadata: {
             order_id: order.id,
             order_number: orderNumber ?? '',
             user_id: user?.id ?? 'guest',
             idempotency_key: body.idempotencyKey,
+            currency: totals.currency.toLowerCase(),
+            amount_minor: String(amountInCents),
+            discount_minor: String(toMinorUnits(totals.discount)),
+            items: lineSummary,
+            adaptive_pricing: CHECKOUT_SESSION_PRICING.adaptive_pricing.enabled ? 'enabled' : 'disabled',
           },
         },
         {
@@ -182,6 +200,7 @@ paymentsRouter.post(
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
         totals,
+        discount: discount ? { code: discount.code, amount: discount.amount } : null,
         reused: false,
       })
     } catch (error) {
@@ -196,3 +215,39 @@ paymentsRouter.post(
     }
   },
 )
+
+paymentsRouter.post('/quote', async (req, res) => {
+  try {
+    const items = Array.isArray(req.body?.items) ? req.body.items : []
+    const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : ''
+    const discountCode = typeof req.body?.discountCode === 'string' ? req.body.discountCode : ''
+    if (!discountCode.trim()) {
+      return res.status(400).json({ error: 'Enter a discount code.' })
+    }
+
+    const validated = await validateCheckoutItems(
+      items.map((item: Record<string, unknown>) => ({
+        productId: String(item.productId ?? ''),
+        title: String(item.title ?? ''),
+        quantity: Number(item.quantity),
+        unitPrice: Number(item.unitPrice),
+        size: String(item.size ?? ''),
+        colorName: String(item.colorName ?? ''),
+      })),
+      { email, discountCode },
+    )
+
+    return res.json({
+      totals: validated.totals,
+      discount: validated.discount
+        ? { code: validated.discount.code, amount: validated.discount.amount }
+        : null,
+    })
+  } catch (error) {
+    if (error instanceof CheckoutError) {
+      return res.status(error.status).json({ error: error.message })
+    }
+    console.error('[payments] quote failed', error)
+    return res.status(500).json({ error: 'Unable to apply that code right now.' })
+  }
+})

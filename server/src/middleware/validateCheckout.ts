@@ -1,6 +1,7 @@
 import type { NextFunction, Response } from 'express'
 
 import type { AuthedRequest } from './auth.js'
+import { STORE_CURRENCY } from '../domain/checkoutPricing.js'
 import type { CheckoutAddress, CreatePaymentIntentBody } from '../types.js'
 import { CheckoutError } from '../services/orderService.js'
 
@@ -31,7 +32,8 @@ export function validateCreatePaymentIntent(req: AuthedRequest, res: Response, n
     req.body = {
       idempotencyKey,
       email,
-      currency: body.currency?.trim().toUpperCase() || 'USD',
+      currency: STORE_CURRENCY,
+      discountCode: typeof body.discountCode === 'string' ? body.discountCode : null,
       items: items.map((item) => ({
         productId: String(item.productId ?? '').trim(),
         title: String(item.title ?? '').trim(),

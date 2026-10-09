@@ -25,10 +25,21 @@ export type CheckoutLineInput = {
 export type CreatePaymentIntentPayload = {
   idempotencyKey: string
   email: string
+  discountCode?: string | null
   items: CheckoutLineInput[]
   shippingAddress: CheckoutAddressInput
   billingAddress: CheckoutAddressInput
   billingSameAsShipping: boolean
+}
+
+export type AppliedDiscount = {
+  code: string
+  amount: number
+}
+
+export type CheckoutQuote = {
+  totals: CheckoutTotals & { currency?: string }
+  discount: AppliedDiscount | null
 }
 
 export type CreatePaymentIntentResponse = {
@@ -37,6 +48,7 @@ export type CreatePaymentIntentResponse = {
   clientSecret: string
   paymentIntentId: string
   totals: CheckoutTotals & { currency?: string; discount?: number }
+  discount?: AppliedDiscount | null
   reused?: boolean
 }
 
@@ -92,6 +104,31 @@ export async function createPaymentIntent(
   return data as CreatePaymentIntentResponse
 }
 
+export async function quoteDiscount(
+  payload: { email: string; discountCode: string; items: CheckoutLineInput[] },
+  accessToken?: string,
+): Promise<CheckoutQuote> {
+  let response: Response
+  try {
+    response = await fetch(`${API_BASE}/payments/quote`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    })
+  } catch {
+    throw new PaymentApiError('Payment service is unreachable. Start the payment API and try the code again.', 503)
+  }
+
+  const data = (await response.json().catch(() => ({}))) as { error?: string }
+  if (!response.ok) {
+    throw new PaymentApiError(data.error ?? 'That code could not be applied.', response.status)
+  }
+  return data as CheckoutQuote
+}
+
 export type OrderConfirmation = {
   orderId: string
   orderNumber: string
@@ -107,7 +144,7 @@ export type OrderConfirmation = {
   discountAmount: number
   refundAmount: number
   currency: string
-  items: Array<{ title: string; quantity: number; unitPrice: number }>
+  items: Array<{ title: string; quantity: number; unitPrice: number; size?: string | null; sku?: string | null; lineTotal?: number }>
   shippingAddress: CheckoutAddressInput | null
   confirmationEmailSent: boolean
 }

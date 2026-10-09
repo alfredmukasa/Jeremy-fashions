@@ -11,6 +11,7 @@ import {
   markOrderPaidFromIntent,
   markOrderProcessingFromIntent,
   markOrderRefundedFromCharge,
+  rememberCheckoutSession,
   resolveOrderIdFromStripeEvent,
 } from '../services/orderService.js'
 
@@ -58,6 +59,33 @@ webhooksRouter.post('/stripe', async (req, res) => {
       case 'charge.refunded':
         await markOrderRefundedFromCharge(event.data.object as Stripe.Charge, event.id)
         break
+      case 'checkout.session.completed':
+      case 'checkout.session.async_payment_succeeded': {
+        const session = event.data.object as Stripe.Checkout.Session
+        await rememberCheckoutSession(session)
+        const paymentIntentId =
+          typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id
+        if (session.payment_status === 'paid' && paymentIntentId) {
+          const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+          await markOrderPaidFromIntent(paymentIntent, event.id)
+        }
+        break
+      }
+      case 'checkout.session.async_payment_failed':
+      case 'checkout.session.expired': {
+        const session = event.data.object as Stripe.Checkout.Session
+        const paymentIntentId =
+          typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id
+        if (paymentIntentId) {
+          const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId)
+          if (event.type === 'checkout.session.expired') {
+            await markOrderCancelledFromIntent(paymentIntent, event.id)
+          } else {
+            await markOrderFailedFromIntent(paymentIntent, event.id)
+          }
+        }
+        break
+      }
       default:
         break
     }

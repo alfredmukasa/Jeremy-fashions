@@ -107,21 +107,9 @@ export default function CartPage() {
                   <span className="text-neutral-500">Calculated next</span>
                 </div>
               </div>
-              <div className="my-6 border-t border-neutral-200 pt-6">
-                <label className="text-[10px] font-medium uppercase tracking-[0.25em] text-neutral-500">
-                  Coupon
-                </label>
-                <div className="mt-2 flex gap-2">
-                  <input
-                    placeholder="Code"
-                    className="flex-1 border border-neutral-300 bg-white px-3 py-2 text-sm outline-none focus:border-neutral-900"
-                  />
-                  <Button type="button" variant="outline" className="shrink-0 px-4 py-2 text-[10px]">
-                    Apply
-                  </Button>
-                </div>
-                <p className="mt-2 text-xs text-neutral-400">Promo UI only — no validation in MVP.</p>
-              </div>
+              <p className="my-6 border-t border-neutral-200 pt-6 text-xs leading-relaxed text-neutral-500">
+                Discount codes are checked at checkout and applied to the total before payment.
+              </p>
               <div className="flex items-center justify-between text-base font-medium">
                 <span>Total</span>
                 <span className="tabular-nums">{formatPrice(subtotal)}</span>

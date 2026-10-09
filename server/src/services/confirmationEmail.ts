@@ -69,7 +69,7 @@ export function buildOrderConfirmationHtml(args: {
   const money = (value: number) =>
     new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: args.currency || 'USD',
+      currency: args.currency || 'CAD',
     }).format(value)
 
   const rows = args.items

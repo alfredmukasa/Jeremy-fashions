@@ -1,8 +1,12 @@
-export function formatPrice(amount: number, currency = 'USD') {
+export function formatPrice(amount: number, currency = 'CAD') {
+  const code = currency.toUpperCase()
+  if (code === 'CAD') {
+    return `CA$${amount.toFixed(2)}`
+  }
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency,
-    minimumFractionDigits: 0,
+    currency: code,
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(amount)
 }

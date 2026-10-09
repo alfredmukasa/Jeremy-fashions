@@ -27,7 +27,14 @@ ordersRouter.get('/:id/status', optionalUser, async (req, res) => {
   }
 
   try {
-    await syncPendingPaymentFromStripe(orderId)
+    try {
+      await syncPendingPaymentFromStripe(orderId)
+    } catch (syncError) {
+      console.warn(
+        '[orders] stripe sync skipped',
+        syncError instanceof Error ? syncError.message : 'unknown',
+      )
+    }
 
     const confirmation = await getOrderConfirmation({
       orderId,

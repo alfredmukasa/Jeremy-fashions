@@ -22,6 +22,7 @@ export type CreatePaymentIntentBody = {
   idempotencyKey: string
   email: string
   currency?: string
+  discountCode?: string | null
   items: CheckoutLineItem[]
   shippingAddress: CheckoutAddress
   billingAddress: CheckoutAddress

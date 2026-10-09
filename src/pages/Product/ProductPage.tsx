@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { HiOutlineChevronDown, HiOutlineHeart, HiOutlineShoppingBag } from 'react-icons/hi2'
+import toast from 'react-hot-toast'
 
 import type { Product } from '../../types'
 import { ROUTES } from '../../constants'
@@ -9,6 +10,7 @@ import { useProduct, useRelatedProducts } from '../../hooks/useCatalog'
 import { useCartStore } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore, selectWishlistHas } from '../../store/wishlistStore'
+import { sizeLabelForKind } from '../../lib/productCategoryConfig'
 import { DEFAULT_RETURN_POLICY, DEFAULT_SHIPPING_INSTRUCTIONS } from '../../constants/siteContent'
 import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
 import { sizeChartHasMeasurements } from '../../lib/sizeChart'
@@ -174,7 +176,8 @@ function ProductDetail({ product }: DetailProps) {
   const sizes = product.sizes ?? []
   const colors = product.colors ?? []
   const tags = product.tags ?? []
-  const size = sizes[0] ?? ''
+  const [size, setSize] = useState('')
+  const [sizeError, setSizeError] = useState<string | null>(null)
   const [color, setColor] = useState(colors[0]?.name ?? '')
   const [qty, setQty] = useState(1)
   const sizeChart = sizeChartHasMeasurements(product.sizeChart) ? product.sizeChart : null
@@ -202,7 +205,20 @@ function ProductDetail({ product }: DetailProps) {
   )
   const soldOut = product.stock === 0
 
+  const chartSizes = (sizeChart?.rows ?? []).map((row) => row.size.trim()).filter(Boolean)
+  const unavailableSizes = chartSizes.filter(
+    (chartSize) => !sizes.some((available) => available.toLowerCase() === chartSize.toLowerCase()),
+  )
+
   function addToCart() {
+    if (soldOut) return
+    if (sizes.length > 0 && !size) {
+      const message = 'Select a size before adding this piece to your bag.'
+      setSizeError(message)
+      toast.error(message)
+      return
+    }
+    setSizeError(null)
     addLine(product, size, color, qty)
     openCart()
   }
@@ -326,6 +342,57 @@ function ProductDetail({ product }: DetailProps) {
                       </button>
                     ))}
                   </div>
+                </div>
+              ) : null}
+              {sizes.length || unavailableSizes.length ? (
+                <div>
+                  <p className="text-[10px] font-medium uppercase tracking-[0.25em] text-[var(--text-muted)]">
+                    {sizeLabelForKind(product.productKind)}
+                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={sizeLabelForKind(product.productKind)}>
+                    {sizes.map((option) => {
+                      const selected = size === option
+                      return (
+                        <button
+                          key={option}
+                          type="button"
+                          role="radio"
+                          aria-checked={selected}
+                          disabled={soldOut}
+                          onClick={() => {
+                            setSize(option)
+                            setSizeError(null)
+                          }}
+                          className={cn(
+                            'min-w-[48px] border border-[var(--border-subtle)] px-3 py-2 text-xs tabular-nums transition',
+                            selected && 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]',
+                            soldOut && 'cursor-not-allowed opacity-40',
+                          )}
+                        >
+                          {option}
+                        </button>
+                      )
+                    })}
+                    {unavailableSizes.map((option) => (
+                      <button
+                        key={`unavailable-${option}`}
+                        type="button"
+                        disabled
+                        aria-disabled="true"
+                        className="min-w-[48px] cursor-not-allowed border border-dashed border-[var(--border-subtle)] px-3 py-2 text-xs tabular-nums text-[var(--text-muted)] line-through opacity-60"
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">
+                    {soldOut
+                      ? 'Every size is currently unavailable.'
+                      : unavailableSizes.length
+                        ? 'Crossed-out sizes are not available for this piece.'
+                        : 'Choose a size. The size chart below uses the same labels.'}
+                  </p>
+                  {sizeError ? <p className="mt-2 text-xs text-rose-600">{sizeError}</p> : null}
                 </div>
               ) : null}
               {!hasOptions ? (

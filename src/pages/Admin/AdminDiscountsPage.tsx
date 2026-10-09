@@ -19,6 +19,10 @@ const emptyDiscount = (): AdminDiscountPayload => ({
   percentage: 10,
   active: true,
   expires_at: null,
+  discount_type: 'percentage',
+  amount: null,
+  min_subtotal: 0,
+  usage_limit: null,
 })
 
 export default function AdminDiscountsPage() {
@@ -76,15 +80,68 @@ function AdminDiscountsContent() {
           <Input id="dcode" value={form.code} onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))} required />
         </div>
         <div>
-          <FieldLabel id="dpercent">Percentage</FieldLabel>
+          <FieldLabel id="dtype">Type</FieldLabel>
+          <select
+            id="dtype"
+            className="mt-2 w-full border border-neutral-300 bg-white px-3 py-2 text-sm"
+            value={form.discount_type}
+            onChange={(e) =>
+              setForm((f) => ({ ...f, discount_type: e.target.value === 'fixed' ? 'fixed' : 'percentage' }))
+            }
+          >
+            <option value="percentage">Percentage</option>
+            <option value="fixed">Fixed amount (CAD)</option>
+          </select>
+        </div>
+        {form.discount_type === 'percentage' ? (
+          <div>
+            <FieldLabel id="dpercent">Percentage</FieldLabel>
+            <Input
+              id="dpercent"
+              type="number"
+              min={1}
+              max={100}
+              value={form.percentage ?? ''}
+              onChange={(e) => setForm((f) => ({ ...f, percentage: Number(e.target.value) }))}
+              required
+            />
+          </div>
+        ) : (
+          <div>
+            <FieldLabel id="damount">Amount</FieldLabel>
+            <Input
+              id="damount"
+              type="number"
+              min={0.01}
+              step="0.01"
+              value={form.amount ?? ''}
+              onChange={(e) => setForm((f) => ({ ...f, amount: Number(e.target.value) }))}
+              required
+            />
+          </div>
+        )}
+        <div>
+          <FieldLabel id="dmin">Minimum merchandise total</FieldLabel>
           <Input
-            id="dpercent"
+            id="dmin"
+            type="number"
+            min={0}
+            step="0.01"
+            value={form.min_subtotal}
+            onChange={(e) => setForm((f) => ({ ...f, min_subtotal: Number(e.target.value) }))}
+          />
+        </div>
+        <div>
+          <FieldLabel id="dusage">Usage limit</FieldLabel>
+          <Input
+            id="dusage"
             type="number"
             min={1}
-            max={100}
-            value={form.percentage}
-            onChange={(e) => setForm((f) => ({ ...f, percentage: Number(e.target.value) }))}
-            required
+            value={form.usage_limit ?? ''}
+            placeholder="Unlimited"
+            onChange={(e) =>
+              setForm((f) => ({ ...f, usage_limit: e.target.value === '' ? null : Number(e.target.value) }))
+            }
           />
         </div>
         <div className="flex items-center gap-2 md:col-span-2">
@@ -111,7 +168,7 @@ function AdminDiscountsContent() {
           <thead className="bg-neutral-50 text-[10px] uppercase tracking-[0.2em] text-neutral-500">
             <tr>
               <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Percent</th>
+              <th className="px-4 py-3 font-medium">Value</th>
               <th className="px-4 py-3 font-medium">Active</th>
               <th className="px-4 py-3 font-medium text-right">Actions</th>
             </tr>
@@ -120,7 +177,12 @@ function AdminDiscountsContent() {
             {(discountsQuery.data ?? []).map((discount) => (
               <tr key={discount.id} className="border-t border-neutral-100">
                 <td className="px-4 py-3 font-medium text-neutral-900">{discount.code}</td>
-                <td className="px-4 py-3">{discount.percentage}%</td>
+                <td className="px-4 py-3">
+                  {discount.discount_type === 'fixed'
+                    ? `CA$${Number(discount.amount ?? 0).toFixed(2)}`
+                    : `${discount.percentage ?? 0}%`}
+                  {discount.usage_limit != null ? ` · ${discount.usage_count ?? 0}/${discount.usage_limit}` : ''}
+                </td>
                 <td className="px-4 py-3">{discount.active ? 'Yes' : 'No'}</td>
                 <td className="px-4 py-3 text-right">
                   <button
@@ -133,6 +195,10 @@ function AdminDiscountsContent() {
                         percentage: discount.percentage,
                         active: discount.active,
                         expires_at: discount.expires_at,
+                        discount_type: discount.discount_type === 'fixed' ? 'fixed' : 'percentage',
+                        amount: discount.amount ?? null,
+                        min_subtotal: Number(discount.min_subtotal ?? 0),
+                        usage_limit: discount.usage_limit ?? null,
                       })
                     }}
                   >

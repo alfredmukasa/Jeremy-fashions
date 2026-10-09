@@ -76,16 +76,43 @@ export type AdminDiscountRow = {
   id: string
   created_at: string
   code: string
-  percentage: number
+  percentage: number | null
   active: boolean
   expires_at: string | null
+  discount_type?: 'percentage' | 'fixed'
+  amount?: number | null
+  min_subtotal?: number | null
+  usage_limit?: number | null
+  usage_count?: number | null
 }
 
 export type AdminDiscountPayload = {
   code: string
-  percentage: number
+  percentage: number | null
   active: boolean
   expires_at: string | null
+  discount_type: 'percentage' | 'fixed'
+  amount: number | null
+  min_subtotal: number
+  usage_limit: number | null
+}
+
+export type AdminOrderItemProduct = {
+  image_url?: string | null
+  gallery_images?: string[] | null
+}
+
+export type AdminOrderItem = {
+  id: string
+  product_id: string | null
+  title: string
+  quantity: number
+  unit_price: number
+  sku: string | null
+  size?: string | null
+  color_name?: string | null
+  line_total?: number | null
+  products?: AdminOrderItemProduct | AdminOrderItemProduct[] | null
 }
 
 export type AdminOrderRow = {
@@ -95,14 +122,23 @@ export type AdminOrderRow = {
   updated_at: string
   user_id: string | null
   email: string
+  customer_name?: string | null
   status: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled'
   payment_status: 'unpaid' | 'processing' | 'paid' | 'refunded' | 'partial_refund' | 'failed'
   total_amount: number
+  subtotal_amount?: number | null
+  shipping_amount?: number | null
+  tax_amount?: number | null
+  discount_amount?: number | null
   refund_amount?: number | null
   currency: string
   notes: string | null
   stripe_payment_intent_id: string | null
+  stripe_checkout_session_id?: string | null
+  shipping_address?: Record<string, unknown> | null
+  billing_address?: Record<string, unknown> | null
   payment_metadata: Record<string, unknown> | null
+  order_items?: AdminOrderItem[] | null
 }
 
 export type AdminAuditRow = {
@@ -338,8 +374,35 @@ export async function adminDeleteCategory(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+function discountWriteRow(payload: AdminDiscountPayload, extended: boolean) {
+  const code = payload.code.trim().replace(/\s+/g, '').toUpperCase()
+  const base = {
+    code,
+    active: payload.active,
+    expires_at: payload.expires_at,
+    percentage: payload.discount_type === 'fixed' ? null : payload.percentage,
+  }
+  if (!extended) {
+    return { ...base, percentage: payload.percentage ?? 0 }
+  }
+  return {
+    ...base,
+    discount_type: payload.discount_type,
+    amount: payload.discount_type === 'fixed' ? payload.amount : null,
+    min_subtotal: payload.min_subtotal,
+    usage_limit: payload.usage_limit,
+  }
+}
+
 export async function adminListDiscounts(): Promise<AdminDiscountRow[]> {
   const client = requireClient()
+  const full = await client
+    .from('discount_codes')
+    .select('id, created_at, code, percentage, active, expires_at, discount_type, amount, min_subtotal, usage_limit, usage_count')
+    .order('created_at', { ascending: false })
+
+  if (!full.error) return (full.data ?? []) as AdminDiscountRow[]
+
   const { data, error } = await client
     .from('discount_codes')
     .select('id, created_at, code, percentage, active, expires_at')
@@ -351,28 +414,20 @@ export async function adminListDiscounts(): Promise<AdminDiscountRow[]> {
 
 export async function adminCreateDiscount(payload: AdminDiscountPayload): Promise<AdminDiscountRow> {
   const client = requireClient()
-  const row = {
-    code: payload.code.trim().toUpperCase(),
-    percentage: payload.percentage,
-    active: payload.active,
-    expires_at: payload.expires_at,
-  }
-
-  const { data, error } = await client.from('discount_codes').insert(row).select().single()
+  const full = await client.from('discount_codes').insert(discountWriteRow(payload, true) as never).select().single()
+  if (!full.error) return full.data as AdminDiscountRow
+  if (!/column|schema cache|could not find/i.test(full.error.message)) throw new Error(full.error.message)
+  const { data, error } = await client.from('discount_codes').insert(discountWriteRow(payload, false) as never).select().single()
   if (error) throw new Error(error.message)
   return data as AdminDiscountRow
 }
 
 export async function adminUpdateDiscount(id: string, payload: AdminDiscountPayload): Promise<AdminDiscountRow> {
   const client = requireClient()
-  const row = {
-    code: payload.code.trim().toUpperCase(),
-    percentage: payload.percentage,
-    active: payload.active,
-    expires_at: payload.expires_at,
-  }
-
-  const { data, error } = await client.from('discount_codes').update(row).eq('id', id).select().single()
+  const full = await client.from('discount_codes').update(discountWriteRow(payload, true) as never).eq('id', id).select().single()
+  if (!full.error) return full.data as AdminDiscountRow
+  if (!/column|schema cache|could not find/i.test(full.error.message)) throw new Error(full.error.message)
+  const { data, error } = await client.from('discount_codes').update(discountWriteRow(payload, false) as never).eq('id', id).select().single()
   if (error) throw new Error(error.message)
   return data as AdminDiscountRow
 }
@@ -383,30 +438,44 @@ export async function adminDeleteDiscount(id: string): Promise<void> {
   if (error) throw new Error(error.message)
 }
 
+const ORDER_ITEM_SNAPSHOT =
+  'id, product_id, title, quantity, unit_price, sku, size, color_name, line_total, products (image_url, gallery_images)'
+const ORDER_ITEM_SNAPSHOT_NO_IMAGE = 'id, product_id, title, quantity, unit_price, sku, size, color_name, line_total'
+const ORDER_ITEM_BASIC_WITH_IMAGE = 'id, product_id, title, quantity, unit_price, sku, products (image_url, gallery_images)'
+const ORDER_ITEM_BASIC = 'id, product_id, title, quantity, unit_price, sku'
+
+const ADMIN_ORDER_SELECTS = [
+  `id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, subtotal_amount, shipping_amount, tax_amount, discount_amount, refund_amount, currency, notes, stripe_payment_intent_id, stripe_checkout_session_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_SNAPSHOT})`,
+  `id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, subtotal_amount, shipping_amount, tax_amount, discount_amount, refund_amount, currency, notes, stripe_payment_intent_id, stripe_checkout_session_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_SNAPSHOT_NO_IMAGE})`,
+  `id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, refund_amount, currency, notes, stripe_payment_intent_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_BASIC_WITH_IMAGE})`,
+  `id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, refund_amount, currency, notes, stripe_payment_intent_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_BASIC})`,
+  `id, created_at, updated_at, user_id, email, status, payment_status, total_amount, currency, notes, stripe_payment_intent_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_BASIC})`,
+]
+
 export async function adminListOrders(): Promise<AdminOrderRow[]> {
   const client = requireClient()
-  const full = await client
-    .from('orders')
-    .select(
-      'id, order_number, created_at, updated_at, user_id, email, status, payment_status, total_amount, refund_amount, currency, notes, stripe_payment_intent_id, payment_metadata',
-    )
-    .order('created_at', { ascending: false })
-    .limit(200)
-
-  if (!full.error) {
-    return (full.data ?? []) as AdminOrderRow[]
+  let rows: AdminOrderRow[] | null = null
+  let lastError = 'Unable to load orders.'
+  for (const select of ADMIN_ORDER_SELECTS) {
+    const result = await client.from('orders').select(select).order('created_at', { ascending: false }).limit(200)
+    if (!result.error) {
+      rows = (result.data ?? []) as unknown as AdminOrderRow[]
+      break
+    }
+    lastError = result.error.message
   }
+  if (!rows) throw new Error(lastError)
 
-  const { data, error } = await client
-    .from('orders')
-    .select(
-      'id, created_at, updated_at, user_id, email, status, payment_status, total_amount, currency, notes, stripe_payment_intent_id, payment_metadata',
-    )
-    .order('created_at', { ascending: false })
-    .limit(200)
+  const userIds = [...new Set(rows.map((order) => order.user_id).filter((id): id is string => Boolean(id)))]
+  if (userIds.length === 0) return rows
 
-  if (error) throw new Error(error.message)
-  return (data ?? []) as AdminOrderRow[]
+  const profiles = await client.from('profiles').select('id, full_name').in('id', userIds)
+  if (profiles.error) return rows
+  const names = new Map((profiles.data ?? []).map((profile) => [profile.id as string, profile.full_name as string | null]))
+  return rows.map((order) => ({
+    ...order,
+    customer_name: order.user_id ? names.get(order.user_id) ?? null : null,
+  }))
 }
 
 export async function adminUpdateOrderStatus(id: string, status: AdminOrderRow['status']): Promise<void> {

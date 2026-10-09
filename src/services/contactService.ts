@@ -2,7 +2,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { ContactMessageInput } from '../types'
 
 export type ContactResult =
-  | { ok: true }
+  | { ok: true; emailed: boolean }
   | { ok: false; reason: 'invalid' | 'unknown'; message: string }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -63,9 +63,9 @@ export async function submitContactMessage(entry: ContactMessageInput): Promise<
     }
   }
 
-  await notifyContactRecipient({ firstName, lastName, email, message })
+  const emailed = await notifyContactRecipient({ firstName, lastName, email, message })
 
-  return { ok: true }
+  return { ok: true, emailed }
 }
 
 const API_BASE = (import.meta.env.VITE_PAYMENTS_API_URL as string | undefined)?.replace(/\/$/, '') ?? '/api'
@@ -82,10 +82,14 @@ async function notifyContactRecipient(entry: {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entry),
     })
+    const body = (await response.json().catch(() => ({}))) as { emailed?: boolean }
     if (!response.ok) {
       console.error('[contactService.notifyContactRecipient]', response.status)
+      return false
     }
+    return body.emailed === true
   } catch (error) {
     console.error('[contactService.notifyContactRecipient]', error)
+    return false
   }
 }

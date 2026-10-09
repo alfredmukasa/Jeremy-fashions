@@ -7,22 +7,22 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 
-import { DEFAULT_SHIPPING_INSTRUCTIONS } from '../../constants/siteContent'
 import { ROUTES } from '../../constants'
-import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
 import { useAuth } from '../../context/AuthContext'
 import { findCountryByCode, getRegionOptions } from '../../lib/countryRegionData'
 import { detectLocation } from '../../lib/geolocation'
-import { createPaymentIntent, PaymentApiError } from '../../lib/paymentApi'
+import { createPaymentIntent, PaymentApiError, quoteDiscount, type CheckoutQuote } from '../../lib/paymentApi'
 import { getStripe, isStripeConfigured } from '../../lib/stripe'
 import { useProducts } from '../../hooks/useCatalog'
 import { listShippingAddresses } from '../../services/shippingAddressService'
 import { useCartStore } from '../../store/cartStore'
 import { calculateCheckoutTotals } from '../../utils/checkoutTotals'
+import { formatPrice } from '../../utils/formatPrice'
 import type { ShippingAddress } from '../../types'
 import { getDefaultShippingAddress, shippingAddressToCheckoutValues } from '../../utils/shippingAddress'
 
 import { CheckoutAddressFields, type CheckoutFormValues } from '../../components/checkout/CheckoutAddressFields'
+import { CheckoutPolicyNote } from '../../components/checkout/CheckoutPolicyNote'
 import { CheckoutShippingSelector } from '../../components/checkout/CheckoutShippingSelector'
 import { CheckoutCartSummary } from '../../components/checkout/CheckoutCartSummary'
 import { CheckoutConfirmation } from '../../components/checkout/CheckoutConfirmation'
@@ -93,7 +93,13 @@ export default function CheckoutPage() {
   })
   const [searchParams, setSearchParams] = useSearchParams()
 
-  const totals = useMemo(() => calculateCheckoutTotals(subtotal), [subtotal])
+  const [discountInput, setDiscountInput] = useState('')
+  const [appliedQuote, setAppliedQuote] = useState<CheckoutQuote | null>(null)
+  const [discountError, setDiscountError] = useState<string | null>(null)
+  const [isApplyingDiscount, setIsApplyingDiscount] = useState(false)
+  const previewTotals = useMemo(() => calculateCheckoutTotals(subtotal), [subtotal])
+  const totals = appliedQuote?.totals ?? previewTotals
+  const currency = appliedQuote?.totals.currency ?? 'CAD'
   const stripePromise = useMemo(() => getStripe(), [])
 
   const [step, setStep] = useState<CheckoutStep>('details')
@@ -151,6 +157,12 @@ export default function CheckoutPage() {
     if (!products?.length) return
     reconcileCatalogPrices(products)
   }, [products, reconcileCatalogPrices])
+
+  const lineSignature = lines.map((line) => `${line.key}:${line.quantity}:${line.snapshot.unitPrice}`).join('|')
+  useEffect(() => {
+    setAppliedQuote(null)
+    setDiscountError(null)
+  }, [lineSignature])
 
   useEffect(() => {
     const addresses = shippingAddressesQuery.data
@@ -252,6 +264,15 @@ export default function CheckoutPage() {
       return
     }
 
+    const missingSize = lines.find((line) => {
+      const product = products?.find((entry) => entry.id === line.productId)
+      return Boolean(product && product.sizes.length > 0 && !line.size.trim())
+    })
+    if (missingSize) {
+      setCheckoutError(`Select a size for ${missingSize.snapshot.name} before checkout.`)
+      return
+    }
+
     setCheckoutError(null)
     setIsPreparingPayment(true)
 
@@ -260,6 +281,7 @@ export default function CheckoutPage() {
         {
           idempotencyKey,
           email: values.email,
+          discountCode: appliedQuote?.discount?.code ?? null,
           items: lines.map((line) => ({
             productId: line.productId,
             title: line.snapshot.name,
@@ -287,6 +309,18 @@ export default function CheckoutPage() {
 
       setClientSecret(response.clientSecret)
       setOrderId(response.orderId)
+      if (response.totals) {
+        setAppliedQuote({
+          totals: {
+            subtotal: response.totals.subtotal,
+            shipping: response.totals.shipping,
+            tax: response.totals.tax,
+            discount: response.totals.discount ?? response.discount?.amount ?? 0,
+            total: response.totals.total,
+          },
+          discount: response.discount ?? null,
+        })
+      }
       sessionStorage.setItem('krewnox-checkout-order-id', response.orderId)
       sessionStorage.setItem('krewnox-checkout-email', values.email)
       setStep('payment')
@@ -300,6 +334,53 @@ export default function CheckoutPage() {
     } finally {
       setIsPreparingPayment(false)
     }
+  }
+
+  async function applyDiscountCode() {
+    if (!discountInput.trim()) {
+      setDiscountError('Enter a discount code.')
+      setAppliedQuote(null)
+      return
+    }
+    setIsApplyingDiscount(true)
+    setDiscountError(null)
+    try {
+      const quote = await quoteDiscount(
+        {
+          email: getValues('email') || user?.email || '',
+          discountCode: discountInput,
+          items: lines.map((line) => ({
+            productId: line.productId,
+            title: line.snapshot.name,
+            quantity: line.quantity,
+            unitPrice: line.snapshot.unitPrice,
+            size: line.size,
+            colorName: line.colorName,
+          })),
+        },
+        session?.access_token,
+      )
+      setAppliedQuote(quote)
+      setDiscountInput(quote.discount?.code ?? discountInput)
+      const currencyCode = quote.totals.currency ?? 'CAD'
+      toast.success(
+        quote.discount
+          ? `${quote.discount.code} applied. You save ${formatPrice(quote.discount.amount, currencyCode)}. Total ${formatPrice(quote.totals.total, currencyCode)}.`
+          : 'Code applied.',
+      )
+    } catch (error) {
+      setAppliedQuote(null)
+      const message = error instanceof PaymentApiError ? error.message : 'That code could not be applied.'
+      setDiscountError(message)
+    } finally {
+      setIsApplyingDiscount(false)
+    }
+  }
+
+  function removeDiscountCode() {
+    setAppliedQuote(null)
+    setDiscountInput('')
+    setDiscountError(null)
   }
 
   function handlePaymentSuccess() {
@@ -333,6 +414,20 @@ export default function CheckoutPage() {
           step={step}
           lines={lines}
           totals={totals}
+          currency={currency}
+          discountCode={discountInput}
+          discountMessage={
+            appliedQuote?.discount
+              ? `${appliedQuote.discount.code} applied. You save ${formatPrice(appliedQuote.discount.amount, currency)}. Total ${formatPrice(totals.total, currency)}.`
+              : null
+          }
+          discountError={discountError}
+          isApplyingDiscount={isApplyingDiscount}
+          onDiscountCodeChange={setDiscountInput}
+          onApplyDiscount={() => {
+            void applyDiscountCode()
+          }}
+          onRemoveDiscount={removeDiscountCode}
           isPreparingPayment={isPreparingPayment}
           checkoutError={checkoutError}
           isSignedIn={Boolean(user)}
@@ -371,6 +466,14 @@ function CheckoutGrid(props: {
   step: CheckoutStep
   lines: ReturnType<typeof useCartStore.getState>['lines']
   totals: ReturnType<typeof calculateCheckoutTotals>
+  currency: string
+  discountCode: string
+  discountMessage: string | null
+  discountError: string | null
+  isApplyingDiscount: boolean
+  onDiscountCodeChange: (value: string) => void
+  onApplyDiscount: () => void
+  onRemoveDiscount: () => void
   isPreparingPayment: boolean
   checkoutError: string | null
   isSignedIn: boolean
@@ -394,11 +497,6 @@ function CheckoutGrid(props: {
   onPaymentSuccess: () => void
   onPaymentError: (message: string) => void
 }) {
-  const siteContent = usePublicSiteContent()
-  const shippingCopy = siteContent.data?.shippingInstructions?.published
-    ? siteContent.data.shippingInstructions.body
-    : DEFAULT_SHIPPING_INSTRUCTIONS.body
-
   return (
     <div className="grid gap-12 lg:grid-cols-[1fr_400px]">
       <div className="space-y-12">
@@ -426,13 +524,9 @@ function CheckoutGrid(props: {
 
             <section>
               <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-900">Shipping</h2>
-              <p className="mt-3 max-w-2xl whitespace-pre-wrap text-sm leading-relaxed text-neutral-600">{shippingCopy}</p>
-              <Link
-                to={ROUTES.shipping}
-                className="mt-2 inline-block text-[11px] font-medium uppercase tracking-[0.2em] text-neutral-600 underline-offset-4 hover:underline"
-              >
-                Shipping details
-              </Link>
+              <div className="mt-3">
+                <CheckoutPolicyNote kind="shipping" />
+              </div>
               <div className="mt-6">
                 <CheckoutShippingSelector
                   addresses={props.shippingAddresses}
@@ -447,6 +541,13 @@ function CheckoutGrid(props: {
                   onSelectSavedAddress={props.onSelectSavedAddress}
                   onUseNewAddress={props.onUseNewAddress}
                 />
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-900">Returns</h2>
+              <div className="mt-3">
+                <CheckoutPolicyNote kind="returns" />
               </div>
             </section>
 
@@ -488,8 +589,17 @@ function CheckoutGrid(props: {
               <CheckoutCartSummary
                 lines={props.lines}
                 totals={props.totals}
+                currency={props.currency}
                 isSubmitting={props.isPreparingPayment}
                 submitLabel="Continue to payment"
+                discountCode={props.discountCode}
+                discountMessage={props.discountMessage}
+                discountError={props.discountError}
+                isApplyingDiscount={props.isApplyingDiscount}
+                onDiscountCodeChange={props.onDiscountCodeChange}
+                onApplyDiscount={props.onApplyDiscount}
+                onRemoveDiscount={props.onRemoveDiscount}
+                discountInputId="discount-code-mobile"
               />
             </div>
 
@@ -509,6 +619,7 @@ function CheckoutGrid(props: {
               <CheckoutCartSummary
                 lines={props.lines}
                 totals={props.totals}
+                currency={props.currency}
                 showSubmit={false}
               />
             </div>
@@ -547,9 +658,18 @@ function CheckoutGrid(props: {
         <CheckoutCartSummary
           lines={props.lines}
           totals={props.totals}
+          currency={props.currency}
           isSubmitting={props.isPreparingPayment}
           showSubmit={props.step === 'details'}
           submitLabel="Continue to payment"
+          discountCode={props.step === 'details' ? props.discountCode : undefined}
+          discountMessage={props.discountMessage}
+          discountError={props.step === 'details' ? props.discountError : null}
+          isApplyingDiscount={props.isApplyingDiscount}
+          onDiscountCodeChange={props.step === 'details' ? props.onDiscountCodeChange : undefined}
+          onApplyDiscount={props.step === 'details' ? props.onApplyDiscount : undefined}
+          onRemoveDiscount={props.step === 'details' ? props.onRemoveDiscount : undefined}
+          discountInputId="discount-code-desktop"
         />
       </div>
     </div>

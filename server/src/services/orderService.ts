@@ -3,32 +3,38 @@ import { randomBytes } from 'node:crypto'
 import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+import {
+  STORE_CURRENCY,
+  calculateOrderTotals,
+  canonicalSize,
+  compareStripePayment,
+  roundMoney,
+  sizeSelectionError,
+  stripeLineDescription,
+  toMinorUnits,
+  type OrderTotals,
+} from '../domain/checkoutPricing.js'
 import { recordConfirmationEmailIfNeeded } from './confirmationEmail.js'
+import { recordDiscountRedemption, resolveDiscount, type AppliedDiscount } from './discountCodes.js'
 import { requireSupabaseAdmin, supabaseAnon } from '../lib/supabase.js'
 import type { CheckoutAddress, CheckoutLineItem } from '../types.js'
 
-const SHIPPING_THRESHOLD = 250
-const SHIPPING_FLAT = 12
-const TAX_RATE = 0.08
-
-export type OrderTotals = {
-  subtotal: number
-  shipping: number
-  tax: number
-  discount: number
-  total: number
-  currency: string
-}
+export type { OrderTotals }
+export { stripeLineDescription, toMinorUnits, STORE_CURRENCY }
 
 export type ValidatedCheckout = {
   items: CheckoutLineItem[]
   totals: OrderTotals
+  discount: AppliedDiscount | null
 }
 
 export type OrderConfirmationItem = {
   title: string
   quantity: number
   unitPrice: number
+  size?: string | null
+  sku?: string | null
+  lineTotal?: number
 }
 
 export type OrderConfirmation = {
@@ -51,17 +57,18 @@ export type OrderConfirmation = {
   confirmationEmailSent: boolean
 }
 
-export function calculateTotals(items: CheckoutLineItem[], currency = 'USD'): OrderTotals {
-  const subtotal = roundMoney(items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0))
-  const shipping = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT
-  const tax = roundMoney(subtotal * TAX_RATE)
-  const discount = 0
-  const total = roundMoney(subtotal + shipping + tax - discount)
-
-  return { subtotal, shipping, tax, discount, total, currency: currency.toUpperCase() }
+export function calculateTotals(
+  items: CheckoutLineItem[],
+  currency = STORE_CURRENCY,
+  discountAmount = 0,
+): OrderTotals {
+  return calculateOrderTotals(items, discountAmount, currency)
 }
 
-export async function validateCheckoutItems(items: CheckoutLineItem[]): Promise<ValidatedCheckout> {
+export async function validateCheckoutItems(
+  items: CheckoutLineItem[],
+  options?: { email?: string; discountCode?: string | null },
+): Promise<ValidatedCheckout> {
   if (!items.length) {
     throw new CheckoutError('Your bag is empty.', 400)
   }
@@ -69,7 +76,7 @@ export async function validateCheckoutItems(items: CheckoutLineItem[]): Promise<
   const productIds = [...new Set(items.map((item) => item.productId))]
   const { data: products, error } = await supabaseAnon
     .from('products')
-    .select('id, title, price, compare_price, status, stock_quantity, sku')
+    .select('id, title, price, compare_price, status, stock_quantity, sku, sizes')
     .in('id', productIds)
 
   if (error) {
@@ -93,6 +100,14 @@ export async function validateCheckoutItems(items: CheckoutLineItem[]): Promise<
       throw new CheckoutError(`Insufficient stock for ${product.title}.`, 400)
     }
 
+    const availableSizes = Array.isArray(product.sizes)
+      ? product.sizes.filter((size: unknown): size is string => typeof size === 'string')
+      : []
+    const sizeError = sizeSelectionError(availableSizes, item.size ?? '', product.title)
+    if (sizeError) {
+      throw new CheckoutError(sizeError, 400)
+    }
+
     const expectedUnitPrice = getSellingPrice(Number(product.price), product.compare_price)
 
     validated.push({
@@ -100,13 +115,26 @@ export async function validateCheckoutItems(items: CheckoutLineItem[]): Promise<
       title: product.title,
       quantity: item.quantity,
       unitPrice: expectedUnitPrice,
-      size: item.size,
+      size: canonicalSize(availableSizes, item.size ?? '') ?? '',
       colorName: item.colorName,
       sku: product.sku ?? item.sku,
     })
   }
 
-  return { items: validated, totals: calculateTotals(validated) }
+  const discountResult = await resolveDiscount({
+    code: options?.discountCode,
+    email: options?.email ?? '',
+    lines: validated,
+  })
+  if (discountResult.error) {
+    throw new CheckoutError(discountResult.error, 400)
+  }
+
+  return {
+    items: validated,
+    totals: calculateTotals(validated, STORE_CURRENCY, discountResult.applied?.amount ?? 0),
+    discount: discountResult.applied,
+  }
 }
 
 export async function findOrderByIdempotencyKey(db: SupabaseClient, idempotencyKey: string) {
@@ -147,6 +175,7 @@ export async function createPendingOrder(
     shippingAddress: CheckoutAddress
     billingAddress: CheckoutAddress
     billingSameAsShipping: boolean
+    discount?: AppliedDiscount | null
   },
 ) {
   const orderNumber = generateOrderNumber()
@@ -165,7 +194,10 @@ export async function createPendingOrder(
       shipping: args.totals.shipping,
       tax: args.totals.tax,
       discount: args.totals.discount,
+      discount_code: args.discount?.code ?? null,
+      discount_code_id: args.discount?.id ?? null,
       billing_same_as_shipping: args.billingSameAsShipping,
+      currency: args.totals.currency,
     },
   }
 
@@ -189,16 +221,7 @@ export async function createPendingOrder(
 
   const created = { ...order, order_number: orderNumber }
 
-  const orderItems = args.items.map((item) => ({
-    order_id: order.id,
-    product_id: item.productId,
-    title: item.title,
-    quantity: item.quantity,
-    unit_price: item.unitPrice,
-    sku: item.sku ?? null,
-  }))
-
-  const { error: itemsError } = await db.from('order_items').insert(orderItems)
+  const itemsError = await insertOrderItems(db, order.id, args.items)
   if (itemsError) {
     await db.from('orders').delete().eq('id', order.id)
     throw new CheckoutError('Unable to save order line items.', 500)
@@ -216,6 +239,7 @@ export async function refreshPendingOrder(
     shippingAddress: CheckoutAddress
     billingAddress: CheckoutAddress
     billingSameAsShipping: boolean
+    discount?: AppliedDiscount | null
   },
 ) {
   const { data: current } = await db.from('orders').select('payment_metadata').eq('id', orderId).maybeSingle()
@@ -239,7 +263,10 @@ export async function refreshPendingOrder(
       shipping: args.totals.shipping,
       tax: args.totals.tax,
       discount: args.totals.discount,
+      discount_code: args.discount?.code ?? null,
+      discount_code_id: args.discount?.id ?? null,
       billing_same_as_shipping: args.billingSameAsShipping,
+      currency: args.totals.currency,
     },
     updated_at: new Date().toISOString(),
   }
@@ -275,18 +302,50 @@ export async function refreshPendingOrder(
     throw new CheckoutError('Unable to refresh order line items.', 500)
   }
 
-  const { error: itemsError } = await db.from('order_items').insert(
-    args.items.map((item) => ({
-      order_id: orderId,
-      product_id: item.productId,
-      title: item.title,
-      quantity: item.quantity,
-      unit_price: item.unitPrice,
-      sku: item.sku ?? null,
-    })),
-  )
+  const itemsError = await insertOrderItems(db, orderId, args.items)
   if (itemsError) {
     throw new CheckoutError('Unable to save order line items.', 500)
+  }
+}
+
+export async function rememberCheckoutSession(session: Stripe.Checkout.Session) {
+  const orderId = session.metadata?.order_id
+  if (!orderId) return
+
+  const sessionRecord = session as Stripe.Checkout.Session & {
+    shipping_details?: { name?: string | null; address?: Stripe.Address | null } | null
+    collected_information?: { shipping_details?: { name?: string | null; address?: Stripe.Address | null } | null } | null
+  }
+  const details = sessionRecord.collected_information?.shipping_details ?? sessionRecord.shipping_details
+  const address = details?.address
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() }
+  if (address?.line1) {
+    patch.shipping_address = {
+      full_name: details?.name ?? session.customer_details?.name ?? '',
+      line1: address.line1,
+      line2: address.line2 ?? null,
+      city: address.city ?? '',
+      region: address.state ?? '',
+      postal_code: address.postal_code ?? '',
+      country: address.country ?? '',
+      phone: session.customer_details?.phone ?? null,
+    }
+  }
+
+  const db = requireSupabaseAdmin()
+  const withSession = await db
+    .from('orders')
+    .update({ ...patch, stripe_checkout_session_id: session.id })
+    .eq('id', orderId)
+  if (withSession.error && isMissingColumnError(withSession.error)) {
+    const fallback = await db.from('orders').update(patch).eq('id', orderId)
+    if (fallback.error) {
+      console.warn('[orders] checkout session was not saved', fallback.error.message)
+    }
+    return
+  }
+  if (withSession.error) {
+    console.warn('[orders] checkout session was not saved', withSession.error.message)
   }
 }
 
@@ -325,9 +384,39 @@ type OrderPaymentRow = {
   payment_status: string
   status?: string
   total_amount?: number | string
+  currency?: string | null
   stripe_payment_intent_id: string | null
   payment_metadata: Record<string, unknown> | null
   confirmation_email_sent_at?: string | null
+}
+
+const SETTLED_PAYMENT_STATUSES = new Set(['paid', 'refunded', 'partial_refund'])
+
+function orderItemPayload(orderId: string, item: CheckoutLineItem, withSnapshot: boolean) {
+  const base = {
+    order_id: orderId,
+    product_id: item.productId,
+    title: item.title,
+    quantity: item.quantity,
+    unit_price: item.unitPrice,
+    sku: item.sku ?? null,
+  }
+  if (!withSnapshot) return base
+  return {
+    ...base,
+    size: item.size || null,
+    color_name: item.colorName || null,
+    line_total: roundMoney(item.unitPrice * item.quantity),
+  }
+}
+
+async function insertOrderItems(db: SupabaseClient, orderId: string, items: CheckoutLineItem[]) {
+  const withSnapshot = items.map((item) => orderItemPayload(orderId, item, true))
+  const primary = await db.from('order_items').insert(withSnapshot)
+  if (!primary.error) return null
+  if (!isMissingColumnError(primary.error)) return primary.error
+  const fallback = await db.from('order_items').insert(items.map((item) => orderItemPayload(orderId, item, false)))
+  return fallback.error
 }
 
 export async function releaseWebhookEvent(eventId: string) {
@@ -430,20 +519,69 @@ function alreadyProcessedEvent(existing: OrderPaymentRow, eventId?: string) {
   return Array.isArray(ids) && ids.includes(eventId)
 }
 
-function assertPaidAmountMatches(order: OrderPaymentRow, paymentIntent: Stripe.PaymentIntent) {
-  const expectedCents = Math.round(Number(order.total_amount ?? 0) * 100)
-  const received = paymentIntent.amount_received || paymentIntent.amount
-  if (!expectedCents || received !== expectedCents) {
-    throw new CheckoutError(
-      `Payment amount does not match order total (${received} vs ${expectedCents}).`,
-      409,
-    )
-  }
+function paymentSettled(status: string | undefined) {
+  return Boolean(status && SETTLED_PAYMENT_STATUSES.has(status))
+}
+
+function fulfillmentAfterPayment(current: string | undefined) {
+  if (current === 'shipped' || current === 'delivered') return current
+  return 'processing'
+}
+
+async function flagPaymentMismatch(existing: OrderPaymentRow, paymentIntent: Stripe.PaymentIntent, eventId?: string) {
+  const comparison = compareStripePayment({
+    orderTotal: Number(existing.total_amount ?? 0),
+    orderCurrency: existing.currency || 'USD',
+    stripeAmount: paymentIntent.amount,
+    stripeAmountReceived: paymentIntent.amount_received,
+    stripeCurrency: paymentIntent.currency,
+  })
+  if (comparison.matches) return null
+
+  console.error('[payments] stripe amount did not match the order; leaving payment unpaid', {
+    orderId: existing.id,
+    reason: comparison.reason,
+    expectedMinor: comparison.expectedMinor,
+    receivedMinor: comparison.receivedMinor,
+    orderCurrency: comparison.orderCurrency,
+    stripeCurrency: comparison.stripeCurrency,
+  })
+
+  const supabaseAdmin = requireSupabaseAdmin()
+  await supabaseAdmin
+    .from('orders')
+    .update({
+      stripe_payment_intent_id: paymentIntent.id,
+      payment_metadata: mergePaymentMetadata(
+        existing.payment_metadata,
+        {
+          payment_review_required: true,
+          stripe_payment_intent_id: paymentIntent.id,
+          stripe_amount: paymentIntent.amount,
+          stripe_amount_received: paymentIntent.amount_received,
+          stripe_currency: paymentIntent.currency,
+          expected_amount_minor: comparison.expectedMinor,
+          payment_mismatch_reason: comparison.reason,
+        },
+        {
+          id: eventId,
+          type: 'payment_intent.succeeded',
+          stripe_status: paymentIntent.status,
+          amount: paymentIntent.amount_received || paymentIntent.amount,
+          currency: paymentIntent.currency,
+        },
+      ),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', existing.id)
+    .not('payment_status', 'in', '("paid","refunded","partial_refund")')
+
+  return comparison
 }
 
 export async function markOrderProcessingFromIntent(paymentIntent: Stripe.PaymentIntent, eventId?: string) {
   const existing = await resolveOrderFromIntent(paymentIntent)
-  if (!existing || existing.payment_status === 'paid' || existing.payment_status === 'refunded') {
+  if (!existing || paymentSettled(existing.payment_status)) {
     return existing
   }
   if (alreadyProcessedEvent(existing, eventId)) return existing
@@ -487,75 +625,116 @@ export async function markOrderPaidFromIntent(paymentIntent: Stripe.PaymentInten
   const existing = await resolveOrderFromIntent(paymentIntent)
   if (!existing) return null
 
-  if (existing.payment_status === 'paid' || existing.payment_status === 'refunded') {
+  if (paymentSettled(existing.payment_status)) {
     return existing
   }
   if (alreadyProcessedEvent(existing, eventId) && existing.payment_status === 'paid') {
     return existing
   }
 
-  assertPaidAmountMatches(existing, paymentIntent)
+  const mismatch = await flagPaymentMismatch(existing, paymentIntent, eventId)
+  if (mismatch) return existing
 
   const supabaseAdmin = requireSupabaseAdmin()
+  const paidMetadata = mergePaymentMetadata(
+    existing.payment_metadata,
+    {
+      stripe_payment_intent_id: paymentIntent.id,
+      stripe_payment_status: paymentIntent.status,
+      stripe_amount_received: paymentIntent.amount_received,
+      stripe_currency: paymentIntent.currency,
+      stripe_payment_method: paymentIntent.payment_method,
+      stripe_latest_charge: paymentIntent.latest_charge,
+      paid_at: new Date().toISOString(),
+      stock_decremented: true,
+      discount_usage_recorded: existing.payment_metadata?.discount_usage_recorded === true,
+    },
+    {
+      id: eventId,
+      type: 'payment_intent.succeeded',
+      stripe_status: paymentIntent.status,
+      amount: paymentIntent.amount_received,
+      currency: paymentIntent.currency,
+    },
+  )
   const { data, error } = await supabaseAdmin
     .from('orders')
     .update({
       payment_status: 'paid',
-      status: 'processing',
+      status: fulfillmentAfterPayment(existing.status),
       stripe_payment_intent_id: paymentIntent.id,
-      payment_metadata: mergePaymentMetadata(
-        existing.payment_metadata,
-        {
-          stripe_payment_intent_id: paymentIntent.id,
-          stripe_payment_status: paymentIntent.status,
-          stripe_amount_received: paymentIntent.amount_received,
-          stripe_currency: paymentIntent.currency,
-          stripe_payment_method: paymentIntent.payment_method,
-          stripe_latest_charge: paymentIntent.latest_charge,
-          paid_at: new Date().toISOString(),
-          stock_decremented: true,
-        },
-        {
-          id: eventId,
-          type: 'payment_intent.succeeded',
-          stripe_status: paymentIntent.status,
-          amount: paymentIntent.amount_received,
-          currency: paymentIntent.currency,
-        },
-      ),
+      payment_metadata: paidMetadata,
       updated_at: new Date().toISOString(),
     })
     .eq('id', existing.id)
-    .neq('payment_status', 'paid')
+    .not('payment_status', 'in', '("paid","refunded","partial_refund")')
     .select('id, payment_status, email, order_number, confirmation_email_sent_at')
     .maybeSingle()
 
-  if (error) {
+  let paidRow = data
+  let paidError = error
+  if (paidError && isMissingColumnError(paidError)) {
+    const fallback = await supabaseAdmin
+      .from('orders')
+      .update({
+        payment_status: 'paid',
+        status: fulfillmentAfterPayment(existing.status),
+        stripe_payment_intent_id: paymentIntent.id,
+        payment_metadata: paidMetadata,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', existing.id)
+      .not('payment_status', 'in', '("paid","refunded","partial_refund")')
+      .select('id, payment_status, email')
+      .maybeSingle()
+    paidRow = fallback.data as typeof data
+    paidError = fallback.error
+  }
+
+  if (paidError) {
     throw new CheckoutError('Unable to mark the order as paid.', 500)
   }
 
-  if (data && existing.payment_metadata?.stock_decremented !== true) {
+  if (paidRow && existing.payment_metadata?.stock_decremented !== true) {
     await decrementStockForOrder(existing.id)
   }
 
-  if (data) {
+  const discountCodeId = existing.payment_metadata?.discount_code_id
+  if (paidRow && typeof discountCodeId === 'string' && existing.payment_metadata?.discount_usage_recorded !== true) {
+    await recordDiscountRedemption(discountCodeId)
+    await supabaseAdmin
+      .from('orders')
+      .update({
+        payment_metadata: { ...paidMetadata, discount_usage_recorded: true },
+      })
+      .eq('id', existing.id)
+  }
+
+  if (paidRow) {
     await recordConfirmationEmailIfNeeded(
       {
         id: existing.id,
-        email: String(data.email ?? existing.email ?? ''),
-        orderNumber: String(data.order_number ?? existing.order_number ?? existing.id.slice(0, 8).toUpperCase()),
-        confirmationEmailSentAt: data.confirmation_email_sent_at ?? existing.confirmation_email_sent_at ?? null,
+        email: String((paidRow as { email?: string }).email ?? existing.email ?? ''),
+        orderNumber: String(
+          (paidRow as { order_number?: string | null }).order_number ??
+            existing.order_number ??
+            existing.id.slice(0, 8).toUpperCase(),
+        ),
+        confirmationEmailSentAt:
+          (paidRow as { confirmation_email_sent_at?: string | null }).confirmation_email_sent_at ??
+          existing.confirmation_email_sent_at ??
+          null,
       },
       paymentIntent,
     )
   }
 
-  return data ?? existing
+  return paidRow ?? existing
 }
 
 export async function markOrderFailedFromIntent(paymentIntent: Stripe.PaymentIntent, eventId?: string) {
   const existing = await resolveOrderFromIntent(paymentIntent)
-  if (!existing || existing.payment_status === 'paid' || existing.payment_status === 'refunded') {
+  if (!existing || paymentSettled(existing.payment_status)) {
     return existing
   }
   if (alreadyProcessedEvent(existing, eventId)) return existing
@@ -585,7 +764,7 @@ export async function markOrderFailedFromIntent(paymentIntent: Stripe.PaymentInt
       updated_at: new Date().toISOString(),
     })
     .eq('id', existing.id)
-    .neq('payment_status', 'paid')
+    .not('payment_status', 'in', '("paid","refunded","partial_refund")')
     .select('id, payment_status')
     .maybeSingle()
 
@@ -598,7 +777,7 @@ export async function markOrderFailedFromIntent(paymentIntent: Stripe.PaymentInt
 
 export async function markOrderCancelledFromIntent(paymentIntent: Stripe.PaymentIntent, eventId?: string) {
   const existing = await resolveOrderFromIntent(paymentIntent)
-  if (!existing || existing.payment_status === 'paid' || existing.payment_status === 'refunded') {
+  if (!existing || paymentSettled(existing.payment_status)) {
     return existing
   }
 
@@ -625,7 +804,7 @@ export async function markOrderCancelledFromIntent(paymentIntent: Stripe.Payment
       updated_at: new Date().toISOString(),
     })
     .eq('id', existing.id)
-    .neq('payment_status', 'paid')
+    .not('payment_status', 'in', '("paid","refunded","partial_refund")')
     .select('id, payment_status')
     .maybeSingle()
 
@@ -747,7 +926,7 @@ export async function getOrderConfirmation(args: {
     stripe_payment_intent_id,
     payment_metadata,
     confirmation_email_sent_at,
-    order_items ( title, quantity, unit_price )
+    order_items ( title, quantity, unit_price, size, sku, line_total, product_id )
   `
   const fallbackSelect = `
     id,
@@ -784,6 +963,9 @@ export async function getOrderConfirmation(args: {
     title: item.title,
     quantity: item.quantity,
     unitPrice: Number(item.unit_price),
+    size: item.size ?? null,
+    sku: item.sku ?? null,
+    lineTotal: item.line_total == null ? roundMoney(Number(item.unit_price) * item.quantity) : Number(item.line_total),
   }))
 
   return {
@@ -836,7 +1018,14 @@ type ConfirmationRow = {
   stripe_payment_intent_id: string | null
   payment_metadata: Record<string, unknown> | null
   confirmation_email_sent_at?: string | null
-  order_items: Array<{ title: string; quantity: number; unit_price: number | string }> | null
+  order_items: Array<{
+    title: string
+    quantity: number
+    unit_price: number | string
+    size?: string | null
+    sku?: string | null
+    line_total?: number | string | null
+  }> | null
 }
 
 async function insertOrder(db: SupabaseClient, row: Record<string, unknown>) {
@@ -865,8 +1054,8 @@ async function selectOrderBy(
 ): Promise<OrderPaymentRow | null> {
   const supabaseAdmin = requireSupabaseAdmin()
   const select =
-    'id, email, order_number, payment_status, status, total_amount, stripe_payment_intent_id, payment_metadata, confirmation_email_sent_at'
-  const fallbackSelect = 'id, email, payment_status, status, total_amount, stripe_payment_intent_id, payment_metadata'
+    'id, email, order_number, payment_status, status, total_amount, currency, stripe_payment_intent_id, payment_metadata, confirmation_email_sent_at'
+  const fallbackSelect = 'id, email, payment_status, status, total_amount, currency, stripe_payment_intent_id, payment_metadata'
 
   const primary = await supabaseAdmin.from('orders').select(select).eq(column, value).maybeSingle()
   if (!primary.error) {
@@ -915,10 +1104,6 @@ function generateOrderNumber() {
 function isMissingColumnError(error: { message?: string; code?: string } | null | undefined) {
   const message = error?.message?.toLowerCase() ?? ''
   return message.includes('does not exist') || message.includes('schema cache') || message.includes('could not find')
-}
-
-function roundMoney(value: number) {
-  return Math.round(value * 100) / 100
 }
 
 function getSellingPrice(price: number, comparePrice: number | string | null) {

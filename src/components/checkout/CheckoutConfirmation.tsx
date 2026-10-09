@@ -107,7 +107,10 @@ export function CheckoutConfirmation({ orderId, email, isSignedIn, accessToken }
                 <li key={`${item.title}-${index}`} className="flex items-start justify-between gap-4 text-sm">
                   <span className="min-w-0 text-neutral-900">
                     {item.title}
-                    <span className="block text-xs text-neutral-500">Qty {item.quantity}</span>
+                    <span className="block text-xs text-neutral-500">
+                      Qty {item.quantity}
+                      {item.size ? ` · Size ${item.size}` : ''}
+                    </span>
                   </span>
                   <span className="shrink-0 tabular-nums text-neutral-900">
                     {formatPrice(item.unitPrice * item.quantity, order.currency)}
@@ -120,6 +123,12 @@ export function CheckoutConfirmation({ orderId, email, isSignedIn, accessToken }
                 <span>Subtotal</span>
                 <span className="tabular-nums">{formatPrice(order.subtotalAmount, order.currency)}</span>
               </div>
+              {order.discountAmount > 0 ? (
+                <div className="flex justify-between">
+                  <span>Discount</span>
+                  <span className="tabular-nums">−{formatPrice(order.discountAmount, order.currency)}</span>
+                </div>
+              ) : null}
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span className="tabular-nums">

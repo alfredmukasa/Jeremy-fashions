@@ -285,7 +285,10 @@ function OrderHistoryDetails({ id, order }: { id: string; order: CustomerOrderDe
         <ul className="mt-2 space-y-2">
           {order.items.map((item) => (
             <li key={item.id} className="flex items-center justify-between gap-4 border border-neutral-100 px-3 py-2">
-              <span className="truncate text-neutral-900">{item.title}</span>
+              <span className="truncate text-neutral-900">
+                {item.title}
+                {item.size ? ` · Size ${item.size}` : ''}
+              </span>
               <span className="shrink-0 text-neutral-600">
                 {item.quantity} × {formatPrice(item.unitPrice, order.currency)}
               </span>

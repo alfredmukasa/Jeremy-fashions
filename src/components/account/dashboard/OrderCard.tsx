@@ -133,7 +133,10 @@ function OrderLine({ item }: { item: CustomerOrderDetail['items'][number] }) {
       )}
       <div className="min-w-0">
         <p className="truncate font-medium text-neutral-900">{item.title}</p>
-        <p className="text-xs text-neutral-500">Qty {item.quantity}</p>
+        <p className="text-xs text-neutral-500">
+          Qty {item.quantity}
+          {item.size ? ` · Size ${item.size}` : ''}
+        </p>
       </div>
     </div>
   )

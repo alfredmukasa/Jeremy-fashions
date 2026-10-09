@@ -1,8 +1,8 @@
 import type { Product } from '../types'
 import { SITE_NAME, SITE_URL, absoluteUrl } from './seo'
 
-/** Store currency actually charged at checkout — see `server/src/middleware/validateCheckout.ts` default. */
-const STORE_CURRENCY = 'USD'
+/** New checkouts are charged in CAD. Catalog numbers are not converted. */
+const STORE_CURRENCY = 'CAD'
 
 export function organizationJsonLd() {
   return {

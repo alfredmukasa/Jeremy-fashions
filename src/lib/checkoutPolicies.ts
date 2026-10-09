@@ -6,10 +6,9 @@ function publishedBody(published: boolean | undefined, body: string | undefined,
 }
 
 /** First paragraph of a published policy, kept as written. */
-export function policyExcerpt(body: string, max = 220): string {
+export function policyExcerpt(body: string, max = 420): string {
   const trimmed = body.trim()
-  if (trimmed.length <= max) return trimmed
-  const paragraph = trimmed.split(/\n\s*\n/)[0]?.trim() || trimmed
+  const paragraph = (trimmed.split(/\n\s*\n/)[0] || trimmed).trim()
   if (paragraph.length <= max) return paragraph
   const cut = paragraph.slice(0, max)
   const lastSpace = cut.lastIndexOf(' ')

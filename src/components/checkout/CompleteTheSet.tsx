@@ -36,7 +36,7 @@ function CompleteTheSetCard({ product }: { product: NonNullable<ReturnType<typeo
   return (
     <section className="border-t border-neutral-200 pt-6" aria-label="Complete the set">
       <h3 className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Complete the set</h3>
-      <div className="mt-4 flex gap-3">
+      <div className="mt-4 flex max-w-xl gap-3">
         <Link
           to={ROUTES.product(product.slug)}
           className="h-24 w-[4.5rem] shrink-0 overflow-hidden bg-neutral-100"

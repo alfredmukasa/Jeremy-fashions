@@ -453,26 +453,53 @@ const ADMIN_ORDER_SELECTS = [
   `id, created_at, updated_at, user_id, email, status, payment_status, total_amount, currency, notes, stripe_payment_intent_id, shipping_address, billing_address, payment_metadata, order_items (${ORDER_ITEM_BASIC})`,
 ]
 
+const ADMIN_ORDER_PAGE_SIZE = 1000
+const PROFILE_ID_CHUNK = 80
+
+async function selectEveryOrder(client: ReturnType<typeof requireClient>, select: string): Promise<AdminOrderRow[]> {
+  const rows: AdminOrderRow[] = []
+  for (let pageIndex = 0; pageIndex < 100; pageIndex += 1) {
+    const from = pageIndex * ADMIN_ORDER_PAGE_SIZE
+    const result = await client
+      .from('orders')
+      .select(select)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, from + ADMIN_ORDER_PAGE_SIZE - 1)
+    if (result.error) throw new Error(result.error.message)
+    const page = (result.data ?? []) as unknown as AdminOrderRow[]
+    rows.push(...page)
+    if (page.length < ADMIN_ORDER_PAGE_SIZE) return rows
+  }
+  return rows
+}
+
 export async function adminListOrders(): Promise<AdminOrderRow[]> {
   const client = requireClient()
   let rows: AdminOrderRow[] | null = null
   let lastError = 'Unable to load orders.'
   for (const select of ADMIN_ORDER_SELECTS) {
-    const result = await client.from('orders').select(select).order('created_at', { ascending: false }).limit(200)
-    if (!result.error) {
-      rows = (result.data ?? []) as unknown as AdminOrderRow[]
+    try {
+      rows = await selectEveryOrder(client, select)
       break
+    } catch (error) {
+      lastError = error instanceof Error ? error.message : lastError
     }
-    lastError = result.error.message
   }
   if (!rows) throw new Error(lastError)
 
   const userIds = [...new Set(rows.map((order) => order.user_id).filter((id): id is string => Boolean(id)))]
   if (userIds.length === 0) return rows
 
-  const profiles = await client.from('profiles').select('id, full_name').in('id', userIds)
-  if (profiles.error) return rows
-  const names = new Map((profiles.data ?? []).map((profile) => [profile.id as string, profile.full_name as string | null]))
+  const names = new Map<string, string | null>()
+  for (let index = 0; index < userIds.length; index += PROFILE_ID_CHUNK) {
+    const chunk = userIds.slice(index, index + PROFILE_ID_CHUNK)
+    const profiles = await client.from('profiles').select('id, full_name').in('id', chunk)
+    if (profiles.error) return rows
+    for (const profile of profiles.data ?? []) {
+      names.set(profile.id as string, profile.full_name as string | null)
+    }
+  }
   return rows.map((order) => ({
     ...order,
     customer_name: order.user_id ? names.get(order.user_id) ?? null : null,

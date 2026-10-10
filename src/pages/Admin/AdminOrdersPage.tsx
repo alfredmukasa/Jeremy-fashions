@@ -8,11 +8,13 @@ import { RequireAdminPermission } from '../../components/admin/RequireAdminPermi
 import { formatOrderNumber } from '../../lib/orderNumber'
 import {
   ADMIN_ORDER_QUEUES,
+  applyOrderFulfillment,
   canMarkOrderShipped,
   DEFAULT_ADMIN_ORDER_QUEUE,
   DEFAULT_ORDER_SORT,
   orderInQueue,
-  sortOrganizedOrders,
+  orderLineItems,
+  organizeAdminOrders,
   type AdminOrderQueue,
   type OrderSort,
 } from '../../lib/orderOrganization'
@@ -133,26 +135,29 @@ function quantityLabel(quantity: number): string {
 const ORDER_ROW_GRID =
   'xl:grid-cols-[minmax(0,1.55fr)_minmax(11.5rem,1fr)_minmax(0,1.15fr)_minmax(7rem,0.75fr)_minmax(6.5rem,0.95fr)_minmax(8.5rem,0.9fr)]'
 
-function OrderPreview({ items }: { items: AdminOrderItem[] }) {
-  const first = items[0]
-  if (!first) {
+export function OrderPreview({ items }: { items: AdminOrderItem[] }) {
+  const lines = orderLineItems(items)
+  if (!lines.length) {
     return <p className="text-xs text-neutral-500">No items saved</p>
   }
 
-  const extra = items.length - 1
-  const variant = variantLabel(first)
-  const title = nonEmpty(first.title) ?? 'Item'
-
   return (
-    <div className="flex min-w-0 items-start gap-3">
-      <PreviewImage src={itemImageUrl(first)} />
-      <div className="min-w-0">
-        <p className="break-words font-medium text-neutral-950">{title}</p>
-        <p className="mt-0.5 text-xs text-neutral-600">{quantityLabel(first.quantity)}</p>
-        {variant ? <p className="break-words text-xs text-neutral-600">{variant}</p> : null}
-        {extra > 0 ? <p className="mt-1 text-xs font-medium text-neutral-500">+{extra} more</p> : null}
-      </div>
-    </div>
+    <ul className="space-y-3" data-line-count={lines.length}>
+      {lines.map((item) => {
+        const variant = variantLabel(item)
+        const title = nonEmpty(item.title) ?? 'Item'
+        return (
+          <li key={item.id} className="flex min-w-0 items-start gap-3">
+            <PreviewImage src={itemImageUrl(item)} />
+            <div className="min-w-0">
+              <p className="break-words font-medium text-neutral-950">{title}</p>
+              <p className="mt-0.5 text-xs text-neutral-600">{quantityLabel(item.quantity)}</p>
+              {variant ? <p className="break-words text-xs text-neutral-600">{variant}</p> : null}
+            </div>
+          </li>
+        )
+      })}
+    </ul>
   )
 }
 
@@ -195,22 +200,18 @@ function AdminOrdersContent() {
     return next
   }, [orders])
 
-  const visibleOrders = useMemo(() => {
-    const matched = orders.filter((order) => orderInQueue(order.status, order.payment_status, queue))
-    return sortOrganizedOrders(
-      matched.map((order) => ({
-        ...order,
-        createdAt: order.created_at,
-        updatedAt: order.updated_at,
-      })),
-      queue,
-      sort,
-    )
-  }, [orders, queue, sort])
+  const visibleOrders = useMemo(
+    () => organizeAdminOrders(orders, queue, sort),
+    [orders, queue, sort],
+  )
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: AdminOrderRow['status'] }) => adminUpdateOrderStatus(id, status),
     onSuccess: (_data, variables) => {
+      const updatedAt = new Date().toISOString()
+      queryClient.setQueryData<AdminOrderRow[]>(['admin', 'orders'], (current) =>
+        applyOrderFulfillment(current ?? [], variables.id, variables.status, updatedAt),
+      )
       toast.success(variables.status === 'shipped' ? 'Order marked shipped' : 'Fulfillment status updated')
       void queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
       void queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard-stats'] })
@@ -262,7 +263,7 @@ function AdminOrdersContent() {
       </div>
       <p className="text-sm text-neutral-600">{QUEUE_COPY[queue]}</p>
 
-      <div className="border border-neutral-200 bg-white">
+      <div className="border border-neutral-200 bg-white" data-order-count={visibleOrders.length}>
         <div
           className={`hidden bg-neutral-50 px-4 text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500 xl:grid ${ORDER_ROW_GRID}`}
         >
@@ -328,11 +329,11 @@ function AdminOrderRowView({
   const discount = Number(order.discount_amount ?? metadata.discount ?? 0)
   const shippingLines = addressLines(order.shipping_address)
   const recipient = shippingLines[0] || order.customer_name || '—'
-  const items = Array.isArray(order.order_items) ? order.order_items : []
+  const items = orderLineItems(order.order_items)
   const customerName = order.customer_name || recipient
 
   return (
-    <article className="border-t border-neutral-100">
+    <article className="border-t border-neutral-100" data-order-number={order.order_number ?? order.id}>
       <div className={`grid grid-cols-1 gap-4 px-4 py-4 md:grid-cols-2 md:gap-x-6 xl:items-start xl:gap-x-3 ${ORDER_ROW_GRID}`}>
         <div className="min-w-0 md:col-span-2 xl:col-span-1">
           <FieldLabel>Preview</FieldLabel>

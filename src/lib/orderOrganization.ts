@@ -82,6 +82,47 @@ export function sortOrganizedOrders<T extends { createdAt: string; updatedAt?: s
   )
 }
 
+type OrganizableOrder = {
+  status: string
+  payment_status: string
+  created_at: string
+  updated_at?: string | null
+}
+
+/** Every order in the queue, newest or oldest. Never a short slice of the match set. */
+export function organizeAdminOrders<T extends OrganizableOrder>(
+  orders: readonly T[],
+  queue: AdminOrderQueue,
+  sort: OrderSort,
+): Array<T & { createdAt: string; updatedAt?: string | null }> {
+  const matched = orders.filter((order) => orderInQueue(order.status, order.payment_status, queue))
+  return sortOrganizedOrders(
+    matched.map((order) => ({
+      ...order,
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+    })),
+    queue,
+    sort,
+  )
+}
+
+/** Every saved line item. The admin preview must not keep only the first product. */
+export function orderLineItems<T>(items: readonly T[] | null | undefined): T[] {
+  if (!Array.isArray(items) || items.length === 0) return []
+  return [...items]
+}
+
+/** Update one order's fulfillment and leave every other order in the list. */
+export function applyOrderFulfillment<T extends { id: string; status: string; updated_at?: string | null }>(
+  orders: readonly T[],
+  id: string,
+  status: T['status'],
+  updatedAt: string,
+): T[] {
+  return orders.map((order) => (order.id === id ? { ...order, status, updated_at: updatedAt } : order))
+}
+
 export function canMarkOrderShipped(status: string, paymentStatus: string): boolean {
   return orderInQueue(status, paymentStatus, 'paid')
 }

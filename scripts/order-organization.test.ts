@@ -2,12 +2,15 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
+  applyOrderFulfillment,
   canMarkOrderShipped,
   customerAwaitingPayment,
   showCustomerFulfillmentBadge,
   DEFAULT_ADMIN_ORDER_QUEUE,
   DEFAULT_ORDER_SORT,
   orderInQueue,
+  orderLineItems,
+  organizeAdminOrders,
   sortOrganizedOrders,
 } from '../src/lib/orderOrganization.ts'
 
@@ -69,6 +72,47 @@ test('only the paid queue can be marked shipped', () => {
   assert.equal(canMarkOrderShipped('processing', 'paid'), true)
   assert.equal(canMarkOrderShipped('shipped', 'paid'), false)
   assert.equal(canMarkOrderShipped('pending', 'unpaid'), false)
+})
+
+test('paid queue keeps every unshipped paid order, newest first, including after one is shipped', () => {
+  const orders = [
+    { id: 'oldest', status: 'pending', payment_status: 'paid', created_at: '2026-01-01T00:00:00.000Z', updated_at: '2026-01-01T00:00:00.000Z' },
+    { id: 'middle', status: 'processing', payment_status: 'paid', created_at: '2026-02-01T00:00:00.000Z', updated_at: '2026-02-01T00:00:00.000Z' },
+    { id: 'newest', status: 'paid', payment_status: 'paid', created_at: '2026-03-01T00:00:00.000Z', updated_at: '2026-03-01T00:00:00.000Z' },
+    { id: 'shipped', status: 'shipped', payment_status: 'paid', created_at: '2026-04-01T00:00:00.000Z', updated_at: '2026-04-02T00:00:00.000Z' },
+    { id: 'unpaid', status: 'pending', payment_status: 'unpaid', created_at: '2026-05-01T00:00:00.000Z', updated_at: '2026-05-01T00:00:00.000Z' },
+  ]
+  assert.deepEqual(
+    organizeAdminOrders(orders, 'paid', 'newest').map((order) => order.id),
+    ['newest', 'middle', 'oldest'],
+  )
+  assert.deepEqual(
+    organizeAdminOrders(orders, 'history', 'newest').map((order) => order.id),
+    ['shipped', 'newest', 'middle', 'oldest'],
+  )
+
+  const afterShip = applyOrderFulfillment(orders, 'newest', 'shipped', '2026-05-02T00:00:00.000Z')
+  assert.equal(afterShip.length, orders.length)
+  assert.deepEqual(
+    organizeAdminOrders(afterShip, 'paid', 'newest').map((order) => order.id),
+    ['middle', 'oldest'],
+  )
+  assert.deepEqual(
+    organizeAdminOrders(afterShip, 'completed', 'newest').map((order) => order.id),
+    ['newest', 'shipped'],
+  )
+})
+
+test('line items are kept in full instead of the newest one or two products', () => {
+  const items = [
+    { id: '1', title: 'Hoodie' },
+    { id: '2', title: 'Sweatpants' },
+    { id: '3', title: 'Tracksuit' },
+    { id: '4', title: 'Cap' },
+  ]
+  assert.deepEqual(orderLineItems(items).map((item) => item.title), ['Hoodie', 'Sweatpants', 'Tracksuit', 'Cap'])
+  assert.deepEqual(orderLineItems(null), [])
+  assert.deepEqual(orderLineItems(undefined), [])
 })
 
 test('newest paid orders come first, and completed uses the fulfillment timestamp', () => {

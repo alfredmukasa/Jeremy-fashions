@@ -9,7 +9,7 @@ import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore } from '../../store/wishlistStore'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { productMatchesQuery } from '../../utils/productSearch'
-import { isNewArrival, sortProducts } from '../../utils/productSort'
+import { latestUploadedProducts, sortProducts } from '../../utils/productSort'
 
 import { Container } from '../../components/layout/Container'
 import { FilterSidebar, type FilterState } from '../../components/product/FilterSidebar'
@@ -77,6 +77,7 @@ export default function ShopPage() {
     if (!focusSearch) return
     searchInputRef.current?.focus()
   }, [focusSearch])
+
   const activeFilters = useMemo(
     () => ({
       ...filters,
@@ -93,7 +94,7 @@ export default function ShopPage() {
     }
 
     if (tagFilter === 'new') {
-      list = list.filter(isNewArrival)
+      list = latestUploadedProducts(list)
     }
 
     const q = debounced.trim()

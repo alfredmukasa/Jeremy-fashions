@@ -117,7 +117,11 @@ export default function AdminOverviewPage() {
                 ))}
               </tbody>
             </table>
-            {!recentOrders.length ? (
+            {recentOrdersQuery.isLoading ? (
+              <p className="p-8 text-sm text-neutral-600">Loading orders…</p>
+            ) : recentOrdersQuery.isError ? (
+              <p className="p-8 text-sm text-red-600">Could not load orders.</p>
+            ) : !recentOrders.length ? (
               <p className="p-8 text-sm text-neutral-600">No paid orders are waiting to ship.</p>
             ) : null}
           </div>

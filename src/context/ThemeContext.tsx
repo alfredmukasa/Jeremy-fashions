@@ -38,13 +38,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     applyAppearanceMode(appearanceMode)
   }, [appearanceMode])
 
+  const userId = user?.id ?? null
+
   useEffect(() => {
     if (authLoading) return
 
     let cancelled = false
 
     async function syncTheme() {
-      if (!user) {
+      if (!userId) {
         setAppearanceModeState(DEFAULT_APPEARANCE)
         writeCachedAppearance(null)
         applyAppearanceMode(DEFAULT_APPEARANCE)
@@ -54,7 +56,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
       setThemeLoading(true)
       try {
-        const profileTheme = await fetchProfileTheme(user.id)
+        const profileTheme = await fetchProfileTheme(userId)
         const next = profileTheme?.appearanceMode ?? readCachedAppearance() ?? DEFAULT_APPEARANCE
         if (!cancelled) {
           setAppearanceModeState(next)
@@ -76,7 +78,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true
     }
-  }, [authLoading, user])
+  }, [authLoading, userId])
 
   const setAppearanceMode = useCallback(
     async (mode: AppearanceMode) => {

@@ -202,12 +202,25 @@ function requireClient() {
   return supabase
 }
 
+/** Gateway 504s on admin reads were about 150s. Stop the request before that so the page can recover. */
+const ADMIN_READ_TIMEOUT_MS = 20_000
+
+function adminReadSignal(): AbortSignal {
+  return AbortSignal.timeout(ADMIN_READ_TIMEOUT_MS)
+}
+
+function isSchemaMismatch(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '')
+  return /column|schema cache|could not find/i.test(message)
+}
+
 export async function adminListProducts(): Promise<ProductRow[]> {
   const client = requireClient()
   const { data, error } = await client
     .from('products')
     .select(PRODUCT_COLUMNS)
     .order('created_at', { ascending: false })
+    .abortSignal(adminReadSignal())
 
   if (error) throw new Error(error.message)
   return ((data ?? []) as unknown) as ProductRow[]
@@ -401,13 +414,16 @@ export async function adminListDiscounts(): Promise<AdminDiscountRow[]> {
     .from('discount_codes')
     .select('id, created_at, code, percentage, active, expires_at, discount_type, amount, min_subtotal, usage_limit, usage_count')
     .order('created_at', { ascending: false })
+    .abortSignal(adminReadSignal())
 
   if (!full.error) return (full.data ?? []) as AdminDiscountRow[]
+  if (!isSchemaMismatch(full.error)) throw new Error(full.error.message)
 
   const { data, error } = await client
     .from('discount_codes')
     .select('id, created_at, code, percentage, active, expires_at')
     .order('created_at', { ascending: false })
+    .abortSignal(adminReadSignal())
 
   if (error) throw new Error(error.message)
   return (data ?? []) as AdminDiscountRow[]
@@ -466,6 +482,7 @@ async function selectEveryOrder(client: ReturnType<typeof requireClient>, select
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .range(from, from + ADMIN_ORDER_PAGE_SIZE - 1)
+      .abortSignal(adminReadSignal())
     if (result.error) throw new Error(result.error.message)
     const page = (result.data ?? []) as unknown as AdminOrderRow[]
     rows.push(...page)
@@ -484,6 +501,7 @@ export async function adminListOrders(): Promise<AdminOrderRow[]> {
       break
     } catch (error) {
       lastError = error instanceof Error ? error.message : lastError
+      if (!isSchemaMismatch(error)) break
     }
   }
   if (!rows) throw new Error(lastError)
@@ -613,11 +631,11 @@ export async function adminDeleteWaitlistEntry(id: string): Promise<void> {
 export async function adminGetDashboardStats(): Promise<AdminDashboardStats> {
   const client = requireClient()
   const [productsRes, waitlistRes, profilesRes, ordersRes, messagesRes] = await Promise.all([
-    client.from('products').select('id, stock_quantity, price, status'),
-    client.from('waitlist').select('id, status'),
-    client.from('profiles').select('id', { count: 'exact', head: true }),
-    client.from('orders').select('id, status, total_amount, payment_status'),
-    client.from('contact_messages').select('id, status'),
+    client.from('products').select('id, stock_quantity, price, status').abortSignal(adminReadSignal()),
+    client.from('waitlist').select('id, status').abortSignal(adminReadSignal()),
+    client.from('profiles').select('id', { count: 'exact', head: true }).abortSignal(adminReadSignal()),
+    client.from('orders').select('id, status, total_amount, payment_status').abortSignal(adminReadSignal()),
+    client.from('contact_messages').select('id, status').abortSignal(adminReadSignal()),
   ])
 
   if (productsRes.error) throw new Error(productsRes.error.message)
@@ -651,6 +669,7 @@ export async function adminListContactMessages(): Promise<AdminContactMessageRow
     .from('contact_messages')
     .select('id, created_at, updated_at, first_name, last_name, email, message, status, user_id')
     .order('created_at', { ascending: false })
+    .abortSignal(adminReadSignal())
 
   if (error) throw new Error(error.message)
   return (data ?? []) as AdminContactMessageRow[]

@@ -22,18 +22,36 @@ function mapProfileTheme(row: ProfileThemeRow): ProfileTheme {
   }
 }
 
+const THEME_COLUMNS = 'theme_preference, appearance_mode, theme_updated_at'
+const THEME_READ_TIMEOUT_MS = 8_000
+
+/** Avoid repeating a select the live schema cannot serve. A missing column was returning 400 and, under load, 504 after ~2.5 minutes. */
+let themeColumnsUnavailable = false
+
+function schemaCannotServeTheme(message: string): boolean {
+  return /theme_preference|appearance_mode|theme_updated_at|schema cache|could not find the/i.test(message)
+}
+
 export async function fetchProfileTheme(userId: string): Promise<ProfileTheme | null> {
-  if (!isSupabaseConfigured || !supabase) return null
+  if (!isSupabaseConfigured || !supabase || themeColumnsUnavailable) return null
 
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('theme_preference, appearance_mode, theme_updated_at')
-    .eq('id', userId)
-    .maybeSingle()
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select(THEME_COLUMNS)
+      .eq('id', userId)
+      .abortSignal(AbortSignal.timeout(THEME_READ_TIMEOUT_MS))
+      .maybeSingle()
 
-  if (error) throw new Error(error.message)
-  if (!data) return null
-  return mapProfileTheme(data as ProfileThemeRow)
+    if (error) {
+      if (schemaCannotServeTheme(error.message)) themeColumnsUnavailable = true
+      return null
+    }
+    if (!data) return null
+    return mapProfileTheme(data as ProfileThemeRow)
+  } catch {
+    return null
+  }
 }
 
 export async function updateProfileTheme(userId: string, mode: AppearanceMode): Promise<ProfileTheme> {
@@ -41,18 +59,37 @@ export async function updateProfileTheme(userId: string, mode: AppearanceMode): 
     throw new Error('Supabase is not configured.')
   }
 
-  const now = new Date().toISOString()
-  const { data, error } = await supabase
-    .from('profiles')
-    .update({
-      theme_preference: mode,
-      appearance_mode: mode,
-      theme_updated_at: now,
-    })
-    .eq('id', userId)
-    .select('theme_preference, appearance_mode, theme_updated_at')
-    .single()
+  if (themeColumnsUnavailable) {
+    return { themePreference: mode, appearanceMode: mode, themeUpdatedAt: null }
+  }
 
-  if (error) throw new Error(error.message)
-  return mapProfileTheme(data as ProfileThemeRow)
+  const now = new Date().toISOString()
+  try {
+    const { data, error } = await supabase
+      .from('profiles')
+      .update({
+        theme_preference: mode,
+        appearance_mode: mode,
+        theme_updated_at: now,
+      })
+      .eq('id', userId)
+      .abortSignal(AbortSignal.timeout(THEME_READ_TIMEOUT_MS))
+      .select(THEME_COLUMNS)
+      .single()
+
+    if (error) {
+      if (schemaCannotServeTheme(error.message)) {
+        themeColumnsUnavailable = true
+        return { themePreference: mode, appearanceMode: mode, themeUpdatedAt: null }
+      }
+      throw new Error(error.message)
+    }
+    return mapProfileTheme(data as ProfileThemeRow)
+  } catch (error) {
+    const aborted =
+      error instanceof Error &&
+      (error.name === 'AbortError' || /abort|timeout/i.test(error.message))
+    if (!aborted) throw error
+    return { themePreference: mode, appearanceMode: mode, themeUpdatedAt: null }
+  }
 }

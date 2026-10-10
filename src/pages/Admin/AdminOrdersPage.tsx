@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 
@@ -6,6 +6,16 @@ import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { PaymentStatusBadge } from '../../components/account/dashboard/PaymentStatusBadge'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
 import { formatOrderNumber } from '../../lib/orderNumber'
+import {
+  ADMIN_ORDER_QUEUES,
+  canMarkOrderShipped,
+  DEFAULT_ADMIN_ORDER_QUEUE,
+  DEFAULT_ORDER_SORT,
+  orderInQueue,
+  sortOrganizedOrders,
+  type AdminOrderQueue,
+  type OrderSort,
+} from '../../lib/orderOrganization'
 import { normalizePaymentStatus, paymentStatusLabel, readPaymentActivity } from '../../lib/paymentStatus'
 import {
   adminListOrders,
@@ -14,6 +24,36 @@ import {
   type AdminOrderRow,
 } from '../../services/adminService'
 import { formatPrice } from '../../utils/formatPrice'
+
+const QUEUE_LABEL: Record<AdminOrderQueue, string> = {
+  paid: 'Paid',
+  completed: 'Completed',
+  history: 'History',
+  refunded: 'Refunded',
+  failed: 'Failed',
+  canceled: 'Canceled',
+  awaiting_payment: 'Awaiting payment',
+}
+
+const QUEUE_COPY: Record<AdminOrderQueue, string> = {
+  paid: 'Payment succeeded and the order is not shipped yet. Newest first.',
+  completed: 'Shipped or delivered. Newest fulfilled first.',
+  history: 'Paid orders and completed fulfillment together, so you can look up who bought what.',
+  refunded: 'Refunded and partially refunded payments.',
+  failed: 'Payments that failed.',
+  canceled: 'Orders marked canceled.',
+  awaiting_payment: 'Unpaid or still processing. Customers see these on their own account.',
+}
+
+const EMPTY_QUEUE: Record<AdminOrderQueue, string> = {
+  paid: 'No paid orders are waiting to ship.',
+  completed: 'No completed orders yet.',
+  history: 'No paid or completed orders yet.',
+  refunded: 'No refunded orders.',
+  failed: 'No failed payments.',
+  canceled: 'No canceled orders.',
+  awaiting_payment: 'No orders are awaiting payment.',
+}
 
 const FULFILLMENT_STATUSES: AdminOrderRow['status'][] = [
   'pending',
@@ -142,13 +182,38 @@ function FieldLabel({ children }: { children: string }) {
 function AdminOrdersContent() {
   const queryClient = useQueryClient()
   const [openId, setOpenId] = useState<string | null>(null)
+  const [queue, setQueue] = useState<AdminOrderQueue>(DEFAULT_ADMIN_ORDER_QUEUE)
+  const [sort, setSort] = useState<OrderSort>(DEFAULT_ORDER_SORT)
   const ordersQuery = useQuery({ queryKey: ['admin', 'orders'], queryFn: adminListOrders })
+  const orders = ordersQuery.data ?? []
+
+  const counts = useMemo(() => {
+    const next = {} as Record<AdminOrderQueue, number>
+    for (const name of ADMIN_ORDER_QUEUES) {
+      next[name] = orders.filter((order) => orderInQueue(order.status, order.payment_status, name)).length
+    }
+    return next
+  }, [orders])
+
+  const visibleOrders = useMemo(() => {
+    const matched = orders.filter((order) => orderInQueue(order.status, order.payment_status, queue))
+    return sortOrganizedOrders(
+      matched.map((order) => ({
+        ...order,
+        createdAt: order.created_at,
+        updatedAt: order.updated_at,
+      })),
+      queue,
+      sort,
+    )
+  }, [orders, queue, sort])
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: AdminOrderRow['status'] }) => adminUpdateOrderStatus(id, status),
-    onSuccess: () => {
-      toast.success('Fulfillment status updated')
+    onSuccess: (_data, variables) => {
+      toast.success(variables.status === 'shipped' ? 'Order marked shipped' : 'Fulfillment status updated')
       void queryClient.invalidateQueries({ queryKey: ['admin', 'orders'] })
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'dashboard-stats'] })
     },
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Update failed'),
   })
@@ -158,8 +223,44 @@ function AdminOrdersContent() {
       <AdminPageHeader
         eyebrow="Fulfillment"
         title="Orders"
-        description="Payment status is set by Stripe. Fulfillment is separate — do not treat Paid as Shipped."
+        description="The queue is paid orders that still need to ship. Payment status comes from Stripe."
       />
+
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Order categories" data-active-queue={queue}>
+          {ADMIN_ORDER_QUEUES.map((name) => {
+            const selected = queue === name
+            return (
+              <button
+                key={name}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setQueue(name)}
+                className={`border px-3 py-2 text-[11px] font-medium uppercase tracking-[0.16em] transition-colors ${
+                  selected
+                    ? 'border-neutral-950 bg-neutral-950 text-white'
+                    : 'border-neutral-300 bg-white text-neutral-700 hover:border-neutral-950'
+                }`}
+              >
+                {QUEUE_LABEL[name]}
+                <span className="ml-2 tabular-nums">{ordersQuery.isSuccess ? counts[name] : '—'}</span>
+              </button>
+            )
+          })}
+        </div>
+        <label className="block shrink-0">
+          <span className="sr-only">Sort orders</span>
+          <select
+            value={sort}
+            onChange={(event) => setSort(event.target.value as OrderSort)}
+            className="border border-neutral-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+          </select>
+        </label>
+      </div>
+      <p className="text-sm text-neutral-600">{QUEUE_COPY[queue]}</p>
 
       <div className="border border-neutral-200 bg-white">
         <div
@@ -172,21 +273,25 @@ function AdminOrdersContent() {
           <div className="py-3">Payment</div>
           <div className="py-3">Fulfillment</div>
         </div>
-        {(ordersQuery.data ?? []).map((order) => (
+        {visibleOrders.map((order) => (
           <AdminOrderRowView
             key={order.id}
             order={order}
             open={openId === order.id}
+            marking={updateMutation.isPending && updateMutation.variables?.id === order.id}
             onToggle={() => setOpenId((current) => (current === order.id ? null : order.id))}
             onStatusChange={(status) => updateMutation.mutate({ id: order.id, status })}
+            onMarkShipped={() => updateMutation.mutate({ id: order.id, status: 'shipped' })}
           />
         ))}
-        {ordersQuery.isError ? (
+        {ordersQuery.isLoading ? (
+          <p className="p-8 text-sm text-neutral-600">Loading orders…</p>
+        ) : ordersQuery.isError ? (
           <p className="p-8 text-sm text-neutral-600">
             Orders table is not available yet. Apply the latest Supabase migration to enable fulfillment tracking.
           </p>
-        ) : !ordersQuery.data?.length ? (
-          <p className="p-8 text-sm text-neutral-600">No orders yet.</p>
+        ) : !visibleOrders.length ? (
+          <p className="p-8 text-sm text-neutral-600">{EMPTY_QUEUE[queue]}</p>
         ) : null}
       </div>
     </div>
@@ -196,13 +301,17 @@ function AdminOrdersContent() {
 function AdminOrderRowView({
   order,
   open,
+  marking,
   onToggle,
   onStatusChange,
+  onMarkShipped,
 }: {
   order: AdminOrderRow
   open: boolean
+  marking: boolean
   onToggle: () => void
   onStatusChange: (status: AdminOrderRow['status']) => void
+  onMarkShipped: () => void
 }) {
   const activity = readPaymentActivity(order.payment_metadata).slice(-3).reverse()
   const paidAt =
@@ -285,6 +394,16 @@ function AdminOrderRowView({
               </option>
             ) : null}
           </select>
+          {canMarkOrderShipped(order.status, order.payment_status) ? (
+            <button
+              type="button"
+              onClick={onMarkShipped}
+              disabled={marking}
+              className="mt-2 w-full border border-neutral-950 bg-neutral-950 px-2 py-1.5 text-[10px] font-medium uppercase tracking-[0.14em] text-white disabled:opacity-50"
+            >
+              {marking ? 'Saving…' : 'Mark shipped'}
+            </button>
+          ) : null}
         </div>
       </div>
       <div className="px-4 pb-4 text-xs text-neutral-600">

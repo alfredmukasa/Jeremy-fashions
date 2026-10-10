@@ -1,3 +1,4 @@
+import { orderInQueue } from '../lib/orderOrganization'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { mergeSizeChartIntoAttributes, sizeChartHasMeasurements } from '../lib/sizeChart'
 import type { ProductAttributes, SizeChart } from '../types'
@@ -606,7 +607,7 @@ export async function adminGetDashboardStats(): Promise<AdminDashboardStats> {
     productCount: products.length,
     waitlistCount: waitlist.length,
     userCount: profilesRes.count ?? 0,
-    pendingOrders: orders.filter((o) => o.status === 'pending' || o.status === 'processing').length,
+    pendingOrders: orders.filter((o) => orderInQueue(o.status, o.payment_status, 'paid')).length,
     pendingWaitlist: waitlist.filter((w) => w.status === 'pending').length,
     lowStockCount: products.filter((p) => (p.stock_quantity ?? 0) <= 5 && p.status === 'active').length,
     revenueTotal: orders

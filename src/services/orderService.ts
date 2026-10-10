@@ -20,6 +20,7 @@ export type CustomerOrderLineItem = {
   unitPrice: number
   sku: string | null
   size: string | null
+  colorName: string | null
   imageUrl: string | null
 }
 
@@ -64,6 +65,7 @@ type OrderItemRow = {
   unit_price: number | string
   sku: string | null
   size?: string | null
+  color_name?: string | null
   line_total?: number | string | null
   products:
     | {
@@ -165,6 +167,7 @@ function mapOrderDetail(row: OrderRow): CustomerOrderDetail {
       unitPrice: Number(item.unit_price),
       sku: item.sku,
       size: item.size ?? null,
+      colorName: item.color_name ?? null,
       imageUrl: lineImage(item),
     })),
   }
@@ -245,6 +248,7 @@ export async function listCustomerOrdersDetailed(): Promise<CustomerOrderDetail[
         unit_price,
         sku,
         size,
+        color_name,
         line_total,
         products (
           image_url,

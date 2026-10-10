@@ -14,6 +14,7 @@ import { ROUTES } from '../../constants'
 import { useAuth } from '../../context/AuthContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useProducts } from '../../hooks/useCatalog'
+import { customerAwaitingPayment, sortOrganizedOrders } from '../../lib/orderOrganization'
 import { listCustomerOrdersDetailed, type CustomerOrderDetail } from '../../services/orderService'
 import { listShippingAddresses } from '../../services/shippingAddressService'
 import { useWishlistStore } from '../../store/wishlistStore'
@@ -84,6 +85,28 @@ export default function AccountDashboardPage() {
   )
   const memberSince = formatMemberSince(user?.created_at)
   const orders = ordersQuery.data ?? []
+  const awaitingPayment = useMemo(
+    () =>
+      sortOrganizedOrders(
+        orders
+          .filter((order) => customerAwaitingPayment(order.status, order.paymentStatus))
+          .map((order) => ({ ...order, createdAt: order.createdAt })),
+        'awaiting_payment',
+        'newest',
+      ),
+    [orders],
+  )
+  const purchaseHistory = useMemo(
+    () =>
+      sortOrganizedOrders(
+        orders
+          .filter((order) => !customerAwaitingPayment(order.status, order.paymentStatus))
+          .map((order) => ({ ...order, createdAt: order.createdAt })),
+        'history',
+        'newest',
+      ),
+    [orders],
+  )
   const addressCount = addressesQuery.data?.length ?? 0
 
   function selectSection(section: AccountSection) {
@@ -137,6 +160,8 @@ export default function AccountDashboardPage() {
                     savedCount={savedCount}
                     addressCount={addressCount}
                     orders={orders}
+                    awaitingPayment={awaitingPayment}
+                    purchaseHistory={purchaseHistory}
                     ordersLoading={ordersQuery.isLoading}
                     ordersError={ordersQuery.isError}
                     onSelectSection={selectSection}
@@ -145,7 +170,12 @@ export default function AccountDashboardPage() {
                 ) : null}
 
                 {activeSection === 'orders' ? (
-                  <OrdersPanel orders={orders} isLoading={ordersQuery.isLoading} isError={ordersQuery.isError} />
+                  <OrdersPanel
+                    awaitingPayment={awaitingPayment}
+                    purchaseHistory={purchaseHistory}
+                    isLoading={ordersQuery.isLoading}
+                    isError={ordersQuery.isError}
+                  />
                 ) : null}
 
                 {activeSection === 'addresses' ? <AddressesPanel /> : null}
@@ -187,6 +217,8 @@ function DashboardPanel({
   savedCount,
   addressCount,
   orders,
+  awaitingPayment,
+  purchaseHistory,
   ordersLoading,
   ordersError,
   onSelectSection,
@@ -198,12 +230,15 @@ function DashboardPanel({
   savedCount: number
   addressCount: number
   orders: CustomerOrderDetail[]
+  awaitingPayment: CustomerOrderDetail[]
+  purchaseHistory: CustomerOrderDetail[]
   ordersLoading: boolean
   ordersError: boolean
   onSelectSection: (section: AccountSection) => void
   onLogout: () => void
 }) {
-  const recentOrders = orders.slice(0, 3)
+  const recentAwaiting = awaitingPayment.slice(0, 3)
+  const recentPurchases = purchaseHistory.slice(0, 3)
 
   return (
     <div className="space-y-10">
@@ -239,11 +274,24 @@ function DashboardPanel({
           <div className="rounded-sm border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
             Unable to load your orders right now.
           </div>
-        ) : recentOrders.length ? (
-          <div className="space-y-4">
-            {recentOrders.map((order) => (
-              <OrderCard key={order.id} order={order} />
-            ))}
+        ) : recentAwaiting.length || recentPurchases.length ? (
+          <div className="space-y-8">
+            {recentAwaiting.length ? (
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Awaiting payment</h3>
+                {recentAwaiting.map((order) => (
+                  <OrderCard key={order.id} order={order} />
+                ))}
+              </div>
+            ) : null}
+            {recentPurchases.length ? (
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Purchase history</h3>
+                {recentPurchases.map((order) => (
+                  <OrderCard key={order.id} order={order} />
+                ))}
+              </div>
+            ) : null}
           </div>
         ) : (
           <EmptyState
@@ -310,11 +358,13 @@ function DashboardPanel({
 }
 
 function OrdersPanel({
-  orders,
+  awaitingPayment,
+  purchaseHistory,
   isLoading,
   isError,
 }: {
-  orders: CustomerOrderDetail[]
+  awaitingPayment: CustomerOrderDetail[]
+  purchaseHistory: CustomerOrderDetail[]
   isLoading: boolean
   isError: boolean
 }) {
@@ -330,7 +380,33 @@ function OrdersPanel({
     )
   }
 
-  return <OrderHistoryTable orders={orders} />
+  return (
+    <div className="space-y-12">
+      <section aria-labelledby="awaiting-payment-heading" className="space-y-6">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Still to pay</p>
+          <h2 id="awaiting-payment-heading" className="mt-2 font-serif text-2xl text-neutral-950 md:text-3xl">
+            Awaiting payment
+          </h2>
+          <p className="mt-2 max-w-xl text-sm text-neutral-600">
+            These orders are not paid yet. Finish payment so they can be prepared.
+          </p>
+        </div>
+        {awaitingPayment.length ? (
+          <div className="space-y-4">
+            {awaitingPayment.map((order) => (
+              <OrderCard key={order.id} order={order} />
+            ))}
+          </div>
+        ) : (
+          <p className="border border-neutral-200 bg-white px-6 py-8 text-sm text-neutral-600">
+            You have no orders waiting for payment.
+          </p>
+        )}
+      </section>
+      <OrderHistoryTable orders={purchaseHistory} />
+    </div>
+  )
 }
 
 function AddressesPanel() {

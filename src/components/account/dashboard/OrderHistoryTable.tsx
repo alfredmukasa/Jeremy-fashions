@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { HiOutlineChevronDown } from 'react-icons/hi2'
 
 import { formatOrderNumber } from '../../../lib/orderNumber'
+import { showCustomerFulfillmentBadge } from '../../../lib/orderOrganization'
 import { ORDER_STATUSES } from '../../../lib/orderStatus'
 import type { CustomerOrderDetail } from '../../../services/orderService'
 import { cn } from '../../../utils/cn'
@@ -37,11 +38,20 @@ export function OrderHistoryTable({ orders }: { orders: CustomerOrderDetail[] })
 
   if (!orders.length) {
     return (
-      <EmptyState
-        title="No orders yet"
-        description="Start shopping to see your orders here."
-        actionLabel="Explore the collection"
-      />
+      <section id="order-history" className="space-y-6" aria-labelledby="order-history-heading">
+        <div>
+          <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Order history</p>
+          <h2 id="order-history-heading" className="mt-2 font-serif text-2xl text-neutral-950 md:text-3xl">
+            Purchase history
+          </h2>
+          <p className="mt-2 max-w-xl text-sm text-neutral-600">Paid and completed purchases, newest first.</p>
+        </div>
+        <EmptyState
+          title="No paid purchases yet"
+          description="Paid and completed orders will show here after checkout."
+          actionLabel="Explore the collection"
+        />
+      </section>
     )
   }
 
@@ -51,8 +61,9 @@ export function OrderHistoryTable({ orders }: { orders: CustomerOrderDetail[] })
         <div>
           <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Order history</p>
           <h2 id="order-history-heading" className="mt-2 font-serif text-2xl text-neutral-950 md:text-3xl">
-            Full order history
+            Purchase history
           </h2>
+          <p className="mt-2 max-w-xl text-sm text-neutral-600">Paid and completed purchases, newest first.</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <label className="block">
@@ -172,7 +183,11 @@ function OrderHistoryRow({ order }: { order: CustomerOrderDetail }) {
           <PaymentStatusBadge status={order.paymentStatus} />
         </td>
         <td className="px-4 py-4">
-          <StatusBadge status={order.status} />
+          {showCustomerFulfillmentBadge(order.status, order.paymentStatus) ? (
+            <StatusBadge status={order.status} />
+          ) : (
+            <span className="text-neutral-400">—</span>
+          )}
         </td>
         <td className="px-4 py-4">
           <button
@@ -242,7 +257,9 @@ function OrderHistoryCardHeader({ order }: { order: CustomerOrderDetail }) {
       <div className="text-right">
         <div className="flex flex-col items-end gap-2">
           <PaymentStatusBadge status={order.paymentStatus} />
-          <StatusBadge status={order.status} />
+          {showCustomerFulfillmentBadge(order.status, order.paymentStatus) ? (
+            <StatusBadge status={order.status} />
+          ) : null}
         </div>
         <p className="mt-2 text-sm tabular-nums text-neutral-900">
           {formatPrice(order.totalAmount, order.currency)}
@@ -288,6 +305,7 @@ function OrderHistoryDetails({ id, order }: { id: string; order: CustomerOrderDe
               <span className="truncate text-neutral-900">
                 {item.title}
                 {item.size ? ` · Size ${item.size}` : ''}
+                {item.colorName ? ` · ${item.colorName}` : ''}
               </span>
               <span className="shrink-0 text-neutral-600">
                 {item.quantity} × {formatPrice(item.unitPrice, order.currency)}

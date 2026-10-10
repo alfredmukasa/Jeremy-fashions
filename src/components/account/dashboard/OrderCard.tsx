@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { HiOutlineChevronDown } from 'react-icons/hi2'
 
 import { formatOrderNumber } from '../../../lib/orderNumber'
+import { showCustomerFulfillmentBadge } from '../../../lib/orderOrganization'
 import type { CustomerOrderDetail } from '../../../services/orderService'
 import { cn } from '../../../utils/cn'
 import { formatPrice } from '../../../utils/formatPrice'
@@ -59,7 +60,9 @@ export function OrderCard({ order }: { order: CustomerOrderDetail }) {
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <PaymentStatusBadge status={order.paymentStatus} />
-              <StatusBadge status={order.status} />
+              {showCustomerFulfillmentBadge(order.status, order.paymentStatus) ? (
+                <StatusBadge status={order.status} />
+              ) : null}
               <span className="text-sm tabular-nums text-neutral-900">
                 {formatPrice(order.totalAmount, order.currency)}
               </span>
@@ -136,6 +139,7 @@ function OrderLine({ item }: { item: CustomerOrderDetail['items'][number] }) {
         <p className="text-xs text-neutral-500">
           Qty {item.quantity}
           {item.size ? ` · Size ${item.size}` : ''}
+          {item.colorName ? ` · ${item.colorName}` : ''}
         </p>
       </div>
     </div>

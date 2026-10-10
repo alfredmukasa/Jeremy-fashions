@@ -1,4 +1,5 @@
 import type { Product } from '../types'
+import { getSellingPrice } from '../utils/productPricing'
 import { SITE_NAME, SITE_URL, absoluteUrl } from './seo'
 
 /** New checkouts are charged in CAD. Catalog numbers are not converted. */
@@ -45,7 +46,7 @@ export function breadcrumbJsonLd(items: BreadcrumbItem[]) {
  * number, so there is nothing legitimate to report.
  */
 export function productJsonLd(product: Product, path: string) {
-  const price = product.salePrice ?? product.price
+  const price = getSellingPrice(product.price, product.salePrice)
 
   return {
     '@context': 'https://schema.org',

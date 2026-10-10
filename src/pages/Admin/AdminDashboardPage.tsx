@@ -20,7 +20,7 @@ import {
   type AdminProfileRow,
   type AdminWaitlistRow,
 } from '../../services/adminService'
-import type { ProductRow } from '../../services/mappers'
+import { parseStockBySize, type ProductRow } from '../../services/mappers'
 
 import { BrandLogo } from '../../components/common/BrandLogo'
 import { Button } from '../../components/common/Button'
@@ -51,6 +51,7 @@ function emptyPayload(categorySlug: string): AdminProductPayload {
     colors: [{ name: 'Default', hex: '#1a1a1a' }],
     attributes: {},
     sizeChart: null,
+    stock_by_size: {},
   }
 }
 
@@ -89,6 +90,7 @@ function rowToPayload(row: ProductRow): AdminProductPayload {
         ? (row.attributes as AdminProductPayload['attributes'])
         : {},
     sizeChart: parseSizeChart(row.size_chart) ?? parseSizeChart(row.attributes),
+    stock_by_size: parseStockBySize(row.stock_by_size) ?? {},
   }
 }
 
@@ -548,7 +550,7 @@ export default function AdminDashboardPage() {
                   />
                 </div>
                 <div>
-                  <FieldLabel id="pcompare">Compare at (optional)</FieldLabel>
+                  <FieldLabel id="pcompare">Compare at / sale (optional)</FieldLabel>
                   <Input
                     id="pcompare"
                     type="number"
@@ -562,6 +564,9 @@ export default function AdminDashboardPage() {
                       }))
                     }
                   />
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Customers are charged the lower of Price and this amount. A higher number shows as compare-at.
+                  </p>
                 </div>
                 <div>
                   <FieldLabel id="pstock">Stock</FieldLabel>

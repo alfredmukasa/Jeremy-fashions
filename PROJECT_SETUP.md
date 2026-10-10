@@ -1,3 +1,7 @@
+# Historical MVP brief (do not follow for the live store)
+
+This document is the original frontend-only prompt. The live KREWNOX stack, pricing rules, and migrations are in `README.md`.
+
 # Fashion E-Commerce MVP — React Frontend (No Backend Yet)
 
 ## Project Overview

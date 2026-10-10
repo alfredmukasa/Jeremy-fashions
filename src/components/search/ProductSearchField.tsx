@@ -10,6 +10,7 @@ import { useBodyScrollLock } from '../../hooks/useBodyScrollLock'
 import { useMediaQuery } from '../../hooks/useMediaQuery'
 import { useProductSearch } from '../../hooks/useProductSearch'
 import { formatPrice } from '../../utils/formatPrice'
+import { catalogPriceFor } from '../../utils/productPricing'
 import { cn } from '../../utils/cn'
 
 const MOBILE_SEARCH_MQ = '(max-width: 767px)'
@@ -317,7 +318,7 @@ export function ProductSearchField({
           {showResults ? (
             <ul id={listboxId} role="listbox" aria-label="Product suggestions" className="max-h-80 overflow-y-auto py-1">
               {results.map((product, index) => {
-                const price = product.salePrice ?? product.price
+                const price = catalogPriceFor(product).selling
                 const image = product.images[0]
                 const active = index === activeIndex
 

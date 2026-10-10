@@ -9,6 +9,7 @@ import {
   compareStripePayment,
   evaluateDiscount,
   normalizeDiscountCode,
+  resolveCatalogPrice,
   sizeSelectionError,
   stripeLineDescription,
   toMinorUnits,
@@ -184,6 +185,14 @@ test('does not reuse a payment intent whose currency differs', () => {
     }),
     true,
   )
+})
+
+test('charges the lower catalog amount and uses a higher amount as compare-at', () => {
+  assert.deepEqual(resolveCatalogPrice(168, 148), { selling: 148, compare: 168 })
+  assert.deepEqual(resolveCatalogPrice(148, 168), { selling: 148, compare: 168 })
+  assert.deepEqual(resolveCatalogPrice(148, 148), { selling: 148, compare: null })
+  assert.deepEqual(resolveCatalogPrice(148, null), { selling: 148, compare: null })
+  assert.deepEqual(resolveCatalogPrice(148, 0), { selling: 148, compare: null })
 })
 
 test('describes checkout lines with size for Stripe', () => {

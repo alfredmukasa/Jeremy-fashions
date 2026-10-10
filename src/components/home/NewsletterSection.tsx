@@ -1,18 +1,37 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 
+import { joinWaitlist } from '../../services/waitlistService'
 import { Button } from '../common/Button'
 import { Container } from '../layout/Container'
 import { Input } from '../common/Input'
 
 export function NewsletterSection() {
   const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
+  const [status, setStatus] = useState<'idle' | 'loading' | 'ok' | 'duplicate' | 'error'>('idle')
+  const [message, setMessage] = useState('')
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
-    setSent(true)
+    if (status === 'loading') return
+    setStatus('loading')
+    const result = await joinWaitlist({ email, fullName: 'Newsletter' })
+    if (result.ok) {
+      setStatus('ok')
+      setMessage('You are on the list. We will write when there is something worth sending.')
+      setEmail('')
+      return
+    }
+    if (result.reason === 'duplicate') {
+      setStatus('duplicate')
+      setMessage(result.message)
+      return
+    }
+    setStatus('error')
+    setMessage(result.message)
   }
+
+  const submitted = status === 'ok' || status === 'duplicate'
 
   return (
     <section className="home-section relative overflow-hidden border-y border-[var(--border-subtle)] bg-[var(--text-primary)] text-[var(--accent-contrast)]">
@@ -43,13 +62,16 @@ export function NewsletterSection() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Email address"
+              disabled={status === 'loading' || submitted}
               className="rounded-full border-white/20 bg-white/5 px-5 text-white placeholder:text-white/35 focus:border-white/40"
             />
-            <Button type="submit" variant="inverse" className="w-full md:w-auto">
-              {sent ? 'Subscribed' : 'Join the list'}
+            <Button type="submit" variant="inverse" className="w-full md:w-auto" disabled={status === 'loading' || submitted}>
+              {submitted ? 'Subscribed' : status === 'loading' ? 'Joining…' : 'Join the list'}
             </Button>
-            {sent ? (
-              <p className="text-xs tracking-wide text-white/55">Thank you — this is a UI demo only.</p>
+            {message ? (
+              <p className="text-xs tracking-wide text-white/55" role="status">
+                {message}
+              </p>
             ) : null}
           </motion.form>
         </div>

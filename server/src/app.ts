@@ -94,7 +94,12 @@ const contactNotifyLimiter = rateLimit({
 })
 
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true })
+  res.json({
+    ok: true,
+    stripeWebhookConfigured: Boolean(config.stripeWebhookSecret),
+    guestCheckoutAvailable: Boolean(config.supabaseServiceRoleKey),
+    contactEmailConfigured: Boolean(process.env.RESEND_API_KEY?.trim()),
+  })
 })
 
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhooksRouter)
@@ -105,6 +110,7 @@ app.use('/api/orders/:id/status', orderLookupLimiter)
 app.use('/api/payments', paymentsRouter)
 app.use('/api/orders', ordersRouter)
 app.use('/api/contact/notify', contactNotifyLimiter)
+app.use('/api/contact/submit', contactNotifyLimiter)
 app.use('/api/contact', contactRouter)
 // Bot-only prerendered HTML for social-crawler Open Graph tags — see socialPreview.ts
 // and the matching `has: user-agent` rewrite in vercel.json.

@@ -15,6 +15,7 @@ import { DEFAULT_RETURN_POLICY, DEFAULT_SHIPPING_INSTRUCTIONS } from '../../cons
 import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
 import { sizeChartHasMeasurements } from '../../lib/sizeChart'
 import { formatPrice } from '../../utils/formatPrice'
+import { catalogPriceFor, sizeStockRemaining } from '../../utils/productPricing'
 import { cn } from '../../utils/cn'
 
 import { Badge } from '../../components/common/Badge'
@@ -197,8 +198,7 @@ function ProductDetail({ product }: DetailProps) {
     ? siteContent.data.returnPolicy.body
     : DEFAULT_RETURN_POLICY.body
 
-  const unit = product.salePrice ?? product.price
-  const compare = product.salePrice ? product.price : null
+  const { selling: unit, compare } = catalogPriceFor(product)
   const hasOptions = sizes.length > 0 || colors.length > 0
   const attributeEntries = Object.entries(product.attributes).filter(
     ([key, value]) => key !== 'care' && value?.trim(),
@@ -352,13 +352,15 @@ function ProductDetail({ product }: DetailProps) {
                   <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label={sizeLabelForKind(product.productKind)}>
                     {sizes.map((option) => {
                       const selected = size === option
+                      const remaining = sizeStockRemaining(product.stockBySize, option)
+                      const sizeSoldOut = remaining === 0
                       return (
                         <button
                           key={option}
                           type="button"
                           role="radio"
                           aria-checked={selected}
-                          disabled={soldOut}
+                          disabled={soldOut || sizeSoldOut}
                           onClick={() => {
                             setSize(option)
                             setSizeError(null)
@@ -366,7 +368,7 @@ function ProductDetail({ product }: DetailProps) {
                           className={cn(
                             'min-w-[48px] border border-[var(--border-subtle)] px-3 py-2 text-xs tabular-nums transition',
                             selected && 'border-[var(--accent)] bg-[var(--accent)] text-[var(--accent-contrast)]',
-                            soldOut && 'cursor-not-allowed opacity-40',
+                            (soldOut || sizeSoldOut) && 'cursor-not-allowed opacity-40',
                           )}
                         >
                           {option}
@@ -403,14 +405,18 @@ function ProductDetail({ product }: DetailProps) {
                   <button
                     type="button"
                     className="px-4 py-3 text-lg transition hover:bg-[var(--surface-muted)]"
+                    aria-label="Decrease quantity"
                     onClick={() => setQty(Math.max(1, qty - 1))}
                   >
                     −
                   </button>
-                  <span className="w-10 text-center text-sm tabular-nums">{qty}</span>
+                  <span className="w-10 text-center text-sm tabular-nums" aria-live="polite" aria-label="Quantity">
+                    {qty}
+                  </span>
                   <button
                     type="button"
                     className="px-4 py-3 text-lg transition hover:bg-[var(--surface-muted)]"
+                    aria-label="Increase quantity"
                     onClick={() => setQty(qty + 1)}
                   >
                     +

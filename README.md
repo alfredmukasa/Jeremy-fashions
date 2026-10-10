@@ -1,73 +1,48 @@
-# React + TypeScript + Vite
+# KREWNOX storefront
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Production fashion storefront for [krewnox.ca](https://krewnox.ca): React 19 + Vite + TypeScript on the client, Express payment API on Vercel, Supabase Auth/Postgres, and Stripe PaymentIntents in CAD.
 
-Currently, two official plugins are available:
+`PROJECT_SETUP.md` is the original frontend-only MVP brief. Do not follow it for current architecture or payments.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Pricing
 
-## React Compiler
+Catalog rows have `price` plus optional `compare_price`. Checkout and the storefront charge the **lower** of the two:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Higher second amount → compare-at strikethrough, charge `price`
+- Lower second amount → sale, charge the lower amount
+- Missing or equal → charge `price`
 
-## Expanding the ESLint configuration
+Admin labels this field **Compare at / sale**. Staff should not enter a number they do not want charged if it is lower than Price.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Inventory
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Product-level `stock_quantity` is always decremented atomically after payment. Optional `stock_by_size` (migration `0021_checkout_integrity_and_rbac.sql`) enforces per-size remaining units when filled. Full refunds restock when the order had stock decremented.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Auth and orders
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- `profiles.suspended` / `account_status` block sign-in after migration 0021 (`account_is_blocked()`).
+- `claim_guest_orders()` attaches guest checkouts with the same email to a newly signed-in account.
+- Admin write RLS uses JWT `app_metadata.admin_role`. Apply 0021 before relying on that.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Contact and newsletter
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+`POST /api/contact/submit` (also `/notify`) validates, stores the message, and emails support. The home newsletter writes to the waitlist table — it is not a demo form.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Payments health
+
+`GET /api/health` reports whether `STRIPE_WEBHOOK_SECRET`, the Supabase service role (guest checkout), and Resend are configured. The admin overview warns when the webhook secret or guest checkout key is missing.
+
+## Applying migration 0021
+
+Apply `supabase/migrations/0021_checkout_integrity_and_rbac.sql` in the Supabase SQL editor for the live project. Do **not** replay `0004_promote_alfred_mukasa_admin.sql`. Live history already includes extra timestamped migrations; 0021 is additive.
+
+Until 0021 is applied, the app falls back: catalog queries omit `stock_by_size`, checkout still charges the lower catalog price, and guest-order claim / blocked-account RPC no-ops.
+
+## Scripts
+
+```bash
+npm run dev
+npm run dev:server
+npx tsx --test server/test/*.test.ts
+npx tsx scripts/verify-store-features.ts
 ```

@@ -7,6 +7,7 @@ import { useProducts } from '../../hooks/useCatalog'
 import { pickCompleteTheSet } from '../../lib/completeTheSet'
 import { useCartStore } from '../../store/cartStore'
 import { formatPrice } from '../../utils/formatPrice'
+import { catalogPriceFor } from '../../utils/productPricing'
 import { cn } from '../../utils/cn'
 
 import { Button } from '../common/Button'
@@ -19,8 +20,7 @@ function CompleteTheSetCard({ product }: { product: NonNullable<ReturnType<typeo
   const [color, setColor] = useState(colors[0]?.name ?? '')
   const [sizeError, setSizeError] = useState<string | null>(null)
 
-  const unit = product.salePrice ?? product.price
-  const compare = product.salePrice ? product.price : null
+  const { selling: unit, compare } = catalogPriceFor(product)
   const selectedColor = colors.find((entry) => entry.name === color) ?? colors[0]
 
   function addPiece() {
@@ -41,7 +41,7 @@ function CompleteTheSetCard({ product }: { product: NonNullable<ReturnType<typeo
           to={ROUTES.product(product.slug)}
           className="h-24 w-[4.5rem] shrink-0 overflow-hidden bg-neutral-100"
         >
-          <img src={product.images[0]} alt="" className="h-full w-full object-cover" />
+          <img src={product.images[0]} alt={product.name} className="h-full w-full object-cover" />
         </Link>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">

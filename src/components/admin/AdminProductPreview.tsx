@@ -4,6 +4,7 @@ import { ROUTES } from '../../constants'
 import { resolveSizeChart } from '../../lib/sizeChart'
 import type { Product } from '../../types'
 import { formatPrice } from '../../utils/formatPrice'
+import { catalogPriceFor } from '../../utils/productPricing'
 import { SizeChartTable } from '../product/SizeChart'
 
 type AdminProductPreviewProps = {
@@ -14,8 +15,7 @@ type AdminProductPreviewProps = {
 export function AdminProductPreview({ product, storefrontReady }: AdminProductPreviewProps) {
   const featuredImage = product.images[0]
   const hoverImage = product.images[1] ?? featuredImage
-  const price = product.salePrice ?? product.price
-  const compare = product.salePrice ? product.price : null
+  const { selling: price, compare } = catalogPriceFor(product)
 
   return (
     <section className="border border-neutral-200 bg-neutral-50 p-4">
@@ -37,11 +37,11 @@ export function AdminProductPreview({ product, storefrontReady }: AdminProductPr
         <div className="relative aspect-[3/4] bg-neutral-100">
           {featuredImage ? (
             <>
-              <img src={featuredImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              <img src={featuredImage} alt={product.name} className="absolute inset-0 h-full w-full object-cover" />
               {hoverImage && hoverImage !== featuredImage ? (
                 <img
                   src={hoverImage}
-                  alt=""
+                  alt={`${product.name} alternate view`}
                   className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300 hover:opacity-100"
                 />
               ) : null}

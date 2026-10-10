@@ -7,6 +7,7 @@ import { AdminProductCategoryFields } from '../../components/admin/AdminProductC
 import { AdminProductMediaFields } from '../../components/admin/AdminProductMediaFields'
 import { AdminProductPreview } from '../../components/admin/AdminProductPreview'
 import { AdminSizeChartFields } from '../../components/admin/AdminSizeChartFields'
+import { AdminStockBySizeFields } from '../../components/admin/AdminStockBySizeFields'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
 import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
@@ -230,6 +231,7 @@ function AdminProductsContent() {
                         ...current,
                         category: slug,
                         sizes: current.category === slug ? current.sizes : [],
+                        stock_by_size: current.category === slug ? current.stock_by_size : {},
                         attributes: current.category === slug ? current.attributes : emptyAttributesForKind(kind),
                         sizeChart: current.category === slug ? current.sizeChart : emptySizeChart(kind),
                       }))
@@ -261,7 +263,7 @@ function AdminProductsContent() {
                   <Input id="pprice" type="number" step="0.01" min={0} value={form.price} onChange={(e) => setForm((f) => ({ ...f, price: Number(e.target.value) }))} required />
                 </div>
                 <div>
-                  <FieldLabel id="pcompare">Compare at (optional)</FieldLabel>
+                  <FieldLabel id="pcompare">Compare at / sale (optional)</FieldLabel>
                   <Input
                     id="pcompare"
                     type="number"
@@ -275,6 +277,9 @@ function AdminProductsContent() {
                       }))
                     }
                   />
+                  <p className="mt-1 text-xs text-neutral-500">
+                    Customers are charged the lower of Price and this amount. A higher number shows as compare-at.
+                  </p>
                 </div>
                 <div>
                   <FieldLabel id="pstock">Stock</FieldLabel>
@@ -298,6 +303,7 @@ function AdminProductsContent() {
                     productKind={selectedCategory?.productKind ?? resolveProductKind(form.category)}
                     onChange={setForm}
                   />
+                  <AdminStockBySizeFields form={form} onChange={setForm} />
                 </div>
                 <div className="flex items-center gap-2 sm:col-span-2">
                   <input id="pfeat" type="checkbox" checked={form.featured} onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))} className="h-4 w-4 rounded-none border-neutral-400" />

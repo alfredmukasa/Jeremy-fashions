@@ -48,7 +48,11 @@ export async function joinWaitlist(entry: WaitlistEntry): Promise<WaitlistResult
       }
     }
     console.error('[waitlistService.joinWaitlist]', error)
-    return { ok: false, reason: 'unknown', message: error.message }
+    return {
+      ok: false,
+      reason: 'unknown',
+      message: 'We could not add you to the list. Please try again shortly.',
+    }
   }
 
   return { ok: true }

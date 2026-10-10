@@ -8,6 +8,7 @@ import {
   calculateOrderTotals,
   canonicalSize,
   compareStripePayment,
+  readSizeStock,
   resolveCatalogPrice,
   roundMoney,
   sizeSelectionError,
@@ -127,7 +128,8 @@ export async function validateCheckoutItems(
       throw new CheckoutError(sizeError, 400)
     }
 
-    const sizeStock = readSizeStock(product.stock_by_size, item.size ?? '')
+    const resolvedSize = canonicalSize(availableSizes, item.size ?? '') ?? ''
+    const sizeStock = readSizeStock(product.stock_by_size, resolvedSize || item.size || '')
     if (sizeStock != null && sizeStock < item.quantity) {
       throw new CheckoutError(`Insufficient stock for ${product.title} in size ${item.size}.`, 400)
     }
@@ -139,7 +141,7 @@ export async function validateCheckoutItems(
       title: product.title,
       quantity: item.quantity,
       unitPrice: expectedUnitPrice,
-      size: canonicalSize(availableSizes, item.size ?? '') ?? '',
+      size: resolvedSize,
       colorName: item.colorName,
       sku: product.sku ?? item.sku,
     })
@@ -1146,7 +1148,23 @@ async function decrementStockForOrder(orderId: string) {
       p_size: size,
     })
     if (rpcError) {
-      console.error('[inventory] atomic decrement failed; falling back', {
+      if (isInsufficientStockError(rpcError)) {
+        console.error('[inventory] decrement rejected; not falling back', {
+          orderId,
+          productId: item.product_id,
+          message: rpcError.message,
+        })
+        continue
+      }
+      if (!isMissingRpcError(rpcError)) {
+        console.error('[inventory] atomic decrement failed', {
+          orderId,
+          productId: item.product_id,
+          message: rpcError.message,
+        })
+        continue
+      }
+      console.error('[inventory] atomic decrement missing; falling back', {
         orderId,
         productId: item.product_id,
         message: rpcError.message,
@@ -1175,7 +1193,15 @@ async function restockOrderItems(orderId: string) {
       p_size: size,
     })
     if (rpcError) {
-      console.error('[inventory] atomic restock failed; falling back', {
+      if (!isMissingRpcError(rpcError)) {
+        console.error('[inventory] atomic restock failed', {
+          orderId,
+          productId: item.product_id,
+          message: rpcError.message,
+        })
+        continue
+      }
+      console.error('[inventory] atomic restock missing; falling back', {
         orderId,
         productId: item.product_id,
         message: rpcError.message,
@@ -1197,13 +1223,18 @@ async function fallbackAdjustStock(productId: string, delta: number) {
   await supabaseAdmin.from('products').update({ stock_quantity: next }).eq('id', productId)
 }
 
-function readSizeStock(raw: unknown, size: string): number | null {
-  const key = size.trim()
-  if (!key || !raw || typeof raw !== 'object' || Array.isArray(raw)) return null
-  const value = (raw as Record<string, unknown>)[key]
-  if (value == null) return null
-  const amount = Number(value)
-  return Number.isFinite(amount) ? amount : null
+function isInsufficientStockError(error: { message?: string } | null | undefined) {
+  return /INSUFFICIENT/i.test(error?.message ?? '')
+}
+
+function isMissingRpcError(error: { message?: string; code?: string } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? ''
+  return (
+    isMissingColumnError(error) ||
+    message.includes('could not find the function') ||
+    message.includes('decrement_product_stock') ||
+    message.includes('increment_product_stock')
+  )
 }
 
 function generateOrderNumber() {

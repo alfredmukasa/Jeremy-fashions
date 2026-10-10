@@ -9,6 +9,7 @@ import {
   compareStripePayment,
   evaluateDiscount,
   normalizeDiscountCode,
+  readSizeStock,
   resolveCatalogPrice,
   sizeSelectionError,
   stripeLineDescription,
@@ -185,6 +186,12 @@ test('does not reuse a payment intent whose currency differs', () => {
     }),
     true,
   )
+})
+
+test('reads per-size stock without depending on key casing', () => {
+  assert.equal(readSizeStock({ M: 0, L: 2 }, 'm'), 0)
+  assert.equal(readSizeStock({ M: 0, L: 2 }, ' L '), 2)
+  assert.equal(readSizeStock({ M: 2 }, 'S'), null)
 })
 
 test('charges the lower catalog amount and uses a higher amount as compare-at', () => {

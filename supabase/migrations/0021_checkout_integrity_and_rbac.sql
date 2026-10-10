@@ -23,7 +23,8 @@ set search_path = public
 as $$
 declare
   new_stock integer;
-  size_key text := nullif(trim(coalesce(p_size, '')), '');
+  requested_size text := nullif(trim(coalesce(p_size, '')), '');
+  resolved_size text;
   size_stock integer;
 begin
   if p_quantity is null or p_quantity < 1 then
@@ -40,11 +41,14 @@ begin
     raise exception 'INSUFFICIENT_STOCK' using errcode = 'P0001';
   end if;
 
-  if size_key is not null then
-    select (stock_by_size ->> size_key)::integer
-      into size_stock
-      from public.products
-     where id = p_product_id;
+  if requested_size is not null then
+    select kv.key, (kv.value)::integer
+      into resolved_size, size_stock
+      from public.products p
+      cross join lateral jsonb_each_text(coalesce(p.stock_by_size, '{}'::jsonb)) as kv(key, value)
+     where p.id = p_product_id
+       and lower(kv.key) = lower(requested_size)
+     limit 1;
 
     if size_stock is not null then
       if size_stock < p_quantity then
@@ -54,7 +58,7 @@ begin
       update public.products
          set stock_by_size = jsonb_set(
            coalesce(stock_by_size, '{}'::jsonb),
-           array[size_key],
+           array[resolved_size],
            to_jsonb(size_stock - p_quantity)
          )
        where id = p_product_id;
@@ -77,7 +81,8 @@ set search_path = public
 as $$
 declare
   new_stock integer;
-  size_key text := nullif(trim(coalesce(p_size, '')), '');
+  requested_size text := nullif(trim(coalesce(p_size, '')), '');
+  resolved_size text;
   size_stock integer;
 begin
   if p_quantity is null or p_quantity < 1 then
@@ -93,17 +98,20 @@ begin
     return 0;
   end if;
 
-  if size_key is not null then
-    select (stock_by_size ->> size_key)::integer
-      into size_stock
-      from public.products
-     where id = p_product_id;
+  if requested_size is not null then
+    select kv.key, (kv.value)::integer
+      into resolved_size, size_stock
+      from public.products p
+      cross join lateral jsonb_each_text(coalesce(p.stock_by_size, '{}'::jsonb)) as kv(key, value)
+     where p.id = p_product_id
+       and lower(kv.key) = lower(requested_size)
+     limit 1;
 
     if size_stock is not null then
       update public.products
          set stock_by_size = jsonb_set(
            coalesce(stock_by_size, '{}'::jsonb),
-           array[size_key],
+           array[resolved_size],
            to_jsonb(size_stock + p_quantity)
          )
        where id = p_product_id;
@@ -156,14 +164,18 @@ as $$
 declare
   uid uuid := auth.uid();
   user_email text;
+  confirmed_at timestamptz;
   n integer := 0;
 begin
   if uid is null then
     return 0;
   end if;
 
-  select lower(email) into user_email from auth.users where id = uid;
-  if user_email is null or user_email = '' then
+  select lower(email), email_confirmed_at
+    into user_email, confirmed_at
+    from auth.users
+   where id = uid;
+  if user_email is null or user_email = '' or confirmed_at is null then
     return 0;
   end if;
 

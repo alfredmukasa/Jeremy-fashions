@@ -160,6 +160,15 @@ export function evaluateDiscount(
   return { ok: true, amount, eligibleSubtotal }
 }
 
+export function readSizeStock(raw: unknown, size: string): number | null {
+  const wanted = size.trim().toLowerCase()
+  if (!wanted || !raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const key = Object.keys(raw as Record<string, unknown>).find((entry) => entry.trim().toLowerCase() === wanted)
+  if (!key) return null
+  const amount = Number((raw as Record<string, unknown>)[key])
+  return Number.isFinite(amount) ? amount : null
+}
+
 export function canonicalSize(availableSizes: string[], requested: string): string | null {
   const wanted = requested.trim()
   if (!wanted) return null

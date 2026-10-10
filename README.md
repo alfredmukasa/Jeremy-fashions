@@ -49,7 +49,7 @@ Orders, profiles, discounts, and admin tables are no longer in the anonymous Gra
 
 Point Stripe at `https://<deployment>/api/webhooks/stripe` and set `STRIPE_WEBHOOK_SECRET`. Until events land, `stripe_webhook_events` stays empty and paid orders may not flip automatically.
 
-Staff login lockout in the admin UI is browser-local. Enable **Leaked password protection** in Supabase Auth → Attack protection.
+Staff login lockout in the admin UI is browser-local. In Supabase Auth → Attack protection, enable **Leaked password protection** and keep **Confirm email** on so guest orders cannot be claimed by an unconfirmed account.
 
 ## Scripts
 

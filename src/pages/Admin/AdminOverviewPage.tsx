@@ -5,6 +5,7 @@ import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { AdminStatCard } from '../../components/admin/AdminStatCard'
 import { ROUTES } from '../../constants'
 import { orderInQueue, sortOrganizedOrders } from '../../lib/orderOrganization'
+import { fetchApiHealth } from '../../lib/apiHealth'
 import { adminGetDashboardStats, adminListContactMessages, adminListOrders, adminListProducts } from '../../services/adminService'
 import { formatPrice } from '../../utils/formatPrice'
 
@@ -27,6 +28,12 @@ export default function AdminOverviewPage() {
   const recentMessagesQuery = useQuery({
     queryKey: ['admin', 'contact-messages', 'recent'],
     queryFn: adminListContactMessages,
+  })
+
+  const healthQuery = useQuery({
+    queryKey: ['admin', 'api-health'],
+    queryFn: fetchApiHealth,
+    staleTime: 60_000,
   })
 
   const stats = statsQuery.data
@@ -57,6 +64,17 @@ export default function AdminOverviewPage() {
           </Link>
         }
       />
+
+      {healthQuery.data && (!healthQuery.data.stripeWebhookConfigured || !healthQuery.data.guestCheckoutAvailable) ? (
+        <div className="border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          {!healthQuery.data.stripeWebhookConfigured ? (
+            <p>Stripe webhook secret is not configured. Paid orders may not confirm automatically.</p>
+          ) : null}
+          {!healthQuery.data.guestCheckoutAvailable ? (
+            <p>Guest checkout needs a Supabase service role key on the payment API.</p>
+          ) : null}
+        </div>
+      ) : null}
 
       {statsQuery.isLoading ? (
         <p className="text-sm text-neutral-600">Loading metrics…</p>

@@ -1,9 +1,20 @@
 /** Map Supabase auth errors to branded, user-safe copy. */
 
 export const AUTH_UNAVAILABLE_MESSAGE = 'Sign-in is temporarily unavailable. Please try again shortly.'
+export const ACCOUNT_BLOCKED_MESSAGE =
+  'This account has been suspended. Contact support if you need help.'
 
 export function friendlyAuthError(message: string): string {
   const lower = message.toLowerCase()
+
+  if (
+    lower.includes('suspended') ||
+    lower.includes('banned') ||
+    lower.includes('this account has been blocked') ||
+    lower.includes('this account has been suspended')
+  ) {
+    return ACCOUNT_BLOCKED_MESSAGE
+  }
 
   if (
     lower.includes('supabase is not configured') ||

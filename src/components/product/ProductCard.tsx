@@ -10,6 +10,7 @@ import { useCartStore } from '../../store/cartStore'
 import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore, selectWishlistHas } from '../../store/wishlistStore'
 import { formatPriceMertra } from '../../utils/formatPrice'
+import { catalogPriceFor, sizeStockRemaining } from '../../utils/productPricing'
 import { cn } from '../../utils/cn'
 
 type Props = {
@@ -39,9 +40,10 @@ export function ProductCard({ product, className }: Props) {
     ? (images[(imageIndex + 1) % images.length] ?? images[0])
     : images[0]
   const hasImage = Boolean(imgA)
-  const price = product.salePrice ?? product.price
-  const compare = product.salePrice ? product.price : null
-  const soldOut = product.stock === 0
+  const { selling: price, compare } = catalogPriceFor(product)
+  const onlySizeStock = sizes.length === 1 ? sizeStockRemaining(product.stockBySize, sizes[0]) : null
+  const soldOut = product.stock === 0 || onlySizeStock === 0
+  const canQuickAdd = sizes.length <= 1
   const showHoverChrome = hover && !coarsePointer
   const showImageAlt = showHoverChrome && hasImage && hasMultipleImages && imgB !== imgA
 
@@ -132,7 +134,7 @@ export function ProductCard({ product, className }: Props) {
               <motion.img
                 key={imgA}
                 src={imgA}
-                alt=""
+                alt={product.name}
                 className="absolute inset-0 h-full w-full object-cover"
                 animate={{ opacity: showImageAlt ? 0 : 1 }}
                 transition={{ duration: 0.4, ease: overlayEase }}
@@ -142,7 +144,7 @@ export function ProductCard({ product, className }: Props) {
               {images.length > 1 ? (
                 <motion.img
                   src={imgB}
-                  alt=""
+                  alt={`${product.name} alternate view`}
                   className="absolute inset-0 h-full w-full object-cover"
                   animate={{ opacity: showImageAlt ? 1 : 0 }}
                   transition={{ duration: 0.4, ease: overlayEase }}
@@ -172,7 +174,7 @@ export function ProductCard({ product, className }: Props) {
             />
           </button>
 
-          {!soldOut ? (
+          {!soldOut && canQuickAdd ? (
             <button
               type="button"
               aria-label="Quick add"

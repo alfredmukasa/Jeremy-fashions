@@ -1,5 +1,6 @@
 import type { SortValue } from '../constants'
 import type { Product } from '../types'
+import { getSellingPrice } from './productPricing'
 
 /**
  * `/shop?tag=new` is the latest upload, not a manual tag and not a long calendar window.
@@ -71,5 +72,5 @@ export function sortProducts(list: Product[], sort: SortValue): Product[] {
 }
 
 function effectivePrice(p: Product) {
-  return p.salePrice ?? p.price
+  return getSellingPrice(p.price, p.salePrice)
 }

@@ -8,6 +8,8 @@ import {
   calculateOrderTotals,
   canonicalSize,
   compareStripePayment,
+  readSizeStock,
+  resolveCatalogPrice,
   roundMoney,
   sizeSelectionError,
   stripeLineDescription,
@@ -74,10 +76,28 @@ export async function validateCheckoutItems(
   }
 
   const productIds = [...new Set(items.map((item) => item.productId))]
-  const { data: products, error } = await supabaseAnon
-    .from('products')
-    .select('id, title, price, compare_price, status, stock_quantity, sku, sizes')
-    .in('id', productIds)
+  const productSelect =
+    'id, title, price, compare_price, status, stock_quantity, stock_by_size, sku, sizes'
+  const first = await supabaseAnon.from('products').select(productSelect).in('id', productIds)
+  const fallback =
+    first.error && isMissingColumnError(first.error)
+      ? await supabaseAnon
+          .from('products')
+          .select('id, title, price, compare_price, status, stock_quantity, sku, sizes')
+          .in('id', productIds)
+      : first
+  const products = fallback.data as Array<{
+    id: string
+    title: string
+    price: number | string
+    compare_price: number | string | null
+    status: string
+    stock_quantity: number
+    stock_by_size?: unknown
+    sku: string | null
+    sizes: unknown
+  }> | null
+  const error = fallback.error
 
   if (error) {
     throw new CheckoutError('Unable to validate products for checkout.', 500)
@@ -108,14 +128,20 @@ export async function validateCheckoutItems(
       throw new CheckoutError(sizeError, 400)
     }
 
-    const expectedUnitPrice = getSellingPrice(Number(product.price), product.compare_price)
+    const resolvedSize = canonicalSize(availableSizes, item.size ?? '') ?? ''
+    const sizeStock = readSizeStock(product.stock_by_size, resolvedSize || item.size || '')
+    if (sizeStock != null && sizeStock < item.quantity) {
+      throw new CheckoutError(`Insufficient stock for ${product.title} in size ${item.size}.`, 400)
+    }
+
+    const expectedUnitPrice = resolveCatalogPrice(Number(product.price), product.compare_price).selling
 
     validated.push({
       productId: item.productId,
       title: product.title,
       quantity: item.quantity,
       unitPrice: expectedUnitPrice,
-      size: canonicalSize(availableSizes, item.size ?? '') ?? '',
+      size: resolvedSize,
       colorName: item.colorName,
       sku: product.sku ?? item.sku,
     })
@@ -882,6 +908,36 @@ export async function markOrderRefundedFromCharge(charge: Stripe.Charge, eventId
     throw new CheckoutError('Unable to mark the order as refunded.', 500)
   }
 
+  const alreadyRestocked = Boolean(
+    existing.payment_metadata &&
+      typeof existing.payment_metadata === 'object' &&
+      (existing.payment_metadata as Record<string, unknown>).stock_restocked === true,
+  )
+  const hadDecremented = Boolean(
+    existing.payment_metadata &&
+      typeof existing.payment_metadata === 'object' &&
+      (existing.payment_metadata as Record<string, unknown>).stock_decremented === true,
+  )
+  if (data && paymentStatus === 'refunded' && hadDecremented && !alreadyRestocked) {
+    await restockOrderItems(existing.id)
+    await supabaseAdmin
+      .from('orders')
+      .update({
+        payment_metadata: mergePaymentMetadata(
+          upgrade.payment_metadata as Record<string, unknown>,
+          { stock_restocked: true },
+          {
+            id: eventId,
+            type: 'charge.refunded',
+            stripe_status: charge.status,
+            amount: charge.amount_refunded,
+            currency: charge.currency,
+          },
+        ),
+      })
+      .eq('id', existing.id)
+  }
+
   return data
 }
 
@@ -1077,22 +1133,108 @@ async function decrementStockForOrder(orderId: string) {
   const supabaseAdmin = requireSupabaseAdmin()
   const { data: items, error } = await supabaseAdmin
     .from('order_items')
-    .select('product_id, quantity')
+    .select('product_id, quantity, size')
     .eq('order_id', orderId)
 
   if (error || !items?.length) return
 
   for (const item of items) {
     if (!item.product_id) continue
-    const { data: product } = await supabaseAdmin
-      .from('products')
-      .select('stock_quantity')
-      .eq('id', item.product_id)
-      .maybeSingle()
-    if (!product) continue
-    const next = Math.max(0, Number(product.stock_quantity) - Number(item.quantity))
-    await supabaseAdmin.from('products').update({ stock_quantity: next }).eq('id', item.product_id)
+    const quantity = Number(item.quantity)
+    const size = typeof item.size === 'string' ? item.size : null
+    const { error: rpcError } = await supabaseAdmin.rpc('decrement_product_stock', {
+      p_product_id: item.product_id,
+      p_quantity: quantity,
+      p_size: size,
+    })
+    if (rpcError) {
+      if (isInsufficientStockError(rpcError)) {
+        console.error('[inventory] decrement rejected; not falling back', {
+          orderId,
+          productId: item.product_id,
+          message: rpcError.message,
+        })
+        continue
+      }
+      if (!isMissingRpcError(rpcError)) {
+        console.error('[inventory] atomic decrement failed', {
+          orderId,
+          productId: item.product_id,
+          message: rpcError.message,
+        })
+        continue
+      }
+      console.error('[inventory] atomic decrement missing; falling back', {
+        orderId,
+        productId: item.product_id,
+        message: rpcError.message,
+      })
+      await fallbackAdjustStock(item.product_id, -quantity)
+    }
   }
+}
+
+async function restockOrderItems(orderId: string) {
+  const supabaseAdmin = requireSupabaseAdmin()
+  const { data: items, error } = await supabaseAdmin
+    .from('order_items')
+    .select('product_id, quantity, size')
+    .eq('order_id', orderId)
+
+  if (error || !items?.length) return
+
+  for (const item of items) {
+    if (!item.product_id) continue
+    const quantity = Number(item.quantity)
+    const size = typeof item.size === 'string' ? item.size : null
+    const { error: rpcError } = await supabaseAdmin.rpc('increment_product_stock', {
+      p_product_id: item.product_id,
+      p_quantity: quantity,
+      p_size: size,
+    })
+    if (rpcError) {
+      if (!isMissingRpcError(rpcError)) {
+        console.error('[inventory] atomic restock failed', {
+          orderId,
+          productId: item.product_id,
+          message: rpcError.message,
+        })
+        continue
+      }
+      console.error('[inventory] atomic restock missing; falling back', {
+        orderId,
+        productId: item.product_id,
+        message: rpcError.message,
+      })
+      await fallbackAdjustStock(item.product_id, quantity)
+    }
+  }
+}
+
+async function fallbackAdjustStock(productId: string, delta: number) {
+  const supabaseAdmin = requireSupabaseAdmin()
+  const { data: product } = await supabaseAdmin
+    .from('products')
+    .select('stock_quantity')
+    .eq('id', productId)
+    .maybeSingle()
+  if (!product) return
+  const next = Math.max(0, Number(product.stock_quantity) + delta)
+  await supabaseAdmin.from('products').update({ stock_quantity: next }).eq('id', productId)
+}
+
+function isInsufficientStockError(error: { message?: string } | null | undefined) {
+  return /INSUFFICIENT/i.test(error?.message ?? '')
+}
+
+function isMissingRpcError(error: { message?: string; code?: string } | null | undefined) {
+  const message = error?.message?.toLowerCase() ?? ''
+  return (
+    isMissingColumnError(error) ||
+    message.includes('could not find the function') ||
+    message.includes('decrement_product_stock') ||
+    message.includes('increment_product_stock')
+  )
 }
 
 function generateOrderNumber() {
@@ -1104,11 +1246,6 @@ function generateOrderNumber() {
 function isMissingColumnError(error: { message?: string; code?: string } | null | undefined) {
   const message = error?.message?.toLowerCase() ?? ''
   return message.includes('does not exist') || message.includes('schema cache') || message.includes('could not find')
-}
-
-function getSellingPrice(price: number, comparePrice: number | string | null) {
-  if (comparePrice == null) return roundMoney(price)
-  return roundMoney(Number(comparePrice))
 }
 
 function toAddressJson(address: CheckoutAddress) {

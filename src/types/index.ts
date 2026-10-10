@@ -62,6 +62,8 @@ export type Product = {
   rating: number
   images: string[]
   stock: number
+  /** Optional per-size remaining units. Absent or empty means product-level stock only. */
+  stockBySize?: Record<string, number>
   tags: string[]
   featured?: boolean
   brand?: string

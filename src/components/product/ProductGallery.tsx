@@ -62,7 +62,7 @@ export function ProductGallery({ product }: Props) {
             >
               <img
                 src={src}
-                alt=""
+                alt={`${product.name} view ${i + 1}`}
                 className="h-full w-full object-cover transition duration-500 group-hover/thumb:scale-105"
                 loading="lazy"
               />

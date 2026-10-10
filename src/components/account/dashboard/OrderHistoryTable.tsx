@@ -3,7 +3,7 @@ import { HiOutlineChevronDown } from 'react-icons/hi2'
 
 import { formatOrderNumber } from '../../../lib/orderNumber'
 import { showCustomerFulfillmentBadge } from '../../../lib/orderOrganization'
-import { ORDER_STATUSES } from '../../../lib/orderStatus'
+import { normalizeOrderStatus, ORDER_STATUSES, orderStatusLabel } from '../../../lib/orderStatus'
 import type { CustomerOrderDetail } from '../../../services/orderService'
 import { cn } from '../../../utils/cn'
 import { formatPrice } from '../../../utils/formatPrice'
@@ -284,8 +284,8 @@ function OrderHistoryDetails({ id, order }: { id: string; order: CustomerOrderDe
         ) : null}
       </div>
       <div>
-        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Tracking status</p>
-        <p className="mt-1 capitalize text-neutral-900">{order.status}</p>
+        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Order status</p>
+        <p className="mt-1 text-neutral-900">{orderStatusLabel(normalizeOrderStatus(order.status))}</p>
       </div>
       <div className="lg:col-span-2">
         <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Shipping address</p>

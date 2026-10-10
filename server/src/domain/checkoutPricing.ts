@@ -46,6 +46,28 @@ export function roundMoney(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100
 }
 
+export type CatalogPrice = {
+  selling: number
+  compare: number | null
+}
+
+/**
+ * Charge the lower amount when a second price is present and lower (sale).
+ * When the second price is higher, treat it as compare-at and charge `price`.
+ */
+export function resolveCatalogPrice(price: number, compareOrSale?: number | string | null): CatalogPrice {
+  const list = roundMoney(Number(price) || 0)
+  if (compareOrSale == null || compareOrSale === '') {
+    return { selling: list, compare: null }
+  }
+  const other = roundMoney(Number(compareOrSale))
+  if (!Number.isFinite(other) || other <= 0 || other === list) {
+    return { selling: list, compare: null }
+  }
+  if (other < list) return { selling: other, compare: list }
+  return { selling: list, compare: other }
+}
+
 /** CA$49.99 → 4999. Never use this to convert between currencies. */
 export function toMinorUnits(amount: number): number {
   return Math.round(roundMoney(amount) * 100)
@@ -136,6 +158,15 @@ export function evaluateDiscount(
   }
 
   return { ok: true, amount, eligibleSubtotal }
+}
+
+export function readSizeStock(raw: unknown, size: string): number | null {
+  const wanted = size.trim().toLowerCase()
+  if (!wanted || !raw || typeof raw !== 'object' || Array.isArray(raw)) return null
+  const key = Object.keys(raw as Record<string, unknown>).find((entry) => entry.trim().toLowerCase() === wanted)
+  if (!key) return null
+  const amount = Number((raw as Record<string, unknown>)[key])
+  return Number.isFinite(amount) ? amount : null
 }
 
 export function canonicalSize(availableSizes: string[], requested: string): string | null {

@@ -28,7 +28,7 @@ function paymentErrorMessage(error: unknown): string {
       return 'Payment service is not configured correctly. Check Stripe keys on the server.'
     }
 
-    return error.message || 'Payment provider rejected the request.'
+    return 'Payment provider rejected the request.'
   }
 
   if (error instanceof Error && error.message.trim()) {

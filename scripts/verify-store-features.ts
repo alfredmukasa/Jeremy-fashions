@@ -22,6 +22,7 @@ import {
   resolveConfiguredSupportEmail as resolveServerSupportEmail,
   resolveContactRecipient,
 } from '../server/src/services/contactMail.ts'
+import { catalogPriceFor, resolveCatalogPrice, sizeStockRemaining } from '../src/utils/productPricing.ts'
 import type { Product } from '../src/types/index.ts'
 
 function product(partial: Partial<Product> & Pick<Product, 'id' | 'name'>): Product {
@@ -174,5 +175,11 @@ const unconfigured = await deliverContactEmail(
   },
 )
 assert.equal(unconfigured.delivered, false)
+
+assert.deepEqual(resolveCatalogPrice(168, 148), { selling: 148, compare: 168 })
+assert.deepEqual(resolveCatalogPrice(148, 168), { selling: 148, compare: 168 })
+assert.equal(catalogPriceFor({ price: 168, salePrice: 148 }).selling, 148)
+assert.equal(sizeStockRemaining({ M: 2, L: 0 }, 'l'), 0)
+assert.equal(sizeStockRemaining({ M: 2 }, 'S'), null)
 
 console.log('store feature checks passed')

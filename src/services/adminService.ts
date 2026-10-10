@@ -5,10 +5,22 @@ import type { ProductAttributes, SizeChart } from '../types'
 import type { ProductRow } from './mappers'
 import { GLOBAL_SETTINGS_ROW_ID } from './globalSettingsService'
 
-const PRODUCT_COLUMNS =
+const PRODUCT_COLUMNS_BASE =
   'id, created_at, title, slug, description, price, compare_price, category, brand, ' +
   'stock_quantity, featured, rating, image_url, gallery_images, tags, sku, ' +
   'status, gender, sizes, colors, attributes'
+
+const PRODUCT_COLUMNS_WITH_SIZE_STOCK = `${PRODUCT_COLUMNS_BASE}, stock_by_size`
+
+let omitStockBySize = false
+
+function productColumns() {
+  return omitStockBySize ? PRODUCT_COLUMNS_BASE : PRODUCT_COLUMNS_WITH_SIZE_STOCK
+}
+
+function isMissingStockBySize(message?: string) {
+  return Boolean(message && /stock_by_size|schema cache|could not find the/i.test(message))
+}
 
 export type ProductStatus = 'active' | 'draft' | 'archived'
 
@@ -33,6 +45,7 @@ export type AdminProductPayload = {
   colors: { name: string; hex: string }[]
   attributes: ProductAttributes
   sizeChart: SizeChart | null
+  stock_by_size: Record<string, number>
 }
 
 export type AdminWaitlistRow = {
@@ -214,81 +227,98 @@ function isSchemaMismatch(error: unknown): boolean {
   return /column|schema cache|could not find/i.test(message)
 }
 
+function productWriteRow(payload: AdminProductPayload, includeSizeStock: boolean) {
+  const row: Record<string, unknown> = {
+    title: payload.title.trim(),
+    slug: payload.slug.trim().toLowerCase().replace(/\s+/g, '-'),
+    description: payload.description,
+    price: payload.price,
+    compare_price: payload.compare_price,
+    category: payload.category,
+    brand: payload.brand?.trim() || null,
+    stock_quantity: payload.stock_quantity,
+    featured: payload.featured,
+    rating: payload.rating,
+    image_url: payload.image_url.trim(),
+    gallery_images: payload.gallery_images,
+    tags: payload.tags,
+    sku: payload.sku?.trim() || null,
+    status: payload.status,
+    gender: payload.gender,
+    sizes: payload.sizes,
+    colors: payload.colors,
+    attributes: mergeSizeChartIntoAttributes(
+      (payload.attributes ?? {}) as Record<string, unknown>,
+      sizeChartForSave(payload),
+    ),
+  }
+  if (includeSizeStock) {
+    const stockBySize: Record<string, number> = {}
+    for (const size of payload.sizes) {
+      const remaining = payload.stock_by_size?.[size]
+      if (remaining != null && Number.isFinite(remaining) && remaining >= 0) {
+        stockBySize[size] = Math.floor(remaining)
+      }
+    }
+    row.stock_by_size = stockBySize
+  }
+  return row
+}
+
 export async function adminListProducts(): Promise<ProductRow[]> {
   const client = requireClient()
   const { data, error } = await client
     .from('products')
-    .select(PRODUCT_COLUMNS)
+    .select(productColumns())
     .order('created_at', { ascending: false })
     .abortSignal(adminReadSignal())
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    if (!omitStockBySize && isMissingStockBySize(error.message)) {
+      omitStockBySize = true
+      return adminListProducts()
+    }
+    throw new Error(error.message)
+  }
   return ((data ?? []) as unknown) as ProductRow[]
 }
 
 export async function adminCreateProduct(payload: AdminProductPayload): Promise<ProductRow> {
   const client = requireClient()
-  const row = {
-    title: payload.title.trim(),
-    slug: payload.slug.trim().toLowerCase().replace(/\s+/g, '-'),
-    description: payload.description,
-    price: payload.price,
-    compare_price: payload.compare_price,
-    category: payload.category,
-    brand: payload.brand?.trim() || null,
-    stock_quantity: payload.stock_quantity,
-    featured: payload.featured,
-    rating: payload.rating,
-    image_url: payload.image_url.trim(),
-    gallery_images: payload.gallery_images,
-    tags: payload.tags,
-    sku: payload.sku?.trim() || null,
-    status: payload.status,
-    gender: payload.gender,
-    sizes: payload.sizes,
-    colors: payload.colors,
-    attributes: mergeSizeChartIntoAttributes(
-      (payload.attributes ?? {}) as Record<string, unknown>,
-      sizeChartForSave(payload),
-    ),
+  const includeSizeStock = !omitStockBySize
+  const { data, error } = await client
+    .from('products')
+    .insert(productWriteRow(payload, includeSizeStock))
+    .select(productColumns())
+    .single()
+
+  if (error) {
+    if (includeSizeStock && isMissingStockBySize(error.message)) {
+      omitStockBySize = true
+      return adminCreateProduct(payload)
+    }
+    throw new Error(error.message)
   }
-
-  const { data, error } = await client.from('products').insert(row).select(PRODUCT_COLUMNS).single()
-
-  if (error) throw new Error(error.message)
   return data as unknown as ProductRow
 }
 
 export async function adminUpdateProduct(id: string, payload: AdminProductPayload): Promise<ProductRow> {
   const client = requireClient()
-  const row = {
-    title: payload.title.trim(),
-    slug: payload.slug.trim().toLowerCase().replace(/\s+/g, '-'),
-    description: payload.description,
-    price: payload.price,
-    compare_price: payload.compare_price,
-    category: payload.category,
-    brand: payload.brand?.trim() || null,
-    stock_quantity: payload.stock_quantity,
-    featured: payload.featured,
-    rating: payload.rating,
-    image_url: payload.image_url.trim(),
-    gallery_images: payload.gallery_images,
-    tags: payload.tags,
-    sku: payload.sku?.trim() || null,
-    status: payload.status,
-    gender: payload.gender,
-    sizes: payload.sizes,
-    colors: payload.colors,
-    attributes: mergeSizeChartIntoAttributes(
-      (payload.attributes ?? {}) as Record<string, unknown>,
-      sizeChartForSave(payload),
-    ),
+  const includeSizeStock = !omitStockBySize
+  const { data, error } = await client
+    .from('products')
+    .update(productWriteRow(payload, includeSizeStock))
+    .eq('id', id)
+    .select(productColumns())
+    .single()
+
+  if (error) {
+    if (includeSizeStock && isMissingStockBySize(error.message)) {
+      omitStockBySize = true
+      return adminUpdateProduct(id, payload)
+    }
+    throw new Error(error.message)
   }
-
-  const { data, error } = await client.from('products').update(row).eq('id', id).select(PRODUCT_COLUMNS).single()
-
-  if (error) throw new Error(error.message)
   return data as unknown as ProductRow
 }
 

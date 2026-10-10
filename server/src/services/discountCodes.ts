@@ -89,12 +89,18 @@ export async function resolveDiscount(args: {
 export async function recordDiscountRedemption(codeId: string): Promise<void> {
   try {
     const db = requireSupabaseAdmin()
-    const { data, error } = await db.from('discount_codes').select('usage_count').eq('id', codeId).maybeSingle()
-    if (error || !data || data.usage_count == null) return
-    await db
-      .from('discount_codes')
-      .update({ usage_count: Number(data.usage_count) + 1 })
-      .eq('id', codeId)
+    const { data, error } = await db.rpc('increment_discount_usage', { p_code_id: codeId })
+    if (!error) {
+      if (data === false) {
+        console.warn('[discounts] usage limit already reached', { codeId })
+      }
+      return
+    }
+    const fallback = await db.from('discount_codes').select('usage_count, usage_limit').eq('id', codeId).maybeSingle()
+    if (fallback.error || !fallback.data || fallback.data.usage_count == null) return
+    const next = Number(fallback.data.usage_count) + 1
+    if (fallback.data.usage_limit != null && next > Number(fallback.data.usage_limit)) return
+    await db.from('discount_codes').update({ usage_count: next }).eq('id', codeId)
   } catch (error) {
     console.warn('[discounts] usage count was not incremented', {
       codeId,

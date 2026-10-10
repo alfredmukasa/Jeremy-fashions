@@ -1,7 +1,7 @@
 import { emptyAttributesForKind, resolveProductKind } from '../../lib/productCategoryConfig'
 import { emptySizeChart, parseSizeChart } from '../../lib/sizeChart'
 import type { AdminProductPayload } from '../../services/adminService'
-import type { ProductRow } from '../../services/mappers'
+import { parseStockBySize, type ProductRow } from '../../services/mappers'
 import type { Product, ProductAttributes, ProductKind } from '../../types'
 
 function attributesFromRow(raw: unknown, kind: ProductKind): ProductAttributes {
@@ -41,6 +41,7 @@ export function emptyProductPayload(categorySlug: string, productKind: ProductKi
     colors: [{ name: 'Default', hex: '#1a1a1a' }],
     attributes: emptyAttributesForKind(productKind),
     sizeChart: emptySizeChart(productKind),
+    stock_by_size: {},
   }
 }
 
@@ -80,6 +81,7 @@ export function productRowToPayload(row: ProductRow): AdminProductPayload {
     colors: colors.length ? colors : [{ name: 'Default', hex: '#1a1a1a' }],
     attributes: attributesFromRow(row.attributes, kind),
     sizeChart: storedChart ?? emptySizeChart(kind, cleanSizes),
+    stock_by_size: parseStockBySize(row.stock_by_size) ?? {},
   }
 }
 
@@ -106,6 +108,7 @@ export function productPayloadToPreview(form: AdminProductPayload, id = 'preview
     rating: form.rating,
     images,
     stock: form.stock_quantity,
+    stockBySize: Object.keys(form.stock_by_size).length ? form.stock_by_size : undefined,
     tags: form.tags,
     featured: form.featured,
     brand: form.brand || undefined,

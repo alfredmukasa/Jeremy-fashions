@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
+import { afterAuthenticatedSession } from '../../lib/accountAccess'
 import { AUTH_UNAVAILABLE_MESSAGE, friendlyAuthError } from '../../lib/authErrors'
 import { sanitizeNextPath } from '../../lib/authRedirect'
 import { isSupabaseConfigured, supabase } from '../../lib/supabase'
@@ -87,6 +88,9 @@ export default function AuthCallbackPage() {
         window.history.replaceState({}, document.title, `${window.location.pathname}`)
 
         if (cancelled) return
+
+        const blocked = await afterAuthenticatedSession(sessionData.session.user.id)
+        if (blocked) throw blocked
 
         const isRecovery =
           flowType === 'recovery' ||

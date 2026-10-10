@@ -1,5 +1,6 @@
 import { Router } from 'express'
 
+import { STORE_CURRENCY, resolveCatalogPrice } from '../domain/checkoutPricing.js'
 import { supabaseAnon } from '../lib/supabase.js'
 
 /**
@@ -245,7 +246,7 @@ async function productMeta(slug: string): Promise<PageMeta | null> {
   if (!product) return null
 
   const path = `/product/${product.slug}`
-  const price = Number(product.compare_price ?? product.price)
+  const price = resolveCatalogPrice(Number(product.price), product.compare_price).selling
   const images = [product.image_url, ...(product.gallery_images ?? [])].filter(
     (src): src is string => typeof src === 'string' && src.length > 0,
   )
@@ -276,7 +277,7 @@ async function productMeta(slug: string): Promise<PageMeta | null> {
         offers: {
           '@type': 'Offer',
           url: `${SITE_URL}${path}`,
-          priceCurrency: 'USD',
+          priceCurrency: STORE_CURRENCY,
           price: Number.isFinite(price) ? price.toFixed(2) : undefined,
           availability: inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
           itemCondition: 'https://schema.org/NewCondition',

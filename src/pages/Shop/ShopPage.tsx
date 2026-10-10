@@ -9,6 +9,7 @@ import { useUiStore } from '../../store/uiStore'
 import { useWishlistStore } from '../../store/wishlistStore'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { productMatchesQuery } from '../../utils/productSearch'
+import { getSellingPrice } from '../../utils/productPricing'
 import { latestUploadedProducts, sortProducts } from '../../utils/productSort'
 
 import { Container } from '../../components/layout/Container'
@@ -24,7 +25,7 @@ const SHOP_BREADCRUMBS = [
 ]
 
 function effectivePrice(p: Product) {
-  return p.salePrice ?? p.price
+  return getSellingPrice(p.price, p.salePrice)
 }
 
 const defaultFilters: FilterState = {

@@ -4,10 +4,22 @@ import type { Category, Product } from '../types'
 import { rankRecommendedProducts } from '../lib/recommendations'
 import { mapCategoryRow, mapProductRow, type CategoryRow, type ProductRow } from './mappers'
 
-const PRODUCT_COLUMNS =
+const PRODUCT_COLUMNS_BASE =
   'id, created_at, title, slug, description, price, compare_price, category, brand, ' +
   'stock_quantity, featured, rating, image_url, gallery_images, tags, sku, ' +
   'status, gender, sizes, colors, attributes'
+
+const PRODUCT_COLUMNS_WITH_SIZE_STOCK = `${PRODUCT_COLUMNS_BASE}, stock_by_size`
+
+let omitStockBySize = false
+
+function productColumns() {
+  return omitStockBySize ? PRODUCT_COLUMNS_BASE : PRODUCT_COLUMNS_WITH_SIZE_STOCK
+}
+
+function isMissingStockBySize(message?: string) {
+  return Boolean(message && /stock_by_size|schema cache|could not find the/i.test(message))
+}
 
 const CATEGORY_COLUMNS = 'id, name, slug, description, image_url, product_kind'
 const QUERY_RETRIES = 2
@@ -43,6 +55,9 @@ async function runQuery<T>(
     try {
       const { data, error } = await query()
       if (!error) return data
+      if (!omitStockBySize && isMissingStockBySize(error.message)) {
+        omitStockBySize = true
+      }
       lastError = error
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err))
@@ -63,7 +78,7 @@ export async function getProducts(): Promise<Product[]> {
   const data = await runQuery('getProducts', () =>
     client
       .from('products')
-      .select(PRODUCT_COLUMNS)
+      .select(productColumns())
       .eq('status', 'active')
       .order('created_at', { ascending: false }),
   )
@@ -77,7 +92,7 @@ export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
   const data = await runQuery('getFeaturedProducts', () =>
     client
       .from('products')
-      .select(PRODUCT_COLUMNS)
+      .select(productColumns())
       .eq('status', 'active')
       .eq('featured', true)
       .order('rating', { ascending: false })
@@ -95,7 +110,7 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   const data = await runQuery('getProductBySlug', () =>
     client
       .from('products')
-      .select(PRODUCT_COLUMNS)
+      .select(productColumns())
       .eq('slug', slug)
       .eq('status', 'active')
       .limit(1)
@@ -113,7 +128,7 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
       ? await runQuery('getRelatedProducts', () =>
           client
             .from('products')
-            .select(PRODUCT_COLUMNS)
+            .select(productColumns())
             .eq('status', 'active')
             .eq('category', product.category)
             .neq('id', product.id)
@@ -126,7 +141,7 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
       const more = await runQuery('getRelatedProductsFallback', () =>
         client
           .from('products')
-          .select(PRODUCT_COLUMNS)
+          .select(productColumns())
           .eq('status', 'active')
           .neq('id', product.id)
           .order('rating', { ascending: false })

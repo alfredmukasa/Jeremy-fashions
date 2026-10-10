@@ -30,6 +30,7 @@ export type ProductRow = {
   colors: unknown
   attributes?: unknown
   size_chart?: unknown
+  stock_by_size?: unknown
 }
 
 export type CategoryRow = {
@@ -100,6 +101,18 @@ function parseProductKind(raw: string | null | undefined, categorySlug: string):
   return resolveProductKind(categorySlug, raw)
 }
 
+export function parseStockBySize(raw: unknown): Record<string, number> | undefined {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined
+  const out: Record<string, number> = {}
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const size = key.trim()
+    const remaining = Number(value)
+    if (!size || !Number.isFinite(remaining) || remaining < 0) continue
+    out[size] = Math.floor(remaining)
+  }
+  return Object.keys(out).length ? out : undefined
+}
+
 export function mapProductRow(row: ProductRow): Product {
   const gallery = stringArray(row.gallery_images)
   const images = [row.image_url, ...gallery].filter((s): s is string => typeof s === 'string' && s.length > 0)
@@ -122,6 +135,7 @@ export function mapProductRow(row: ProductRow): Product {
     rating: toNumber(row.rating),
     images,
     stock: row.stock_quantity ?? 0,
+    stockBySize: parseStockBySize(row.stock_by_size),
     tags: stringArray(row.tags),
     featured: row.featured ?? false,
     brand: row.brand ?? undefined,

@@ -10,6 +10,7 @@ import {
 import type { Session, User } from '@supabase/supabase-js'
 
 import { ROUTES } from '../constants'
+import { afterAuthenticatedSession } from '../lib/accountAccess'
 import { AUTH_UNAVAILABLE_MESSAGE } from '../lib/authErrors'
 import { getAuthCallbackUrl } from '../lib/authRedirect'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
@@ -82,7 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.auth.signOut()
         setSession(null)
       } else {
-        setSession(cached)
+        const blocked = await afterAuthenticatedSession(userData.user.id)
+        if (cancelled) return
+        setSession(blocked ? null : cached)
       }
       setLoading(false)
     })()
@@ -90,8 +93,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession)
-      if (!cancelled) setLoading(false)
+      void (async () => {
+        if (!nextSession?.user) {
+          if (!cancelled) {
+            setSession(null)
+            setLoading(false)
+          }
+          return
+        }
+        const blocked = await afterAuthenticatedSession(nextSession.user.id)
+        if (cancelled) return
+        setSession(blocked ? null : nextSession)
+        setLoading(false)
+      })()
     })
 
     return () => {
@@ -104,8 +118,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) {
       return { error: new Error(AUTH_UNAVAILABLE_MESSAGE) }
     }
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error ? new Error(error.message) : null }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) return { error: new Error(error.message) }
+    if (data.user) {
+      const blocked = await afterAuthenticatedSession(data.user.id)
+      if (blocked) return { error: blocked }
+    }
+    return { error: null }
   }, [])
 
   const signUp = useCallback(

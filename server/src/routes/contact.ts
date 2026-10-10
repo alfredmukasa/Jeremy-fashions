@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import { Router, type Request, type Response } from 'express'
 
 import { supabaseAdmin, supabaseAnon } from '../lib/supabase.js'
 import {
@@ -33,7 +33,31 @@ async function readConfiguredRecipient(): Promise<string> {
   return resolveConfiguredSupportEmail(contact, storefront)
 }
 
-contactRouter.post('/notify', async (req, res) => {
+async function persistContactMessage(input: {
+  firstName: string
+  lastName: string
+  email: string
+  message: string
+}) {
+  const client = supabaseAdmin ?? supabaseAnon
+  const { error } = await client.from('contact_messages').insert({
+    first_name: input.firstName,
+    last_name: input.lastName,
+    email: input.email,
+    message: input.message,
+    status: 'new',
+  })
+  if (error) {
+    console.error('[contact] persist failed', error.message)
+    throw new Error('CONTACT_SAVE_FAILED')
+  }
+}
+
+async function submitContact(req: Request, res: Response) {
+  if (readField(req.body?.website, 80)) {
+    return res.json({ ok: true, emailed: true })
+  }
+
   const firstName = readField(req.body?.firstName, 80)
   const lastName = readField(req.body?.lastName, 80)
   const email = readField(req.body?.email, 254).toLowerCase()
@@ -41,6 +65,12 @@ contactRouter.post('/notify', async (req, res) => {
 
   if (!firstName || !lastName || !isValidContactEmail(email) || message.length < 10) {
     return res.status(400).json({ error: 'Invalid contact message.' })
+  }
+
+  try {
+    await persistContactMessage({ firstName, lastName, email, message })
+  } catch {
+    return res.status(502).json({ error: 'We could not save your message. Please try again shortly.' })
   }
 
   try {
@@ -54,7 +84,10 @@ contactRouter.post('/notify', async (req, res) => {
     )
     return res.json({ ok: true, emailed: delivery.delivered })
   } catch (error) {
-    console.error('[contact] notify failed', error)
-    return res.status(502).json({ error: 'The message was saved, but email delivery failed.' })
+    console.error('[contact] email failed', error)
+    return res.json({ ok: true, emailed: false })
   }
-})
+}
+
+contactRouter.post('/submit', submitContact)
+contactRouter.post('/notify', submitContact)

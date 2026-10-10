@@ -20,6 +20,7 @@ import { listShippingAddresses } from '../../services/shippingAddressService'
 import { useWishlistStore } from '../../store/wishlistStore'
 import { cn } from '../../utils/cn'
 
+import { AccountOrdersPanel } from '../../components/account/dashboard/AccountOrdersPanel'
 import { AccountSidebar } from '../../components/account/dashboard/AccountSidebar'
 import { ACCOUNT_SECTION_IDS, type AccountSection } from '../../components/account/dashboard/accountSections'
 import { AdminTransferBanner } from '../../components/account/dashboard/AdminTransferBanner'
@@ -28,7 +29,6 @@ import { DashboardSkeleton } from '../../components/account/dashboard/DashboardS
 import { EmptyState } from '../../components/account/dashboard/EmptyState'
 import { LogoutModal } from '../../components/account/dashboard/LogoutModal'
 import { OrderCard } from '../../components/account/dashboard/OrderCard'
-import { OrderHistoryTable } from '../../components/account/dashboard/OrderHistoryTable'
 import { UserProfileCard } from '../../components/account/dashboard/UserProfileCard'
 import { ShippingAddressManager } from '../../components/account/ShippingAddressManager'
 import { Container } from '../../components/layout/Container'
@@ -170,7 +170,7 @@ export default function AccountDashboardPage() {
                 ) : null}
 
                 {activeSection === 'orders' ? (
-                  <OrdersPanel
+                  <AccountOrdersPanel
                     awaitingPayment={awaitingPayment}
                     purchaseHistory={purchaseHistory}
                     isLoading={ordersQuery.isLoading}
@@ -276,18 +276,18 @@ function DashboardPanel({
           </div>
         ) : recentAwaiting.length || recentPurchases.length ? (
           <div className="space-y-8">
-            {recentAwaiting.length ? (
-              <div className="space-y-4">
-                <h3 className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Awaiting payment</h3>
-                {recentAwaiting.map((order) => (
-                  <OrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            ) : null}
             {recentPurchases.length ? (
               <div className="space-y-4">
                 <h3 className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Purchase history</h3>
                 {recentPurchases.map((order) => (
+                  <OrderCard key={order.id} order={order} />
+                ))}
+              </div>
+            ) : null}
+            {recentAwaiting.length ? (
+              <div className="space-y-4">
+                <h3 className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Awaiting payment</h3>
+                {recentAwaiting.map((order) => (
                   <OrderCard key={order.id} order={order} />
                 ))}
               </div>
@@ -353,58 +353,6 @@ function DashboardPanel({
           Sign out
         </Button>
       </section>
-    </div>
-  )
-}
-
-function OrdersPanel({
-  awaitingPayment,
-  purchaseHistory,
-  isLoading,
-  isError,
-}: {
-  awaitingPayment: CustomerOrderDetail[]
-  purchaseHistory: CustomerOrderDetail[]
-  isLoading: boolean
-  isError: boolean
-}) {
-  if (isLoading) {
-    return <p className="text-sm text-neutral-600">Loading your orders…</p>
-  }
-
-  if (isError) {
-    return (
-      <div className="rounded-sm border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">
-        Unable to load your orders right now.
-      </div>
-    )
-  }
-
-  return (
-    <div className="space-y-12">
-      <section aria-labelledby="awaiting-payment-heading" className="space-y-6">
-        <div>
-          <p className="text-[10px] font-medium uppercase tracking-[0.3em] text-neutral-500">Still to pay</p>
-          <h2 id="awaiting-payment-heading" className="mt-2 font-serif text-2xl text-neutral-950 md:text-3xl">
-            Awaiting payment
-          </h2>
-          <p className="mt-2 max-w-xl text-sm text-neutral-600">
-            These orders are not paid yet. Finish payment so they can be prepared.
-          </p>
-        </div>
-        {awaitingPayment.length ? (
-          <div className="space-y-4">
-            {awaitingPayment.map((order) => (
-              <OrderCard key={order.id} order={order} />
-            ))}
-          </div>
-        ) : (
-          <p className="border border-neutral-200 bg-white px-6 py-8 text-sm text-neutral-600">
-            You have no orders waiting for payment.
-          </p>
-        )}
-      </section>
-      <OrderHistoryTable orders={purchaseHistory} />
     </div>
   )
 }

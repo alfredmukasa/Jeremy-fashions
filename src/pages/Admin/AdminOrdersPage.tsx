@@ -16,7 +16,7 @@ import {
   type AdminOrderQueue,
   type OrderSort,
 } from '../../lib/orderOrganization'
-import { normalizePaymentStatus, paymentStatusLabel, readPaymentActivity } from '../../lib/paymentStatus'
+import { normalizePaymentStatus, paymentStatusLabel } from '../../lib/paymentStatus'
 import {
   adminListOrders,
   adminUpdateOrderStatus,
@@ -313,7 +313,6 @@ function AdminOrderRowView({
   onStatusChange: (status: AdminOrderRow['status']) => void
   onMarkShipped: () => void
 }) {
-  const activity = readPaymentActivity(order.payment_metadata).slice(-3).reverse()
   const paidAt =
     typeof order.payment_metadata?.paid_at === 'string' ? order.payment_metadata.paid_at : null
   const refundAmount =
@@ -327,9 +326,6 @@ function AdminOrderRowView({
   const shipping = Number(order.shipping_amount ?? metadata.shipping ?? 0)
   const tax = Number(order.tax_amount ?? metadata.tax ?? 0)
   const discount = Number(order.discount_amount ?? metadata.discount ?? 0)
-  const sessionId =
-    order.stripe_checkout_session_id ||
-    (typeof metadata.stripe_checkout_session_id === 'string' ? metadata.stripe_checkout_session_id : null)
   const shippingLines = addressLines(order.shipping_address)
   const recipient = shippingLines[0] || order.customer_name || '—'
   const items = Array.isArray(order.order_items) ? order.order_items : []
@@ -406,31 +402,6 @@ function AdminOrderRowView({
           ) : null}
         </div>
       </div>
-      <div className="px-4 pb-4 text-xs text-neutral-600">
-        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Stripe activity</p>
-        {order.stripe_payment_intent_id ? (
-          <p className="mt-1 break-all font-mono text-[11px] text-neutral-500">{order.stripe_payment_intent_id}</p>
-        ) : (
-          <p className="mt-1 text-neutral-500">No Stripe payment intent yet</p>
-        )}
-        {activity.length ? (
-          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-            {activity.map((event, index) => (
-              <li key={`${event.type}-${event.at ?? index}`} className="break-words">
-                <span className="font-medium text-neutral-900">{event.type}</span>
-                {event.at ? (
-                  <span className="text-neutral-500">
-                    {' '}
-                    · {new Date(event.at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
-                  </span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-1 text-neutral-500">Waiting for Stripe webhook activity</p>
-        )}
-      </div>
       {open ? (
         <div className="border-t border-neutral-100 bg-neutral-50 px-4 py-4 text-sm text-neutral-700">
           <div className="grid gap-6 lg:grid-cols-3">
@@ -463,7 +434,6 @@ function AdminOrderRowView({
                 <div className="flex justify-between gap-4"><dt>Tax</dt><dd className="tabular-nums">{money(order, tax)}</dd></div>
                 <div className="flex justify-between gap-4 font-medium text-neutral-950"><dt>Total</dt><dd className="tabular-nums">{money(order, Number(order.total_amount))}</dd></div>
               </dl>
-              {sessionId ? <p className="mt-3 break-all font-mono text-[11px] text-neutral-500">{sessionId}</p> : null}
               {metadata.payment_review_required === true ? (
                 <p className="mt-2 text-xs text-amber-800">Stripe amount did not match this order. Payment was not marked paid.</p>
               ) : null}

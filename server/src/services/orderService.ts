@@ -77,16 +77,26 @@ export async function validateCheckoutItems(
   const productIds = [...new Set(items.map((item) => item.productId))]
   const productSelect =
     'id, title, price, compare_price, status, stock_quantity, stock_by_size, sku, sizes'
-  let { data: products, error } = await supabaseAnon.from('products').select(productSelect).in('id', productIds)
-
-  if (error && isMissingColumnError(error)) {
-    const fallback = await supabaseAnon
-      .from('products')
-      .select('id, title, price, compare_price, status, stock_quantity, sku, sizes')
-      .in('id', productIds)
-    products = fallback.data
-    error = fallback.error
-  }
+  const first = await supabaseAnon.from('products').select(productSelect).in('id', productIds)
+  const fallback =
+    first.error && isMissingColumnError(first.error)
+      ? await supabaseAnon
+          .from('products')
+          .select('id, title, price, compare_price, status, stock_quantity, sku, sizes')
+          .in('id', productIds)
+      : first
+  const products = fallback.data as Array<{
+    id: string
+    title: string
+    price: number | string
+    compare_price: number | string | null
+    status: string
+    stock_quantity: number
+    stock_by_size?: unknown
+    sku: string | null
+    sizes: unknown
+  }> | null
+  const error = fallback.error
 
   if (error) {
     throw new CheckoutError('Unable to validate products for checkout.', 500)

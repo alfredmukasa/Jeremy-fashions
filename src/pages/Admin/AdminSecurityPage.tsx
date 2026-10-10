@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
+import { fetchApiHealth } from '../../lib/apiHealth'
 import { adminListAuditLogs } from '../../services/adminService'
 
 export default function AdminSecurityPage() {
@@ -14,6 +15,12 @@ export default function AdminSecurityPage() {
 
 function AdminSecurityContent() {
   const auditQuery = useQuery({ queryKey: ['admin', 'audit-logs'], queryFn: adminListAuditLogs })
+  const healthQuery = useQuery({
+    queryKey: ['admin', 'api-health'],
+    queryFn: fetchApiHealth,
+    staleTime: 60_000,
+  })
+  const health = healthQuery.data
 
   return (
     <div className="space-y-8">
@@ -22,6 +29,25 @@ function AdminSecurityContent() {
         title="Audit log"
         description="Recent privileged actions recorded from the admin panel."
       />
+
+      <section className="border border-neutral-200 bg-white p-5 text-sm text-neutral-700">
+        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Payment API</p>
+        {healthQuery.isLoading ? (
+          <p className="mt-3">Checking payment API health…</p>
+        ) : health ? (
+          <ul className="mt-3 space-y-2">
+            <li>{health.stripeWebhookConfigured ? 'Stripe webhook secret is configured.' : 'Stripe webhook secret is missing. Paid orders may not confirm automatically.'}</li>
+            <li>{health.guestCheckoutAvailable ? 'Guest checkout service role is configured.' : 'Guest checkout needs SUPABASE_SERVICE_ROLE_KEY on the payment API.'}</li>
+            <li>{health.contactEmailConfigured ? 'Contact email delivery is configured.' : 'Contact email delivery is not configured (Resend).'}</li>
+          </ul>
+        ) : (
+          <p className="mt-3">Could not reach the payment API health endpoint.</p>
+        )}
+        <p className="mt-4 text-xs text-neutral-500">
+          Staff sign-in lockout is local to this browser. Real access control is the admin JWT role plus allowed emails.
+          Enable leaked-password protection in the Supabase Auth settings.
+        </p>
+      </section>
 
       <div className="overflow-x-auto border border-neutral-200 bg-white">
         <table className="w-full min-w-[760px] text-left text-sm">

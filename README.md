@@ -38,6 +38,19 @@ Apply `supabase/migrations/0021_checkout_integrity_and_rbac.sql` in the Supabase
 
 Until 0021 is applied, the app falls back: catalog queries omit `stock_by_size`, checkout still charges the lower catalog price, and guest-order claim / blocked-account RPC no-ops.
 
+Then apply `0022_public_schema_hardening.sql`. It removes anonymous INSERT/UPDATE/DELETE/TRUNCATE on every public table, then grants back only:
+
+- `SELECT` on products, categories, site settings, and global settings
+- `INSERT` on waitlist and contact messages
+
+Orders, profiles, discounts, and admin tables are no longer in the anonymous GraphQL schema. Signed-in customers and staff keep their RLS-gated grants.
+
+## Stripe webhooks
+
+Point Stripe at `https://<deployment>/api/webhooks/stripe` and set `STRIPE_WEBHOOK_SECRET`. Until events land, `stripe_webhook_events` stays empty and paid orders may not flip automatically.
+
+Staff login lockout in the admin UI is browser-local. Enable **Leaked password protection** in Supabase Auth → Attack protection.
+
 ## Scripts
 
 ```bash

@@ -13,7 +13,10 @@ import {
   stripeLineDescription,
   toMinorUnits,
   type OrderTotals,
+  type ShippingRates,
 } from '../domain/checkoutPricing.js'
+import { DEFAULT_SHIPPING_RATES } from '../domain/shippingRates.js'
+import { loadShippingRates } from './shippingSettings.js'
 import { sendOrderReceiptIfNeeded } from './confirmationEmail.js'
 import { recordDiscountRedemption, resolveDiscount, type AppliedDiscount } from './discountCodes.js'
 import { requireSupabaseAdmin, supabaseAnon } from '../lib/supabase.js'
@@ -26,6 +29,7 @@ export type ValidatedCheckout = {
   items: CheckoutLineItem[]
   totals: OrderTotals
   discount: AppliedDiscount | null
+  shippingRates: ShippingRates
 }
 
 export type OrderConfirmationItem = {
@@ -61,8 +65,12 @@ export function calculateTotals(
   items: CheckoutLineItem[],
   currency = STORE_CURRENCY,
   discountAmount = 0,
+  shippingRates: ShippingRates = DEFAULT_SHIPPING_RATES,
 ): OrderTotals {
-  return calculateOrderTotals(items, discountAmount, currency)
+  if (currency.trim().toUpperCase() !== STORE_CURRENCY) {
+    throw new CheckoutError('New charges are CAD only.', 400)
+  }
+  return calculateOrderTotals(items, discountAmount, shippingRates)
 }
 
 export async function validateCheckoutItems(
@@ -74,6 +82,7 @@ export async function validateCheckoutItems(
   }
 
   const productIds = [...new Set(items.map((item) => item.productId))]
+  const shippingRatesPromise = loadShippingRates()
   const { data: products, error } = await supabaseAnon
     .from('products')
     .select('id, title, price, compare_price, status, stock_quantity, sku, sizes')
@@ -130,10 +139,12 @@ export async function validateCheckoutItems(
     throw new CheckoutError(discountResult.error, 400)
   }
 
+  const shippingRates = await shippingRatesPromise
   return {
     items: validated,
-    totals: calculateTotals(validated, STORE_CURRENCY, discountResult.applied?.amount ?? 0),
+    totals: calculateTotals(validated, STORE_CURRENCY, discountResult.applied?.amount ?? 0, shippingRates),
     discount: discountResult.applied,
+    shippingRates,
   }
 }
 
@@ -176,6 +187,7 @@ export async function createPendingOrder(
     billingAddress: CheckoutAddress
     billingSameAsShipping: boolean
     discount?: AppliedDiscount | null
+    shippingRates: ShippingRates
   },
 ) {
   const orderNumber = generateOrderNumber()
@@ -198,6 +210,8 @@ export async function createPendingOrder(
       discount_code_id: args.discount?.id ?? null,
       billing_same_as_shipping: args.billingSameAsShipping,
       currency: args.totals.currency,
+      shipping_flat: args.shippingRates.flatRate,
+      shipping_free_threshold: args.shippingRates.freeThreshold,
     },
   }
 
@@ -240,6 +254,7 @@ export async function refreshPendingOrder(
     billingAddress: CheckoutAddress
     billingSameAsShipping: boolean
     discount?: AppliedDiscount | null
+    shippingRates: ShippingRates
   },
 ) {
   const { data: current } = await db.from('orders').select('payment_metadata').eq('id', orderId).maybeSingle()
@@ -267,6 +282,8 @@ export async function refreshPendingOrder(
       discount_code_id: args.discount?.id ?? null,
       billing_same_as_shipping: args.billingSameAsShipping,
       currency: args.totals.currency,
+      shipping_flat: args.shippingRates.flatRate,
+      shipping_free_threshold: args.shippingRates.freeThreshold,
     },
     updated_at: new Date().toISOString(),
   }

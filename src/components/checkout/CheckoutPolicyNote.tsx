@@ -2,7 +2,9 @@ import { Link } from 'react-router-dom'
 import { HiOutlineArrowUturnLeft, HiOutlineTruck } from 'react-icons/hi2'
 
 import { ROUTES } from '../../constants'
+import { useShippingRates } from '../../hooks/useShippingRates'
 import { policyExcerpt, useCheckoutPolicies } from '../../lib/checkoutPolicies'
+import { DEFAULT_SHIPPING_RATES, shippingRateNote } from '../../lib/shippingRates'
 
 type CheckoutPolicyKind = 'shipping' | 'returns'
 
@@ -13,10 +15,12 @@ export function CheckoutPolicyNote({
   kind: CheckoutPolicyKind
   variant?: 'full' | 'note'
 }) {
-  const { shippingBody, returnsBody } = useCheckoutPolicies()
+  const { returnsBody } = useCheckoutPolicies()
+  const shippingRatesQuery = useShippingRates()
   const isShipping = kind === 'shipping'
-  const body = isShipping ? shippingBody : returnsBody
-  const text = variant === 'note' ? policyExcerpt(body) : body
+  const rateNote = shippingRateNote(shippingRatesQuery.data ?? DEFAULT_SHIPPING_RATES)
+  const body = isShipping ? rateNote : returnsBody
+  const text = isShipping ? rateNote : variant === 'note' ? policyExcerpt(body) : body
 
   return (
     <div>
@@ -33,7 +37,9 @@ export function CheckoutPolicyNote({
 
 /** Quiet shipping and returns notes for the bag summary. */
 export function CheckoutAssuranceNotes() {
-  const { shippingBody, returnsBody } = useCheckoutPolicies()
+  const { returnsBody } = useCheckoutPolicies()
+  const shippingRatesQuery = useShippingRates()
+  const rateNote = shippingRateNote(shippingRatesQuery.data ?? DEFAULT_SHIPPING_RATES)
 
   return (
     <div className="mt-6 space-y-4 border-t border-neutral-200 pt-6">
@@ -41,8 +47,7 @@ export function CheckoutAssuranceNotes() {
         <HiOutlineTruck className="mt-0.5 h-4 w-4 shrink-0 text-neutral-500" aria-hidden />
         <div>
           <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-neutral-500">Shipping</p>
-          <p className="mt-1 text-sm leading-relaxed text-neutral-600">{policyExcerpt(shippingBody)}</p>
-          <p className="mt-1 text-xs text-neutral-500">Calculated at checkout.</p>
+          <p className="mt-1 text-sm leading-relaxed text-neutral-600">{rateNote}</p>
           <Link
             to={ROUTES.shipping}
             className="mt-1 inline-block text-[11px] font-medium uppercase tracking-[0.18em] text-neutral-600 underline-offset-4 hover:underline"

@@ -1,9 +1,20 @@
 /** Authoritative checkout math. New charges use these numbers in CAD. Historical orders keep their stored currency. */
 
+import {
+  DEFAULT_SHIPPING_FLAT,
+  DEFAULT_SHIPPING_FREE_THRESHOLD,
+  DEFAULT_SHIPPING_RATES,
+  shippingForMerchandise,
+  type ShippingRates,
+} from './shippingRates.js'
+
 export const STORE_CURRENCY = 'CAD'
-export const SHIPPING_THRESHOLD = 250
-export const SHIPPING_FLAT = 12
+export const SHIPPING_THRESHOLD = DEFAULT_SHIPPING_FREE_THRESHOLD
+export const SHIPPING_FLAT = DEFAULT_SHIPPING_FLAT
 export const TAX_RATE = 0.08
+
+export type { ShippingRates }
+export { DEFAULT_SHIPPING_RATES }
 
 export type DiscountType = 'percentage' | 'fixed'
 
@@ -62,11 +73,11 @@ export function lineMerchandiseTotal(lines: PricedLine[]): number {
 export function calculateOrderTotals(
   lines: PricedLine[],
   discountAmount = 0,
-  currency = STORE_CURRENCY,
+  shippingRates: ShippingRates = DEFAULT_SHIPPING_RATES,
 ): OrderTotals {
   const subtotal = lineMerchandiseTotal(lines)
   const discount = roundMoney(Math.min(Math.max(0, discountAmount), subtotal))
-  const shipping = subtotal >= SHIPPING_THRESHOLD || subtotal === 0 ? 0 : SHIPPING_FLAT
+  const shipping = shippingForMerchandise(subtotal, shippingRates)
   const taxable = roundMoney(Math.max(0, subtotal - discount))
   const tax = roundMoney(taxable * TAX_RATE)
   const total = roundMoney(Math.max(0, taxable + shipping + tax))
@@ -77,8 +88,56 @@ export function calculateOrderTotals(
     tax,
     discount,
     total,
-    currency: currency.trim().toUpperCase() || STORE_CURRENCY,
+    currency: STORE_CURRENCY,
   }
+}
+
+/** Stripe currency for a new charge. Anything other than CAD is refused — amounts are not converted. */
+export function cadChargeCurrency(value: string): 'cad' | null {
+  return value.trim().toLowerCase() === 'cad' ? 'cad' : null
+}
+
+/** Idempotency key is currency-scoped so a previous USD create cannot be replayed as this charge. */
+export function cadPaymentIntentIdempotencyKey(checkoutKey: string, amountMinor: number): string {
+  const suffix = `:cad:${amountMinor}`
+  const trimmed = checkoutKey.trim().slice(0, Math.max(0, 255 - suffix.length))
+  return `${trimmed}${suffix}`
+}
+
+const REUSABLE_PAYMENT_INTENT_STATUSES = new Set([
+  'requires_payment_method',
+  'requires_confirmation',
+  'requires_action',
+])
+
+export type PaymentIntentPlan =
+  | { action: 'reuse' }
+  | { action: 'already_paid' }
+  | { action: 'recreate'; cancel: boolean }
+
+/**
+ * A non-CAD PaymentIntent cannot be updated in place. Reuse only a matching CAD intent;
+ * otherwise cancel the in-progress one and create a new CAD intent.
+ */
+export function planPaymentIntent(input: {
+  status: string
+  amount: number
+  currency: string
+  expectedMinor: number
+}): PaymentIntentPlan {
+  if (input.status === 'succeeded') return { action: 'already_paid' }
+
+  const reusable = canReusePaymentIntent({
+    status: input.status,
+    amount: input.amount,
+    currency: input.currency,
+    expectedMinor: input.expectedMinor,
+    expectedCurrency: STORE_CURRENCY,
+    reusableStatuses: REUSABLE_PAYMENT_INTENT_STATUSES,
+  })
+  if (reusable) return { action: 'reuse' }
+
+  return { action: 'recreate', cancel: input.status !== 'canceled' }
 }
 
 export function evaluateDiscount(

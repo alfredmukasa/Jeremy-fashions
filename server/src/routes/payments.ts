@@ -6,7 +6,15 @@ import { stripe } from '../lib/stripe.js'
 import type { AuthedRequest } from '../middleware/auth.js'
 import { optionalUser } from '../middleware/auth.js'
 import { validateCreatePaymentIntent } from '../middleware/validateCheckout.js'
-import { CHECKOUT_SESSION_PRICING, canReusePaymentIntent, stripeLineDescription, toMinorUnits } from '../domain/checkoutPricing.js'
+import {
+  CHECKOUT_SESSION_PRICING,
+  cadChargeCurrency,
+  cadPaymentIntentIdempotencyKey,
+  planPaymentIntent,
+  stripeLineDescription,
+  toMinorUnits,
+} from '../domain/checkoutPricing.js'
+import { loadShippingRates } from '../services/shippingSettings.js'
 import {
   attachPaymentIntent,
   CheckoutError,
@@ -19,8 +27,6 @@ import {
 import type { CreatePaymentIntentBody } from '../types.js'
 
 export const paymentsRouter = Router()
-
-const REUSABLE_PI_STATUSES = new Set(['requires_payment_method', 'requires_confirmation', 'requires_action'])
 
 function paymentErrorMessage(error: unknown): string {
   if (error instanceof Stripe.errors.StripeError) {
@@ -70,10 +76,14 @@ paymentsRouter.post(
         db = requireSupabaseAdmin()
       }
 
-      const { items, totals, discount } = await validateCheckoutItems(body.items, {
+      const { items, totals, discount, shippingRates } = await validateCheckoutItems(body.items, {
         email: body.email,
         discountCode: body.discountCode,
       })
+      const chargeCurrency = cadChargeCurrency(totals.currency)
+      if (!chargeCurrency) {
+        throw new CheckoutError('Checkout charges are CAD only.', 400)
+      }
       const amountInCents = toMinorUnits(totals.total)
       if (amountInCents < 50) {
         throw new CheckoutError('Order total must be at least $0.50 before payment can start.', 400)
@@ -84,6 +94,23 @@ paymentsRouter.post(
         return res.status(409).json({ error: 'This checkout has already been paid.' })
       }
 
+      let staleIntent: Stripe.PaymentIntent | null = null
+      if (existing?.stripe_payment_intent_id) {
+        try {
+          staleIntent = await stripe.paymentIntents.retrieve(existing.stripe_payment_intent_id)
+          if (staleIntent.status === 'succeeded') {
+            return res.status(409).json({ error: 'This checkout has already been paid.' })
+          }
+        } catch (retrieveError) {
+          console.warn('[payments] stale payment intent; creating a new CAD one', {
+            orderId: existing.id,
+            paymentIntentId: existing.stripe_payment_intent_id,
+            error: retrieveError,
+          })
+          await clearOrderPaymentIntent(db, existing.id)
+        }
+      }
+
       if (existing) {
         await refreshPendingOrder(db, existing.id, {
           items,
@@ -92,6 +119,7 @@ paymentsRouter.post(
           billingAddress: body.billingAddress,
           billingSameAsShipping: body.billingSameAsShipping,
           discount,
+          shippingRates,
         })
       }
 
@@ -100,51 +128,41 @@ paymentsRouter.post(
           ? existing.order_number
           : null
 
-      if (existing?.stripe_payment_intent_id) {
-        try {
-          const paymentIntent = await stripe.paymentIntents.retrieve(existing.stripe_payment_intent_id)
-          if (
-            paymentIntent.client_secret &&
-            canReusePaymentIntent({
-              status: paymentIntent.status,
-              amount: paymentIntent.amount,
-              currency: paymentIntent.currency,
-              expectedMinor: amountInCents,
-              expectedCurrency: totals.currency,
-              reusableStatuses: REUSABLE_PI_STATUSES,
-            })
-          ) {
-            return res.json({
-              orderId: existing.id,
-              orderNumber: existingNumber,
-              clientSecret: paymentIntent.client_secret,
-              paymentIntentId: paymentIntent.id,
-              totals,
-              discount: discount ? { code: discount.code, amount: discount.amount } : null,
-              reused: true,
-            })
-          }
+      if (existing && staleIntent) {
+        const plan = planPaymentIntent({
+          status: staleIntent.status,
+          amount: staleIntent.amount,
+          currency: staleIntent.currency,
+          expectedMinor: amountInCents,
+        })
 
-          if (paymentIntent.status === 'succeeded') {
-            return res.status(409).json({ error: 'This checkout has already been paid.' })
-          }
+        if (plan.action === 'reuse' && staleIntent.client_secret) {
+          return res.json({
+            orderId: existing.id,
+            orderNumber: existingNumber,
+            clientSecret: staleIntent.client_secret,
+            paymentIntentId: staleIntent.id,
+            totals,
+            discount: discount ? { code: discount.code, amount: discount.amount } : null,
+            reused: true,
+          })
+        }
 
-          if (['requires_payment_method', 'requires_confirmation', 'requires_action', 'processing'].includes(paymentIntent.status)) {
-            try {
-              await stripe.paymentIntents.cancel(paymentIntent.id)
-            } catch (cancelError) {
-              console.warn('[payments] unable to cancel stale payment intent', cancelError)
+        if (plan.action === 'already_paid') {
+          return res.status(409).json({ error: 'This checkout has already been paid.' })
+        }
+
+        if (plan.action === 'recreate' && plan.cancel) {
+          try {
+            await stripe.paymentIntents.cancel(staleIntent.id)
+          } catch (cancelError) {
+            console.warn('[payments] unable to cancel non-CAD or stale payment intent', cancelError)
+            if (staleIntent.currency.toLowerCase() !== 'cad') {
+              throw new CheckoutError('Checkout charges are CAD only. The previous payment could not be canceled.', 409)
             }
           }
-          await clearOrderPaymentIntent(db, existing.id)
-        } catch (retrieveError) {
-          console.warn('[payments] stale payment intent; creating a new one', {
-            orderId: existing.id,
-            paymentIntentId: existing.stripe_payment_intent_id,
-            error: retrieveError,
-          })
-          await clearOrderPaymentIntent(db, existing.id)
         }
+        await clearOrderPaymentIntent(db, existing.id)
       }
 
       const order =
@@ -159,6 +177,7 @@ paymentsRouter.post(
           billingAddress: body.billingAddress,
           billingSameAsShipping: body.billingSameAsShipping,
           discount,
+          shippingRates,
         }))
 
       const orderNumber =
@@ -172,8 +191,8 @@ paymentsRouter.post(
       const paymentIntent = await stripe.paymentIntents.create(
         {
           amount: amountInCents,
-          currency: totals.currency.toLowerCase(),
-          // One charge in CAD. Checkout adaptive pricing stays off; this PaymentIntent is the charge.
+          currency: chargeCurrency,
+          // One charge in CAD. Currency cannot be changed on an existing intent. Adaptive pricing stays off.
           automatic_payment_methods: { enabled: true },
           receipt_email: body.email,
           description: stripeLineDescription(items) || `KREWNOX ${orderNumber ?? order.id}`,
@@ -182,15 +201,16 @@ paymentsRouter.post(
             order_number: orderNumber ?? '',
             user_id: user?.id ?? 'guest',
             idempotency_key: body.idempotencyKey,
-            currency: totals.currency.toLowerCase(),
+            currency: chargeCurrency,
             amount_minor: String(amountInCents),
+            shipping_minor: String(toMinorUnits(totals.shipping)),
             discount_minor: String(toMinorUnits(totals.discount)),
             items: lineSummary,
             adaptive_pricing: CHECKOUT_SESSION_PRICING.adaptive_pricing.enabled ? 'enabled' : 'disabled',
           },
         },
         {
-          idempotencyKey: `${body.idempotencyKey}:${amountInCents}`,
+          idempotencyKey: cadPaymentIntentIdempotencyKey(body.idempotencyKey, amountInCents),
         },
       )
 
@@ -222,11 +242,21 @@ paymentsRouter.post(
   },
 )
 
+paymentsRouter.get('/shipping-rates', async (_req, res) => {
+  const rates = await loadShippingRates()
+  return res.json({
+    currency: 'CAD',
+    flatRate: rates.flatRate,
+    freeThreshold: rates.freeThreshold,
+  })
+})
+
 paymentsRouter.post('/quote', async (req, res) => {
   try {
     const items = Array.isArray(req.body?.items) ? req.body.items : []
     const email = typeof req.body?.email === 'string' ? req.body.email.trim().toLowerCase() : ''
     const discountCode = typeof req.body?.discountCode === 'string' ? req.body.discountCode : ''
+    // Shipping is read from admin settings inside validateCheckoutItems. A client shipping price is ignored.
     if (!discountCode.trim()) {
       return res.status(400).json({ error: 'Enter a discount code.' })
     }

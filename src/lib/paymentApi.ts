@@ -1,3 +1,4 @@
+import { DEFAULT_SHIPPING_RATES, parseShippingRates, type ShippingRates } from './shippingRates'
 import type { CheckoutTotals } from '../utils/checkoutTotals'
 
 const API_BASE = (import.meta.env.VITE_PAYMENTS_API_URL as string | undefined)?.replace(/\/$/, '') ?? '/api'
@@ -102,6 +103,17 @@ export async function createPaymentIntent(
   }
 
   return data as CreatePaymentIntentResponse
+}
+
+export async function fetchShippingRates(): Promise<ShippingRates> {
+  try {
+    const response = await fetch(`${API_BASE}/payments/shipping-rates`)
+    if (!response.ok) return { ...DEFAULT_SHIPPING_RATES }
+    const data: unknown = await response.json().catch(() => null)
+    return parseShippingRates(data)
+  } catch {
+    return { ...DEFAULT_SHIPPING_RATES }
+  }
 }
 
 export async function quoteDiscount(

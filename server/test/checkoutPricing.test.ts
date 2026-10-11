@@ -3,17 +3,21 @@ import test from 'node:test'
 
 import {
   STORE_CURRENCY,
+  cadChargeCurrency,
+  cadPaymentIntentIdempotencyKey,
   calculateOrderTotals,
   canReusePaymentIntent,
   canonicalSize,
   compareStripePayment,
   evaluateDiscount,
   normalizeDiscountCode,
+  planPaymentIntent,
   sizeSelectionError,
   stripeLineDescription,
   toMinorUnits,
   type DiscountRule,
 } from '../src/domain/checkoutPricing.ts'
+import { parseShippingRates } from '../src/domain/shippingRates.ts'
 
 const baseRule = (overrides: Partial<DiscountRule> = {}): DiscountRule => ({
   id: 'code-1',
@@ -191,4 +195,83 @@ test('describes checkout lines with size for Stripe', () => {
     stripeLineDescription([{ title: 'Krewnox quarter zip hoodie', size: 'M', quantity: 1 }]),
     'Krewnox quarter zip hoodie · Size M × 1',
   )
+})
+
+test('uses the admin shipping setting once and keeps new totals in CAD', () => {
+  const unset = calculateOrderTotals([{ productId: 'p', quantity: 1, unitPrice: 40 }], 0, parseShippingRates(undefined))
+  assert.equal(unset.shipping, 12)
+  assert.equal(unset.currency, 'CAD')
+  assert.equal(
+    calculateOrderTotals([{ productId: 'p', quantity: 1, unitPrice: 250 }], 0, parseShippingRates(null)).shipping,
+    0,
+  )
+
+  const custom = parseShippingRates({ flatRate: 18, freeThreshold: 100, currency: 'USD' })
+  const under = calculateOrderTotals([{ productId: 'p', quantity: 1, unitPrice: 40 }], 10, custom)
+  assert.equal(under.shipping, 18)
+  assert.equal(under.discount, 10)
+  assert.equal(under.tax, 2.4)
+  assert.equal(under.total, 50.4)
+  assert.equal(under.currency, 'CAD')
+  assert.equal(cadChargeCurrency(under.currency), 'cad')
+  assert.equal(cadChargeCurrency('usd'), null)
+
+  const over = calculateOrderTotals([{ productId: 'p', quantity: 1, unitPrice: 100 }], 0, custom)
+  assert.equal(over.shipping, 0)
+  assert.equal(over.total, 108)
+
+  const alwaysCharged = calculateOrderTotals(
+    [{ productId: 'p', quantity: 1, unitPrice: 500 }],
+    0,
+    parseShippingRates({ flatRate: 9, freeThreshold: null }),
+  )
+  assert.equal(alwaysCharged.shipping, 9)
+  assert.equal(alwaysCharged.currency, 'CAD')
+
+  assert.equal(parseShippingRates({ flatRate: -5, freeThreshold: 10 }).flatRate, 12)
+  assert.equal(parseShippingRates({ flatRate: 4, freeThreshold: -1 }).freeThreshold, 250)
+  assert.equal(calculateOrderTotals([], 0, { flatRate: 20, freeThreshold: null }).shipping, 0)
+})
+
+test('recreates an in-progress USD payment intent instead of reusing it', () => {
+  assert.deepEqual(
+    planPaymentIntent({
+      status: 'requires_payment_method',
+      amount: 1308,
+      currency: 'usd',
+      expectedMinor: 1308,
+    }),
+    { action: 'recreate', cancel: true },
+  )
+  assert.deepEqual(
+    planPaymentIntent({
+      status: 'requires_payment_method',
+      amount: 1308,
+      currency: 'cad',
+      expectedMinor: 1308,
+    }),
+    { action: 'reuse' },
+  )
+  assert.deepEqual(
+    planPaymentIntent({
+      status: 'succeeded',
+      amount: 1308,
+      currency: 'usd',
+      expectedMinor: 1308,
+    }),
+    { action: 'already_paid' },
+  )
+  assert.deepEqual(
+    planPaymentIntent({
+      status: 'canceled',
+      amount: 1308,
+      currency: 'usd',
+      expectedMinor: 1308,
+    }),
+    { action: 'recreate', cancel: false },
+  )
+
+  const key = cadPaymentIntentIdempotencyKey('checkout-key', 5040)
+  assert.equal(key, 'checkout-key:cad:5040')
+  assert.equal(key.includes(':usd'), false)
 })

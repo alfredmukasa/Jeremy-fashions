@@ -5,7 +5,10 @@ import { CheckoutLineOptions } from '../../components/checkout/CheckoutLineOptio
 import { CompleteTheSet } from '../../components/checkout/CompleteTheSet'
 import { ROUTES } from '../../constants'
 import { useProducts } from '../../hooks/useCatalog'
+import { useShippingRates } from '../../hooks/useShippingRates'
+import { DEFAULT_SHIPPING_RATES } from '../../lib/shippingRates'
 import { useCartStore } from '../../store/cartStore'
+import { calculateCheckoutTotals } from '../../utils/checkoutTotals'
 import { formatPrice } from '../../utils/formatPrice'
 
 import { Button } from '../../components/common/Button'
@@ -18,6 +21,11 @@ export default function CartPage() {
   const removeLine = useCartStore((s) => s.removeLine)
   const subtotal = useCartStore((s) => s.subtotal())
   const { data: products } = useProducts()
+  const shippingRatesQuery = useShippingRates()
+  const shippingRates = shippingRatesQuery.data ?? DEFAULT_SHIPPING_RATES
+  const totals = calculateCheckoutTotals(subtotal, 0, shippingRates)
+  const shippingKnown = shippingRatesQuery.isFetched
+  const price = (amount: number) => formatPrice(amount, 'CAD')
 
   return (
     <div className="pb-24">
@@ -67,7 +75,7 @@ export default function CartPage() {
                           />
                         </div>
                         <p className="text-sm font-medium tabular-nums text-neutral-950">
-                          {formatPrice(unit * line.quantity)}
+                          {price(unit * line.quantity)}
                         </p>
                       </div>
                       <div className="mt-6 flex flex-wrap items-center gap-4">
@@ -109,11 +117,17 @@ export default function CartPage() {
               <div className="mt-6 space-y-3 text-sm">
                 <div className="flex justify-between text-neutral-600">
                   <span>Subtotal</span>
-                  <span className="tabular-nums text-neutral-900">{formatPrice(subtotal)}</span>
+                  <span className="tabular-nums text-neutral-900">{price(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-neutral-600">
                   <span>Shipping</span>
-                  <span className="text-neutral-500">At checkout</span>
+                  <span className="tabular-nums text-neutral-900">
+                    {shippingKnown ? (totals.shipping === 0 ? 'Complimentary' : price(totals.shipping)) : '…'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-neutral-600">
+                  <span>Estimated tax</span>
+                  <span className="tabular-nums text-neutral-900">{price(totals.tax)}</span>
                 </div>
               </div>
               <CheckoutAssuranceNotes />
@@ -122,7 +136,7 @@ export default function CartPage() {
               </p>
               <div className="flex items-center justify-between text-base font-medium">
                 <span>Total</span>
-                <span className="tabular-nums">{formatPrice(subtotal)}</span>
+                <span className="tabular-nums">{shippingKnown ? price(totals.total) : price(subtotal + totals.tax)}</span>
               </div>
               <Link to={ROUTES.checkout} className="mt-8 block">
                 <Button className="w-full">Proceed to checkout</Button>

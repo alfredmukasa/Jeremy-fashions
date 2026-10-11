@@ -1,5 +1,13 @@
-export const CHECKOUT_SHIPPING_THRESHOLD = 250
-export const CHECKOUT_SHIPPING_FLAT = 12
+import {
+  DEFAULT_SHIPPING_FLAT,
+  DEFAULT_SHIPPING_FREE_THRESHOLD,
+  DEFAULT_SHIPPING_RATES,
+  shippingForMerchandise,
+  type ShippingRates,
+} from '../lib/shippingRates'
+
+export const CHECKOUT_SHIPPING_THRESHOLD = DEFAULT_SHIPPING_FREE_THRESHOLD
+export const CHECKOUT_SHIPPING_FLAT = DEFAULT_SHIPPING_FLAT
 export const CHECKOUT_TAX_RATE = 0.08
 
 export type CheckoutTotals = {
@@ -14,10 +22,14 @@ function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100
 }
 
-/** Preview only. The payment server recalculates the same formula before charging. */
-export function calculateCheckoutTotals(subtotal: number, discountAmount = 0): CheckoutTotals {
+/** Preview only. The payment server recalculates the same formula from admin settings before charging. */
+export function calculateCheckoutTotals(
+  subtotal: number,
+  discountAmount = 0,
+  shippingRates: ShippingRates = DEFAULT_SHIPPING_RATES,
+): CheckoutTotals {
   const discount = roundMoney(Math.min(Math.max(0, discountAmount), subtotal))
-  const shipping = subtotal >= CHECKOUT_SHIPPING_THRESHOLD || subtotal === 0 ? 0 : CHECKOUT_SHIPPING_FLAT
+  const shipping = shippingForMerchandise(subtotal, shippingRates)
   const taxable = roundMoney(Math.max(0, subtotal - discount))
   const tax = roundMoney(taxable * CHECKOUT_TAX_RATE)
   const total = roundMoney(Math.max(0, taxable + shipping + tax))

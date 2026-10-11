@@ -16,6 +16,8 @@ import { getStripe, isStripeConfigured } from '../../lib/stripe'
 import { useProducts } from '../../hooks/useCatalog'
 import { listShippingAddresses } from '../../services/shippingAddressService'
 import { useCartStore } from '../../store/cartStore'
+import { useShippingRates } from '../../hooks/useShippingRates'
+import { DEFAULT_SHIPPING_RATES } from '../../lib/shippingRates'
 import { calculateCheckoutTotals } from '../../utils/checkoutTotals'
 import { formatPrice } from '../../utils/formatPrice'
 import type { ShippingAddress } from '../../types'
@@ -97,7 +99,12 @@ export default function CheckoutPage() {
   const [appliedQuote, setAppliedQuote] = useState<CheckoutQuote | null>(null)
   const [discountError, setDiscountError] = useState<string | null>(null)
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false)
-  const previewTotals = useMemo(() => calculateCheckoutTotals(subtotal), [subtotal])
+  const shippingRatesQuery = useShippingRates()
+  const shippingRates = shippingRatesQuery.data ?? DEFAULT_SHIPPING_RATES
+  const previewTotals = useMemo(
+    () => calculateCheckoutTotals(subtotal, 0, shippingRates),
+    [shippingRates, subtotal],
+  )
   const totals = appliedQuote?.totals ?? previewTotals
   const currency = appliedQuote?.totals.currency ?? 'CAD'
   const stripePromise = useMemo(() => getStripe(), [])

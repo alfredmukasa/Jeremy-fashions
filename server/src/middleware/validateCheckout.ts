@@ -24,6 +24,11 @@ export function validateCreatePaymentIntent(req: AuthedRequest, res: Response, n
       throw new CheckoutError('At least one cart item is required.', 400)
     }
 
+    const requestedCurrency = typeof body.currency === 'string' ? body.currency.trim().toLowerCase() : ''
+    if (requestedCurrency && requestedCurrency !== 'cad') {
+      throw new CheckoutError('Checkout charges are CAD only.', 400)
+    }
+
     const shippingAddress = parseAddress(body.shippingAddress, 'shipping')
     const billingAddress = body.billingSameAsShipping
       ? shippingAddress

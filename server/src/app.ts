@@ -13,6 +13,12 @@ import { webhooksRouter } from './routes/webhooks.js'
 
 const app = express()
 
+if (!config.stripeWebhookSecret) {
+  console.warn(
+    '[webhooks] STRIPE_WEBHOOK_SECRET is not set. Stripe cannot deliver payment events to /api/webhooks/stripe. A receipt is still emailed once when the server marks the order paid.',
+  )
+}
+
 app.set('trust proxy', 1) // behind Vercel's proxy — needed for express-rate-limit to key by real client IP
 
 // Modest budget for the bot-prerender path: each hit does a DB read, and legitimate

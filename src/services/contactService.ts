@@ -1,8 +1,10 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { ContactMessageInput } from '../types'
 
+export type ContactEmailStatus = 'sent' | 'unconfigured' | 'failed' | 'unknown'
+
 export type ContactResult =
-  | { ok: true; emailed: boolean }
+  | { ok: true; emailed: boolean; emailStatus: ContactEmailStatus }
   | { ok: false; reason: 'invalid' | 'unknown'; message: string }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -63,9 +65,9 @@ export async function submitContactMessage(entry: ContactMessageInput): Promise<
     }
   }
 
-  const emailed = await notifyContactRecipient({ firstName, lastName, email, message })
+  const delivery = await notifyContactRecipient({ firstName, lastName, email, message })
 
-  return { ok: true, emailed }
+  return { ok: true, emailed: delivery.emailed, emailStatus: delivery.emailStatus }
 }
 
 const API_BASE = (import.meta.env.VITE_PAYMENTS_API_URL as string | undefined)?.replace(/\/$/, '') ?? '/api'
@@ -75,21 +77,24 @@ async function notifyContactRecipient(entry: {
   lastName: string
   email: string
   message: string
-}) {
+}): Promise<{ emailed: boolean; emailStatus: ContactEmailStatus }> {
   try {
     const response = await fetch(`${API_BASE}/contact/notify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(entry),
     })
-    const body = (await response.json().catch(() => ({}))) as { emailed?: boolean }
+    const body = (await response.json().catch(() => ({}))) as { emailed?: boolean; emailStatus?: ContactEmailStatus }
     if (!response.ok) {
       console.error('[contactService.notifyContactRecipient]', response.status)
-      return false
+      return { emailed: false, emailStatus: body.emailStatus === 'failed' ? 'failed' : 'unknown' }
     }
-    return body.emailed === true
+    if (body.emailed === true) {
+      return { emailed: true, emailStatus: 'sent' }
+    }
+    return { emailed: false, emailStatus: body.emailStatus === 'unconfigured' ? 'unconfigured' : 'unknown' }
   } catch (error) {
     console.error('[contactService.notifyContactRecipient]', error)
-    return false
+    return { emailed: false, emailStatus: 'unknown' }
   }
 }

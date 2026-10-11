@@ -3,6 +3,7 @@ import { Router } from 'express'
 import { stripe } from '../lib/stripe.js'
 import type { AuthedRequest } from '../middleware/auth.js'
 import { optionalUser } from '../middleware/auth.js'
+import { sendOrderReceiptIfNeeded } from '../services/confirmationEmail.js'
 import { getOrderConfirmation, syncOrderFromPaymentIntent } from '../services/orderService.js'
 import { requireSupabaseAdmin } from '../lib/supabase.js'
 
@@ -62,7 +63,11 @@ async function syncPendingPaymentFromStripe(orderId: string) {
     .maybeSingle()
 
   if (error || !data?.stripe_payment_intent_id) return
-  if (data.payment_status === 'paid' || data.payment_status === 'refunded') return
+  if (data.payment_status === 'paid') {
+    await sendOrderReceiptIfNeeded(orderId)
+    return
+  }
+  if (data.payment_status === 'refunded' || data.payment_status === 'partial_refund') return
 
   try {
     const paymentIntent = await stripe.paymentIntents.retrieve(data.stripe_payment_intent_id)

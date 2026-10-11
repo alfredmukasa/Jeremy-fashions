@@ -52,9 +52,17 @@ contactRouter.post('/notify', async (req, res) => {
         resendFrom: process.env.RESEND_FROM_EMAIL?.trim(),
       },
     )
-    return res.json({ ok: true, emailed: delivery.delivered })
+    return res.json({
+      ok: true,
+      emailed: delivery.delivered,
+      emailStatus: delivery.delivered ? 'sent' : 'unconfigured',
+    })
   } catch (error) {
     console.error('[contact] notify failed', error)
-    return res.status(502).json({ error: 'The message was saved, but email delivery failed.' })
+    return res.status(502).json({
+      error: 'The message was saved, but email delivery failed.',
+      emailed: false,
+      emailStatus: 'failed',
+    })
   }
 })

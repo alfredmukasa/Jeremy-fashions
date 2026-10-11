@@ -18,7 +18,12 @@ import {
 export const webhooksRouter = Router()
 
 webhooksRouter.post('/stripe', async (req, res) => {
+  // STRIPE_WEBHOOK_SECRET is the signing secret for the endpoint
+  // https://krewnox.ca/api/webhooks/stripe. Without it Stripe cannot push payment
+  // events. Receipts are still sent once from markOrderPaidFromIntent, which the
+  // order-status sync calls after it retrieves a succeeded PaymentIntent.
   if (!config.stripeWebhookSecret) {
+    console.warn('[webhooks] STRIPE_WEBHOOK_SECRET is not set; Stripe payment events are rejected.')
     return res.status(503).json({ error: 'Stripe webhook secret is not configured.' })
   }
 

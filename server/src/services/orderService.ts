@@ -14,7 +14,7 @@ import {
   toMinorUnits,
   type OrderTotals,
 } from '../domain/checkoutPricing.js'
-import { recordConfirmationEmailIfNeeded } from './confirmationEmail.js'
+import { sendOrderReceiptIfNeeded } from './confirmationEmail.js'
 import { recordDiscountRedemption, resolveDiscount, type AppliedDiscount } from './discountCodes.js'
 import { requireSupabaseAdmin, supabaseAnon } from '../lib/supabase.js'
 import type { CheckoutAddress, CheckoutLineItem } from '../types.js'
@@ -626,6 +626,9 @@ export async function markOrderPaidFromIntent(paymentIntent: Stripe.PaymentInten
   if (!existing) return null
 
   if (paymentSettled(existing.payment_status)) {
+    if (existing.payment_status === 'paid') {
+      await sendOrderReceiptIfNeeded(existing.id)
+    }
     return existing
   }
   if (alreadyProcessedEvent(existing, eventId) && existing.payment_status === 'paid') {
@@ -711,22 +714,7 @@ export async function markOrderPaidFromIntent(paymentIntent: Stripe.PaymentInten
   }
 
   if (paidRow) {
-    await recordConfirmationEmailIfNeeded(
-      {
-        id: existing.id,
-        email: String((paidRow as { email?: string }).email ?? existing.email ?? ''),
-        orderNumber: String(
-          (paidRow as { order_number?: string | null }).order_number ??
-            existing.order_number ??
-            existing.id.slice(0, 8).toUpperCase(),
-        ),
-        confirmationEmailSentAt:
-          (paidRow as { confirmation_email_sent_at?: string | null }).confirmation_email_sent_at ??
-          existing.confirmation_email_sent_at ??
-          null,
-      },
-      paymentIntent,
-    )
+    await sendOrderReceiptIfNeeded(existing.id)
   }
 
   return paidRow ?? existing

@@ -7,7 +7,7 @@ import toast from 'react-hot-toast'
 
 import { useAuth } from '../../context/AuthContext'
 import { useSupportEmail } from '../../hooks/usePublicSiteContent'
-import { submitContactMessage } from '../../services/contactService'
+import { submitContactMessage, type ContactEmailStatus } from '../../services/contactService'
 
 import { Button } from '../../components/common/Button'
 import { Container } from '../../components/layout/Container'
@@ -33,6 +33,19 @@ function FieldError({ message }: { message?: string }) {
   return <p className="text-xs text-rose-600">{message}</p>
 }
 
+function contactSuccessCopy(emailStatus: ContactEmailStatus): string {
+  if (emailStatus === 'sent') {
+    return 'Thank you. Your message is saved and emailed to our support team. We will reply to the email you provided.'
+  }
+  if (emailStatus === 'unconfigured') {
+    return 'Thank you. Your message is saved in our inbox. Email delivery is not configured yet, so this note was not sent by email.'
+  }
+  if (emailStatus === 'failed') {
+    return 'Thank you. Your message is saved in our inbox. The email copy was not accepted, so a reply may take longer.'
+  }
+  return 'Thank you. Your message is saved in our inbox. Email delivery could not be confirmed.'
+}
+
 function splitFullName(fullName: unknown): { firstName: string; lastName: string } {
   if (typeof fullName !== 'string' || !fullName.trim()) {
     return { firstName: '', lastName: '' }
@@ -48,7 +61,7 @@ export default function ContactPage() {
   const { user } = useAuth()
   const supportEmail = useSupportEmail()
   const [sent, setSent] = useState(false)
-  const [emailed, setEmailed] = useState(false)
+  const [emailStatus, setEmailStatus] = useState<ContactEmailStatus>('unknown')
   const defaults = useMemo(() => {
     const names = splitFullName(user?.user_metadata?.full_name)
     return {
@@ -81,7 +94,7 @@ export default function ContactPage() {
 
   async function onSubmit(values: ContactFormValues) {
     if (values.website?.trim()) {
-      setEmailed(true)
+      setEmailStatus('sent')
       setSent(true)
       toast.success('Message sent. We will get back to you soon.')
       return
@@ -100,11 +113,15 @@ export default function ContactPage() {
     }
 
     setSent(true)
-    setEmailed(result.emailed)
-    if (result.emailed) {
-      toast.success('Message sent. We will get back to you soon.')
+    setEmailStatus(result.emailStatus)
+    if (result.emailStatus === 'sent') {
+      toast.success('Message saved and emailed to support.')
+    } else if (result.emailStatus === 'unconfigured') {
+      toast.success('Message saved. Email delivery is not configured yet.')
+    } else if (result.emailStatus === 'failed') {
+      toast.success('Message saved. The email copy was not accepted.')
     } else {
-      toast.success('Message saved. Email delivery is not confirmed yet.')
+      toast.success('Message saved. Email delivery could not be confirmed.')
     }
   }
 
@@ -165,11 +182,7 @@ export default function ContactPage() {
             {sent ? (
               <div className="space-y-5">
                 <h2 className="font-serif text-2xl text-[var(--text-primary)]">Message received</h2>
-                <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
-                  {emailed
-                    ? 'Thank you. We have your note and will reply to the email you provided.'
-                    : 'Thank you. Your message is in our inbox. Email delivery could not be confirmed, so a reply may take longer.'}
-                </p>
+                <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{contactSuccessCopy(emailStatus)}</p>
                 <Button
                   type="button"
                   variant="outline"

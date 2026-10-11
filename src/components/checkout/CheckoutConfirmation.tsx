@@ -51,7 +51,9 @@ export function CheckoutConfirmation({ orderId, email, isSignedIn, accessToken }
 
   const body =
     paymentStatus === 'paid'
-      ? `Payment is confirmed. A receipt will be sent to ${order?.email ?? email}.`
+      ? order?.confirmationEmailSent
+        ? `Payment is confirmed. A receipt was sent to ${order.email}.`
+        : `Payment is confirmed. A receipt has not been emailed yet to ${order?.email ?? email}.`
       : paymentStatus === 'failed'
         ? 'Your card was not charged for this attempt. You can return to checkout and try again.'
         : waitingTooLong

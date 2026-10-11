@@ -552,10 +552,7 @@ function CheckoutGrid(props: {
             </section>
 
             <section>
-              <h2 className="text-xs font-semibold uppercase tracking-[0.25em] text-neutral-900">Returns</h2>
-              <div className="mt-3">
-                <CheckoutPolicyNote kind="returns" />
-              </div>
+              <CheckoutPolicyNote kind="returns" />
             </section>
 
             <section>

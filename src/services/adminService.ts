@@ -1,4 +1,4 @@
-import { orderInQueue } from '../lib/orderOrganization'
+import { attachCustomerNames, orderInQueue } from '../lib/orderOrganization'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import { mergeSizeChartIntoAttributes, sizeChartHasMeasurements } from '../lib/sizeChart'
 import type { ProductAttributes, SizeChart } from '../types'
@@ -507,7 +507,7 @@ export async function adminListOrders(): Promise<AdminOrderRow[]> {
   if (!rows) throw new Error(lastError)
 
   const userIds = [...new Set(rows.map((order) => order.user_id).filter((id): id is string => Boolean(id)))]
-  if (userIds.length === 0) return rows
+  if (userIds.length === 0) return attachCustomerNames(rows, new Map())
 
   const names = new Map<string, string | null>()
   for (let index = 0; index < userIds.length; index += PROFILE_ID_CHUNK) {
@@ -518,10 +518,7 @@ export async function adminListOrders(): Promise<AdminOrderRow[]> {
       names.set(profile.id as string, profile.full_name as string | null)
     }
   }
-  return rows.map((order) => ({
-    ...order,
-    customer_name: order.user_id ? names.get(order.user_id) ?? null : null,
-  }))
+  return attachCustomerNames(rows, names)
 }
 
 export async function adminUpdateOrderStatus(id: string, status: AdminOrderRow['status']): Promise<void> {

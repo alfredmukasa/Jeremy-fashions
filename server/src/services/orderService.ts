@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import type Stripe from 'stripe'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+import { orderStatusLookup } from '../domain/orderLookup.js'
 import {
   STORE_CURRENCY,
   calculateOrderTotals,
@@ -911,6 +912,9 @@ export async function getOrderConfirmation(args: {
   email?: string
   userId?: string
 }): Promise<OrderConfirmation | null> {
+  const lookup = orderStatusLookup(args.orderId)
+  if (!lookup) return null
+
   const supabaseAdmin = requireSupabaseAdmin()
   const select = `
     id,
@@ -948,9 +952,9 @@ export async function getOrderConfirmation(args: {
     order_items ( title, quantity, unit_price )
   `
 
-  let { data, error } = await supabaseAdmin.from('orders').select(select).eq('id', args.orderId).maybeSingle()
+  let { data, error } = await supabaseAdmin.from('orders').select(select).eq(lookup.column, lookup.value).maybeSingle()
   if (error && isMissingColumnError(error)) {
-    const fallback = await supabaseAdmin.from('orders').select(fallbackSelect).eq('id', args.orderId).maybeSingle()
+    const fallback = await supabaseAdmin.from('orders').select(fallbackSelect).eq(lookup.column, lookup.value).maybeSingle()
     data = fallback.data as typeof data
     error = fallback.error
   }

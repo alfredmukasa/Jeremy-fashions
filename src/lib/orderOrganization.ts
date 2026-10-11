@@ -87,9 +87,13 @@ type OrganizableOrder = {
   payment_status: string
   created_at: string
   updated_at?: string | null
+  user_id?: string | null
 }
 
-/** Every order in the queue, newest or oldest. Never a short slice of the match set. */
+/**
+ * Every order in the queue, newest or oldest. Never a short slice of the match set.
+ * A null user id is a guest checkout and uses the same payment rules as an account order.
+ */
 export function organizeAdminOrders<T extends OrganizableOrder>(
   orders: readonly T[],
   queue: AdminOrderQueue,
@@ -111,6 +115,17 @@ export function organizeAdminOrders<T extends OrganizableOrder>(
 export function orderLineItems<T>(items: readonly T[] | null | undefined): T[] {
   if (!Array.isArray(items) || items.length === 0) return []
   return [...items]
+}
+
+/** Guest rows have no profile. Keep every order and only fill names we actually loaded. */
+export function attachCustomerNames<T extends { user_id?: string | null }>(
+  orders: readonly T[],
+  names: ReadonlyMap<string, string | null>,
+): Array<T & { customer_name: string | null }> {
+  return orders.map((order) => ({
+    ...order,
+    customer_name: order.user_id ? names.get(order.user_id) ?? null : null,
+  }))
 }
 
 /** Update one order's fulfillment and leave every other order in the list. */

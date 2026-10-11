@@ -31,7 +31,8 @@ export function CheckoutConfirmation({ orderId, email, isSignedIn, accessToken }
     queryFn: () => getOrderConfirmation(orderId, email, accessToken),
     refetchInterval: (query) => {
       const status = query.state.data?.paymentStatus
-      if (!status || status === 'paid' || status === 'failed' || status === 'refunded') return false
+      if (status === 'paid' || status === 'failed' || status === 'refunded') return false
+      if (startedAt.data && Date.now() - startedAt.data > 120_000) return false
       return 2000
     },
   })

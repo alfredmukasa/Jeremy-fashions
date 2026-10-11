@@ -8,6 +8,7 @@ import { z } from 'zod'
 import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
+import { checkoutReturnOrderId, clearCheckoutHandoff, readCheckoutHandoff, rememberCheckoutHandoff } from '../../lib/checkoutReturn'
 import { useAuth } from '../../context/AuthContext'
 import { findCountryByCode, getRegionOptions } from '../../lib/countryRegionData'
 import { detectLocation } from '../../lib/geolocation'
@@ -223,10 +224,9 @@ export default function CheckoutPage() {
     const redirectStatus = searchParams.get('redirect_status')
     if (!paymentIntentId || !redirectStatus) return
 
-    const storedOrderId = sessionStorage.getItem('krewnox-checkout-order-id')
-    const storedEmail = sessionStorage.getItem('krewnox-checkout-email')
-    if (storedEmail) {
-      setValue('email', storedEmail)
+    const handoff = readCheckoutHandoff()
+    if (handoff.email) {
+      setValue('email', handoff.email)
     }
 
     if (redirectStatus === 'failed') {
@@ -235,11 +235,15 @@ export default function CheckoutPage() {
       return
     }
 
+    const resolvedOrderId = checkoutReturnOrderId({
+      orderFromUrl: searchParams.get('order'),
+      storedOrderId: handoff.orderId,
+      paymentIntentId,
+    })
     clearCart()
-    setOrderId(storedOrderId ?? paymentIntentId)
+    if (resolvedOrderId) setOrderId(resolvedOrderId)
     setStep('confirmation')
-    sessionStorage.removeItem('krewnox-checkout-order-id')
-    sessionStorage.removeItem('krewnox-checkout-email')
+    clearCheckoutHandoff()
     setSearchParams({}, { replace: true })
   }, [clearCart, searchParams, setSearchParams, setValue])
 
@@ -328,8 +332,7 @@ export default function CheckoutPage() {
           discount: response.discount ?? null,
         })
       }
-      sessionStorage.setItem('krewnox-checkout-order-id', response.orderId)
-      sessionStorage.setItem('krewnox-checkout-email', values.email)
+      rememberCheckoutHandoff(response.orderId, values.email)
       setStep('payment')
     } catch (error) {
       const message =
@@ -392,7 +395,6 @@ export default function CheckoutPage() {
 
   function handlePaymentSuccess() {
     clearCart()
-    sessionStorage.removeItem('krewnox-checkout-order-id')
     setStep('confirmation')
     toast.success('Payment submitted. Confirming with Stripe…')
   }
@@ -402,7 +404,9 @@ export default function CheckoutPage() {
     toast.error(message)
   }
 
-  const returnUrl = `${window.location.origin}${ROUTES.checkout}?status=return`
+  const returnUrl = orderId
+    ? `${window.location.origin}${ROUTES.checkout}?status=return&order=${encodeURIComponent(orderId)}`
+    : `${window.location.origin}${ROUTES.checkout}?status=return`
 
   return (
     <div className="pb-24">

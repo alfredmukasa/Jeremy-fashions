@@ -1,5 +1,6 @@
 import { Router } from 'express'
 
+import { orderStatusLookup } from '../domain/orderLookup.js'
 import { stripe } from '../lib/stripe.js'
 import type { AuthedRequest } from '../middleware/auth.js'
 import { optionalUser } from '../middleware/auth.js'
@@ -54,17 +55,20 @@ ordersRouter.get('/:id/status', optionalUser, async (req, res) => {
   }
 })
 
-async function syncPendingPaymentFromStripe(orderId: string) {
+async function syncPendingPaymentFromStripe(rawId: string) {
+  const lookup = orderStatusLookup(rawId)
+  if (!lookup) return
+
   const db = requireSupabaseAdmin()
   const { data, error } = await db
     .from('orders')
-    .select('stripe_payment_intent_id, payment_status')
-    .eq('id', orderId)
+    .select('id, stripe_payment_intent_id, payment_status')
+    .eq(lookup.column, lookup.value)
     .maybeSingle()
 
-  if (error || !data?.stripe_payment_intent_id) return
+  if (error || !data?.id || !data.stripe_payment_intent_id) return
   if (data.payment_status === 'paid') {
-    await sendOrderReceiptIfNeeded(orderId)
+    await sendOrderReceiptIfNeeded(data.id)
     return
   }
   if (data.payment_status === 'refunded' || data.payment_status === 'partial_refund') return

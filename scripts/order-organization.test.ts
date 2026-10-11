@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   applyOrderFulfillment,
+  attachCustomerNames,
   canMarkOrderShipped,
   customerAwaitingPayment,
   showCustomerFulfillmentBadge,
@@ -100,6 +101,52 @@ test('paid queue keeps every unshipped paid order, newest first, including after
   assert.deepEqual(
     organizeAdminOrders(afterShip, 'completed', 'newest').map((order) => order.id),
     ['newest', 'shipped'],
+  )
+})
+
+test('paid queue includes a guest checkout and a signed-in paid order, and leaves an unpaid guest out', () => {
+  const orders = [
+    {
+      id: 'guest-paid',
+      user_id: null,
+      status: 'processing',
+      payment_status: 'paid',
+      created_at: '2026-10-11T19:30:00.000Z',
+      updated_at: '2026-10-11T19:30:00.000Z',
+    },
+    {
+      id: 'account-paid',
+      user_id: 'acct-1',
+      status: 'pending',
+      payment_status: 'paid',
+      created_at: '2026-10-11T19:00:00.000Z',
+      updated_at: '2026-10-11T19:00:00.000Z',
+    },
+    {
+      id: 'guest-unpaid',
+      user_id: null,
+      status: 'pending',
+      payment_status: 'unpaid',
+      created_at: '2026-10-11T19:40:00.000Z',
+      updated_at: '2026-10-11T19:40:00.000Z',
+    },
+  ]
+
+  assert.deepEqual(
+    organizeAdminOrders(orders, 'paid', 'newest').map((order) => order.id),
+    ['guest-paid', 'account-paid'],
+  )
+
+  const named = attachCustomerNames(orders, new Map([['acct-1', 'Signed In']]))
+  assert.equal(named.find((order) => order.id === 'guest-paid')?.customer_name, null)
+  assert.equal(named.find((order) => order.id === 'account-paid')?.customer_name, 'Signed In')
+  assert.equal(named.length, orders.length)
+
+  const afterShip = applyOrderFulfillment(orders, 'account-paid', 'shipped', '2026-10-11T20:00:00.000Z')
+  assert.equal(afterShip.length, orders.length)
+  assert.deepEqual(
+    organizeAdminOrders(afterShip, 'paid', 'newest').map((order) => order.id),
+    ['guest-paid'],
   )
 })
 

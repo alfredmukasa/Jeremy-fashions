@@ -3,13 +3,56 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { AnimatePresence, motion, useScroll, useTransform } from 'framer-motion'
 
-import { DEFAULT_HERO_SLIDES } from '../../constants/siteContent'
+import { DEFAULT_HERO_SLIDES, resolveHeroSlideCopy, type HeroSlide } from '../../constants/siteContent'
 import { ROUTES } from '../../constants'
 import { fetchPublicSiteContent } from '../../services/siteContentService'
 import { Button } from '../common/Button'
 import { Container } from '../layout/Container'
 
 const SLIDE_MS = 6800
+
+export function HeroSlideHeading({
+  slide,
+}: {
+  slide: Pick<HeroSlide, 'title' | 'ctaLabel'> | null | undefined
+}) {
+  const title = resolveHeroSlideCopy(slide).title
+  return (
+    <h1 className="sticky top-[calc(var(--header-offset)+var(--announcement-height)+1rem)] z-[3] w-fit max-w-full break-words text-[11px] font-medium uppercase tracking-[0.22em] text-white/80 sm:tracking-[0.35em] md:tracking-[0.45em]">
+      <motion.span
+        key={title}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        className="block"
+      >
+        {title}
+      </motion.span>
+    </h1>
+  )
+}
+
+export function HeroSlideCta({
+  slide,
+}: {
+  slide: Pick<HeroSlide, 'title' | 'ctaLabel'> | null | undefined
+}) {
+  const label = resolveHeroSlideCopy(slide).ctaLabel
+  return (
+    <motion.div
+      key={label}
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.25, duration: 0.55 }}
+    >
+      <Link to={ROUTES.shop}>
+        <Button variant="inverse" className="min-w-[180px] max-w-full whitespace-normal text-center">
+          {label}
+        </Button>
+      </Link>
+    </motion.div>
+  )
+}
 
 export function HeroSection() {
   const siteContentQuery = useQuery({
@@ -94,28 +137,9 @@ export function HeroSection() {
       </motion.div>
 
       <Container className="relative z-[2] flex min-h-[100svh] flex-col pb-24 pt-[calc(var(--header-offset)+var(--announcement-height)+1rem)] md:pb-32">
-        <h1 className="sticky top-[calc(var(--header-offset)+var(--announcement-height)+1rem)] z-[3] w-fit max-w-full text-[11px] font-medium uppercase tracking-[0.22em] text-white/80 sm:tracking-[0.35em] md:tracking-[0.45em]">
-          <motion.span
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="block"
-          >
-            Season 06 — Monochrome Study
-          </motion.span>
-        </h1>
+        <HeroSlideHeading slide={active} />
         <div className="mt-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, duration: 0.55 }}
-          >
-            <Link to={ROUTES.shop}>
-              <Button variant="inverse" className="min-w-[180px]">
-                Shop collection
-              </Button>
-            </Link>
-          </motion.div>
+          <HeroSlideCta slide={active} />
 
           <motion.div className="mt-12 flex items-center gap-3" aria-hidden>
             {heroSlides.map((slide, i) => (

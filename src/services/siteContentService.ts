@@ -19,6 +19,7 @@ import {
   SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS,
   SITE_SETTING_KEY_TERMS,
   SITE_SETTING_KEY_TOP_BANNER,
+  readHeroSlideText,
   type FooterSocialIconKey,
   type FooterSocialLink,
   type HeroSlide,
@@ -73,7 +74,7 @@ export const FOOTER_SOCIAL_ICONS: Record<FooterSocialIconKey, IconType> = {
   pinterest: FaPinterestP,
 }
 
-function parseHeroSlides(raw: unknown): HeroSlide[] | null {
+export function parseHeroSlides(raw: unknown): HeroSlide[] | null {
   if (!raw || typeof raw !== 'object') return null
   const slides = (raw as { slides?: unknown }).slides
   if (!Array.isArray(slides) || slides.length === 0) return null
@@ -87,6 +88,7 @@ function parseHeroSlides(raw: unknown): HeroSlide[] | null {
       parsed.push({
         src: src.trim(),
         alt: typeof alt === 'string' && alt.trim() ? alt.trim() : 'Hero background',
+        ...readHeroSlideText(item),
       })
     }
   }
@@ -192,7 +194,15 @@ export async function fetchPublicSiteContent(): Promise<PublicSiteContent> {
 }
 
 export function heroSlidesPayload(slides: HeroSlide[]): Record<string, unknown> {
-  return { slides }
+  return {
+    slides: slides.map((slide) => {
+      const row: Record<string, string> = { src: slide.src, alt: slide.alt }
+      const text = readHeroSlideText(slide)
+      if (text.title) row.title = text.title
+      if (text.ctaLabel) row.ctaLabel = text.ctaLabel
+      return row
+    }),
+  }
 }
 
 export function footerSocialPayload(links: FooterSocialLink[]): Record<string, unknown> {

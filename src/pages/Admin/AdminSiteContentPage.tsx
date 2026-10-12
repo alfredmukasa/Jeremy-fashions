@@ -9,7 +9,9 @@ import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
 import {
   DEFAULT_FOOTER_SOCIAL_LINKS,
+  DEFAULT_HERO_CTA_LABEL,
   DEFAULT_HERO_SLIDES,
+  DEFAULT_HERO_TITLE,
   DEFAULT_PRIVACY_POLICY,
   DEFAULT_RETURN_POLICY,
   DEFAULT_SHIPPING_INSTRUCTIONS,
@@ -23,6 +25,8 @@ import {
   SITE_SETTING_KEY_FOOTER_SOCIAL,
   SITE_SETTING_KEY_HERO_SLIDES,
   SITE_SETTING_KEY_TOP_BANNER,
+  readHeroSlideText,
+  resolveHeroSlideCopy,
   type FooterSocialLink,
   type HeroSlide,
   type TopBanner,
@@ -42,9 +46,13 @@ function parseHeroFromSettings(raw: Record<string, unknown> | undefined): HeroSl
     const src = (item as { src?: unknown }).src
     const alt = (item as { alt?: unknown }).alt
     if (typeof src === 'string' && src.trim()) {
+      const stored = readHeroSlideText(item)
+      const copy = resolveHeroSlideCopy(stored)
       parsed.push({
         src: src.trim(),
         alt: typeof alt === 'string' ? alt : '',
+        title: copy.title,
+        ctaLabel: copy.ctaLabel,
       })
     }
   }
@@ -229,7 +237,7 @@ function AdminSiteContentContent() {
       <AdminPageHeader
         eyebrow="Storefront"
         title="Site content"
-        description="Hero backgrounds, announcement bar, footer links, return policy, and shipping instructions."
+        description="Hero images and overlay text, announcement bar, footer links, return policy, and shipping instructions."
       />
 
       <TopBannerEditor
@@ -452,9 +460,10 @@ function HeroSlidesEditor({
   return (
     <section className="space-y-4 border border-neutral-200 bg-white p-6">
       <div>
-        <h2 className="font-serif text-xl text-neutral-900">Hero backgrounds</h2>
+        <h2 className="font-serif text-xl text-neutral-900">Hero slides</h2>
         <p className="mt-1 text-sm text-neutral-600">
-          Slides rotate on the home page. Leave empty in Supabase to use built-in defaults.
+          Images, headlines, and button labels rotate together on the home page. A blank headline or
+          button uses the built-in line. Reset restores the built-in slides.
         </p>
       </div>
 
@@ -492,6 +501,32 @@ function HeroSlidesEditor({
                     next[index] = { ...slide, alt: e.target.value }
                     onChange(next)
                   }}
+                />
+              </div>
+              <div>
+                <FieldLabel id={`hero-title-${index}`}>Headline</FieldLabel>
+                <Input
+                  id={`hero-title-${index}`}
+                  value={slide.title ?? ''}
+                  onChange={(e) => {
+                    const next = [...slides]
+                    next[index] = { ...slide, title: e.target.value }
+                    onChange(next)
+                  }}
+                  placeholder={DEFAULT_HERO_TITLE}
+                />
+              </div>
+              <div>
+                <FieldLabel id={`hero-cta-${index}`}>Button label</FieldLabel>
+                <Input
+                  id={`hero-cta-${index}`}
+                  value={slide.ctaLabel ?? ''}
+                  onChange={(e) => {
+                    const next = [...slides]
+                    next[index] = { ...slide, ctaLabel: e.target.value }
+                    onChange(next)
+                  }}
+                  placeholder={DEFAULT_HERO_CTA_LABEL}
                 />
               </div>
               <div className="flex flex-wrap gap-2">
@@ -555,7 +590,17 @@ function HeroSlidesEditor({
         <Button
           type="button"
           variant="outline"
-          onClick={() => onChange([...slides, { src: '', alt: 'Hero background' }])}
+          onClick={() =>
+            onChange([
+              ...slides,
+              {
+                src: '',
+                alt: 'Hero background',
+                title: DEFAULT_HERO_TITLE,
+                ctaLabel: DEFAULT_HERO_CTA_LABEL,
+              },
+            ])
+          }
         >
           Add slide
         </Button>

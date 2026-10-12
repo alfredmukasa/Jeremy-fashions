@@ -60,9 +60,45 @@ export const DEFAULT_TOP_BANNER: TopBanner = {
   linkLabel: 'Shop now',
 }
 
+/** Built-in hero headline, used when a slide has no saved title. */
+export const DEFAULT_HERO_TITLE = 'Season 06 — Monochrome Study'
+
+/** Built-in hero button label, used when a slide has no saved label. */
+export const DEFAULT_HERO_CTA_LABEL = 'Shop collection'
+
 export type HeroSlide = {
   src: string
   alt: string
+  /** Overlay headline. Blank falls back to the built-in season line. */
+  title?: string
+  /** Shop button label. Blank falls back to the built-in label. */
+  ctaLabel?: string
+}
+
+/** Trimmed plain text, or undefined when the value is missing or blank. */
+export function optionalHeroText(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 ? trimmed : undefined
+}
+
+/** Headline and button label actually shown for a slide. */
+export function resolveHeroSlideCopy(
+  slide: Pick<HeroSlide, 'title' | 'ctaLabel'> | null | undefined,
+): { title: string; ctaLabel: string } {
+  return {
+    title: optionalHeroText(slide?.title) ?? DEFAULT_HERO_TITLE,
+    ctaLabel: optionalHeroText(slide?.ctaLabel) ?? DEFAULT_HERO_CTA_LABEL,
+  }
+}
+
+export function readHeroSlideText(item: object): Pick<HeroSlide, 'title' | 'ctaLabel'> {
+  const title = optionalHeroText((item as { title?: unknown }).title)
+  const ctaLabel = optionalHeroText((item as { ctaLabel?: unknown }).ctaLabel)
+  return {
+    ...(title ? { title } : {}),
+    ...(ctaLabel ? { ctaLabel } : {}),
+  }
 }
 
 export type FooterSocialIconKey = 'whatsapp' | 'instagram' | 'tiktok' | 'pinterest'
@@ -78,18 +114,26 @@ export const DEFAULT_HERO_SLIDES: readonly HeroSlide[] = [
   {
     src: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=3840&q=85',
     alt: 'Editorial fashion in a luxury retail setting',
+    title: DEFAULT_HERO_TITLE,
+    ctaLabel: DEFAULT_HERO_CTA_LABEL,
   },
   {
     src: 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=3840&q=85',
     alt: 'Monochrome outerwear styled for the season',
+    title: DEFAULT_HERO_TITLE,
+    ctaLabel: DEFAULT_HERO_CTA_LABEL,
   },
   {
     src: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=3840&q=85',
     alt: 'Runway-inspired tailoring in motion',
+    title: DEFAULT_HERO_TITLE,
+    ctaLabel: DEFAULT_HERO_CTA_LABEL,
   },
   {
     src: 'https://images.unsplash.com/photo-1509631179647-0177331693ae?auto=format&fit=crop&w=3840&q=85',
     alt: 'Dark luxury fashion portrait',
+    title: DEFAULT_HERO_TITLE,
+    ctaLabel: DEFAULT_HERO_CTA_LABEL,
   },
 ]
 

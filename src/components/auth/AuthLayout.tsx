@@ -55,7 +55,7 @@ export function AuthLayout({ title, subtitle, eyebrow, children, footer }: AuthL
               className="absolute left-12 top-12 xl:left-16 xl:top-16"
             />
             <p className="font-['Space_Grotesk',var(--font-sans)] text-xs font-medium uppercase tracking-[0.35em] text-white/50">
-              Atelier access
+              Krewnox access
             </p>
             <h2 className="mt-4 font-serif text-4xl leading-tight tracking-tight text-white xl:text-5xl">
               Precision tailoring.

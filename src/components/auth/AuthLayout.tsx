@@ -40,7 +40,11 @@ export function AuthLayout({ title, subtitle, eyebrow, children, footer }: AuthL
           />
           <div
             aria-hidden
-            className="absolute inset-0 bg-gradient-to-b from-neutral-950/25 via-neutral-950/15 to-neutral-950/85"
+            className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(10,10,10,0.2)_0%,rgba(10,10,10,0.08)_38%,rgba(10,10,10,0.78)_72%,rgba(10,10,10,0.9)_100%)]"
+          />
+          <div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-r from-neutral-950/55 via-neutral-950/25 to-transparent"
           />
           <div className="relative flex h-full flex-col justify-end p-12 xl:p-16">
             <BrandLogo

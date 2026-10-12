@@ -13,6 +13,13 @@ type AuthLayoutProps = {
 }
 
 /**
+ * First production homepage hero slide. Portrait editorial, so it covers a
+ * tall side panel without a landscape crop. Decorative: the panel copy sits on top.
+ */
+const AUTH_SIDE_IMAGE =
+  'https://foplahkaijdjjumjmrgp.supabase.co/storage/v1/object/public/product-images/site-hero/76c43965-736d-4b47-97c6-e49e670148b7/1785849842906-6b77ac61-f3ad-452b-b97a-635ffc3bf96f-img_4347.jpeg'
+
+/**
  * Editorial split: visual panel + form. Matches luxury / monochrome direction from the auth spec.
  *
  * Shared by every sign-in/sign-up/password flow, so `noindex` is set here once rather
@@ -25,12 +32,15 @@ export function AuthLayout({ title, subtitle, eyebrow, children, footer }: AuthL
       <Seo title={title} description={subtitle ?? title} path={window.location.pathname} noindex />
       <div className="grid min-h-svh lg:grid-cols-2">
         <div className="relative hidden overflow-hidden lg:block">
+          <img
+            src={AUTH_SIDE_IMAGE}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover object-[center_32%]"
+            decoding="async"
+          />
           <div
-            className="absolute inset-0 bg-cover bg-center opacity-90"
-            style={{
-              backgroundImage:
-                'linear-gradient(to bottom, rgba(10,10,10,0.2), rgba(10,10,10,0.85)), url(https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1200&q=80)',
-            }}
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-b from-neutral-950/25 via-neutral-950/15 to-neutral-950/85"
           />
           <div className="relative flex h-full flex-col justify-end p-12 xl:p-16">
             <BrandLogo

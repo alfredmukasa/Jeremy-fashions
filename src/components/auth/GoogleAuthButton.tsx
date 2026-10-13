@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useLocation } from 'react-router-dom'
 import { FcGoogle } from 'react-icons/fc'
 import toast from 'react-hot-toast'
 
@@ -10,7 +11,9 @@ import { AuthButton } from './AuthButton'
 
 export function GoogleAuthButton({ label = 'Continue with Google' }: { label?: string }) {
   const { signInWithGoogle } = useAuth()
+  const location = useLocation()
   const [busy, setBusy] = useState(false)
+  const next = (location.state as { from?: string } | null)?.from
 
   async function handleClick() {
     if (!isSupabaseConfigured) {
@@ -18,7 +21,7 @@ export function GoogleAuthButton({ label = 'Continue with Google' }: { label?: s
       return
     }
     setBusy(true)
-    const { error } = await signInWithGoogle()
+    const { error } = await signInWithGoogle(next)
     if (error) {
       setBusy(false)
       toast.error(friendlyAuthError(error.message))

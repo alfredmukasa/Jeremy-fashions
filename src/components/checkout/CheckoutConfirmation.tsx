@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
+import { guestLoginPath, guestRegisterPath } from '../../lib/guestAuthPaths'
 import { PaymentStatusBadge } from '../account/dashboard/PaymentStatusBadge'
 import { StatusBadge } from '../account/dashboard/StatusBadge'
 import { getOrderConfirmation } from '../../lib/paymentApi'
@@ -191,17 +192,24 @@ export function CheckoutConfirmation({ orderId, email, isSignedIn, accessToken }
           .
         </p>
 
-        <div className="mt-10 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
+        <div className="mt-10 flex flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           {isSignedIn ? (
             <Link to={`${ROUTES.account}#orders`}>
               <Button className="w-full sm:w-auto">View order</Button>
             </Link>
           ) : (
-            <Link to={`${ROUTES.register}?email=${encodeURIComponent(order?.email ?? email)}`}>
-              <Button variant="outline" className="w-full sm:w-auto">
-                Create an account to track this order
-              </Button>
-            </Link>
+            <>
+              <Link to={guestLoginPath(order?.email ?? email)} state={{ from: `${ROUTES.account}#orders` }}>
+                <Button variant="outline" className="w-full sm:w-auto">
+                  Sign in
+                </Button>
+              </Link>
+              <Link to={guestRegisterPath(order?.email ?? email)} state={{ from: `${ROUTES.account}#orders` }}>
+                <Button variant="outline" className="w-full sm:w-auto">
+                  Create an account
+                </Button>
+              </Link>
+            </>
           )}
           <Link to={ROUTES.shop}>
             <Button variant={isSignedIn ? 'outline' : 'primary'} className="w-full sm:w-auto">

@@ -100,15 +100,18 @@ export default function AuthCallbackPage() {
 
         const isEmailFlow = flowType === 'signup' || flowType === 'email' || flowType === 'invite'
 
+        const destination = next
         setStatus('success')
         setSuccessTitle(isEmailFlow ? 'Email confirmed' : 'Welcome back')
         setMessage(
           isEmailFlow
-            ? 'Your email is confirmed. Opening your account…'
-            : 'Welcome back. Opening your account…',
+            ? destination === ROUTES.account
+              ? 'Your email is confirmed. Opening your account…'
+              : 'Your email is confirmed. Taking you back…'
+            : destination === ROUTES.account
+              ? 'Welcome back. Opening your account…'
+              : 'Welcome back. Taking you back…',
         )
-
-        const destination = isEmailFlow ? ROUTES.account : next
 
         window.setTimeout(() => {
           if (!cancelled) navigate(destination, { replace: true })

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
+import { guestRegisterPath } from '../../lib/guestAuthPaths'
 import { useAuth } from '../../context/AuthContext'
 import { AUTH_UNAVAILABLE_MESSAGE, friendlyAuthError } from '../../lib/authErrors'
 import { isSupabaseConfigured } from '../../lib/supabase'
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [searchParams, setSearchParams] = useSearchParams()
   const { user, loading, signIn } = useAuth()
   const [busy, setBusy] = useState(false)
+  const presetEmail = searchParams.get('email') ?? ''
 
   const [notice, setNotice] = useState<'confirmed' | 'reset' | null>(null)
 
@@ -71,7 +73,7 @@ export default function LoginPage() {
       footer={
         <p className="text-center text-sm text-neutral-500">
           New here?{' '}
-          <Link to={ROUTES.register} className="font-medium text-white underline-offset-4 hover:underline">
+          <Link to={guestRegisterPath(presetEmail)} state={location.state} className="font-medium text-white underline-offset-4 hover:underline">
             Create an account
           </Link>
         </p>
@@ -105,6 +107,7 @@ export default function LoginPage() {
                 autoComplete="email"
                 required
                 placeholder="you@domain.com"
+                defaultValue={presetEmail}
               />
             </div>
             <div>

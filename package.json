@@ -11,6 +11,7 @@
     "build": "npm run build:server && tsc -b && vite build",
     "build:server": "npm run build --prefix server",
     "sitemap": "node scripts/generate-sitemap.mjs",
+    "sitemap:check": "node --test scripts/sitemap.test.mjs",
     "lint": "eslint .",
     "preview": "vite preview"
   },

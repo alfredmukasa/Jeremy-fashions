@@ -310,6 +310,14 @@ function waitlistMeta(): PageMeta {
 }
 
 const LEGAL_PAGES: Record<string, { title: string; description: string }> = {
+  '/contact': {
+    title: 'Contact us',
+    description: 'Reach Krewnox support for orders, sizing, returns, and anything else we can help with.',
+  },
+  '/shipping': {
+    title: 'Shipping',
+    description: 'Krewnox shipping instructions — delivery, timing, and how orders are sent.',
+  },
   '/terms': {
     title: 'Terms of Service',
     description: 'The terms that govern your use of Krewnox and any purchase you make on the site.',
@@ -335,7 +343,8 @@ function genericMeta(path: string, noindex: boolean): PageMeta {
 }
 
 function normalizePath(rawPath: string): string {
-  const withLeadingSlash = `/${rawPath.replace(/^\/+/, '')}`
+  const withoutQuery = (rawPath.split(/[?#]/)[0] ?? '').trim()
+  const withLeadingSlash = `/${withoutQuery.replace(/^\/+/, '')}`
   if (withLeadingSlash === '/') return '/'
   return withLeadingSlash.replace(/\/+$/, '')
 }

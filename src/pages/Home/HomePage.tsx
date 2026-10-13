@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 
 import { useProducts } from '../../hooks/useCatalog'
 import { fetchPublicSiteContent } from '../../services/siteContentService'
-import { DEFAULT_HERO_SLIDES } from '../../constants/siteContent'
+import { DEFAULT_HERO_SLIDES, DEFAULT_HOME_PRODUCT_HEADER } from '../../constants/siteContent'
 import { organizationJsonLd, websiteJsonLd } from '../../lib/structuredData'
 
 import { HeroSection } from '../../components/home/HeroSection'
@@ -28,6 +28,7 @@ export default function HomePage() {
 
   const heroSlides = siteContentQuery.data?.heroSlides ?? DEFAULT_HERO_SLIDES
   const heroImage = heroSlides[0]
+  const productHeader = siteContentQuery.data?.homeProductHeader ?? DEFAULT_HOME_PRODUCT_HEADER
 
   const structuredData = useMemo(() => [organizationJsonLd(), websiteJsonLd()], [])
 
@@ -68,10 +69,10 @@ export default function HomePage() {
         ) : null}
 
         <ProductShowcase
-          title="The great restock"
+          title={productHeader.title}
           products={products ?? []}
           loading={showLoadingShowcase}
-          cta={{ label: 'View all', to: ROUTES.shop }}
+          cta={{ label: productHeader.ctaLabel, to: ROUTES.shop }}
         />
       </motion.div>
     </div>

@@ -1,6 +1,7 @@
 export const SITE_SETTING_KEY_HERO_SLIDES = 'hero_slides'
 export const SITE_SETTING_KEY_FOOTER_SOCIAL = 'footer_social'
 export const SITE_SETTING_KEY_TOP_BANNER = 'top_banner'
+export const SITE_SETTING_KEY_HOME_PRODUCT_HEADER = 'home_product_header'
 export const SITE_SETTING_KEY_RETURN_POLICY = 'return_policy'
 export const SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS = 'shipping_instructions'
 export const SITE_SETTING_KEY_PRIVACY_POLICY = 'privacy_policy'
@@ -66,6 +67,27 @@ export const DEFAULT_HERO_TITLE = 'Season 06 — Monochrome Study'
 /** Built-in hero button label, used when a slide has no saved label. */
 export const DEFAULT_HERO_CTA_LABEL = 'Shop collection'
 
+/** Built-in heading on the home page product grid. */
+export const DEFAULT_HOME_PRODUCT_TITLE = 'The great restock'
+
+/** Built-in button beside that heading. */
+export const DEFAULT_HOME_PRODUCT_CTA_LABEL = 'View all'
+
+export const HOME_PRODUCT_TITLE_MAX = 80
+export const HOME_PRODUCT_CTA_MAX = 32
+
+export type HomeProductHeader = {
+  /** Grid heading. Blank falls back to the built-in line. */
+  title?: string
+  /** Button label. Blank falls back to the built-in label. */
+  ctaLabel?: string
+}
+
+export const DEFAULT_HOME_PRODUCT_HEADER: Required<HomeProductHeader> = {
+  title: DEFAULT_HOME_PRODUCT_TITLE,
+  ctaLabel: DEFAULT_HOME_PRODUCT_CTA_LABEL,
+}
+
 export type HeroSlide = {
   src: string
   alt: string
@@ -80,6 +102,22 @@ export function optionalHeroText(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : undefined
+}
+
+function boundedPlainText(value: unknown, max: number): string | undefined {
+  const text = optionalHeroText(value)
+  if (!text) return undefined
+  return text.length > max ? text.slice(0, max).trim() : text
+}
+
+/** Heading and button label actually shown above the home product grid. */
+export function resolveHomeProductHeader(
+  header: HomeProductHeader | null | undefined,
+): Required<HomeProductHeader> {
+  return {
+    title: boundedPlainText(header?.title, HOME_PRODUCT_TITLE_MAX) ?? DEFAULT_HOME_PRODUCT_TITLE,
+    ctaLabel: boundedPlainText(header?.ctaLabel, HOME_PRODUCT_CTA_MAX) ?? DEFAULT_HOME_PRODUCT_CTA_LABEL,
+  }
 }
 
 /** Headline and button label actually shown for a slide. */

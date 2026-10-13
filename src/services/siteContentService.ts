@@ -5,24 +5,31 @@ import {
   DEFAULT_CONTACT_EMAIL,
   DEFAULT_FOOTER_SOCIAL_LINKS,
   DEFAULT_HERO_SLIDES,
+  DEFAULT_HOME_PRODUCT_HEADER,
   DEFAULT_PRIVACY_POLICY,
   DEFAULT_RETURN_POLICY,
   DEFAULT_SHIPPING_INSTRUCTIONS,
   DEFAULT_TERMS,
   FOOTER_SOCIAL_ICON_OPTIONS,
   DEFAULT_TOP_BANNER,
+  HOME_PRODUCT_CTA_MAX,
+  HOME_PRODUCT_TITLE_MAX,
   SITE_SETTING_KEY_CONTACT_RECIPIENT,
   SITE_SETTING_KEY_FOOTER_SOCIAL,
   SITE_SETTING_KEY_HERO_SLIDES,
+  SITE_SETTING_KEY_HOME_PRODUCT_HEADER,
   SITE_SETTING_KEY_PRIVACY_POLICY,
   SITE_SETTING_KEY_RETURN_POLICY,
   SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS,
   SITE_SETTING_KEY_TERMS,
   SITE_SETTING_KEY_TOP_BANNER,
+  optionalHeroText,
   readHeroSlideText,
+  resolveHomeProductHeader,
   type FooterSocialIconKey,
   type FooterSocialLink,
   type HeroSlide,
+  type HomeProductHeader,
   type StorePolicy,
   type TopBanner,
 } from '../constants/siteContent'
@@ -34,6 +41,7 @@ export type PublicSiteContent = {
   heroSlides: HeroSlide[]
   footerSocialLinks: FooterSocialLink[]
   topBanner: TopBanner
+  homeProductHeader: Required<HomeProductHeader>
   returnPolicy: StorePolicy
   shippingInstructions: StorePolicy
   privacyPolicy: StorePolicy
@@ -45,6 +53,7 @@ const PUBLIC_SETTING_KEYS = [
   SITE_SETTING_KEY_HERO_SLIDES,
   SITE_SETTING_KEY_FOOTER_SOCIAL,
   SITE_SETTING_KEY_TOP_BANNER,
+  SITE_SETTING_KEY_HOME_PRODUCT_HEADER,
   SITE_SETTING_KEY_RETURN_POLICY,
   SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS,
   SITE_SETTING_KEY_PRIVACY_POLICY,
@@ -57,6 +66,7 @@ function defaultSiteContent(): PublicSiteContent {
     heroSlides: [...DEFAULT_HERO_SLIDES],
     footerSocialLinks: [...DEFAULT_FOOTER_SOCIAL_LINKS],
     topBanner: { ...DEFAULT_TOP_BANNER },
+    homeProductHeader: { ...DEFAULT_HOME_PRODUCT_HEADER },
     returnPolicy: { ...DEFAULT_RETURN_POLICY },
     shippingInstructions: { ...DEFAULT_SHIPPING_INSTRUCTIONS },
     privacyPolicy: { ...DEFAULT_PRIVACY_POLICY },
@@ -173,6 +183,11 @@ export async function fetchPublicSiteContent(): Promise<PublicSiteContent> {
     if (row.key === SITE_SETTING_KEY_TOP_BANNER) {
       content.topBanner = parseTopBanner(row.value) ?? content.topBanner
     }
+    if (row.key === SITE_SETTING_KEY_HOME_PRODUCT_HEADER) {
+      content.homeProductHeader = resolveHomeProductHeader(
+        row.value && typeof row.value === 'object' ? (row.value as HomeProductHeader) : null,
+      )
+    }
     if (row.key === SITE_SETTING_KEY_RETURN_POLICY) {
       content.returnPolicy = parseStorePolicy(row.value, DEFAULT_RETURN_POLICY, updatedAt)
     }
@@ -207,6 +222,15 @@ export function heroSlidesPayload(slides: HeroSlide[]): Record<string, unknown> 
 
 export function footerSocialPayload(links: FooterSocialLink[]): Record<string, unknown> {
   return { links }
+}
+
+export function homeProductHeaderPayload(header: HomeProductHeader): Record<string, unknown> {
+  const payload: Record<string, unknown> = {}
+  const title = optionalHeroText(header.title)?.slice(0, HOME_PRODUCT_TITLE_MAX).trim()
+  const ctaLabel = optionalHeroText(header.ctaLabel)?.slice(0, HOME_PRODUCT_CTA_MAX).trim()
+  if (title) payload.title = title
+  if (ctaLabel) payload.ctaLabel = ctaLabel
+  return payload
 }
 
 export function topBannerPayload(banner: TopBanner): Record<string, unknown> {

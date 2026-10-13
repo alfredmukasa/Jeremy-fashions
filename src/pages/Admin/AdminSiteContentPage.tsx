@@ -12,12 +12,18 @@ import {
   DEFAULT_HERO_CTA_LABEL,
   DEFAULT_HERO_SLIDES,
   DEFAULT_HERO_TITLE,
+  DEFAULT_HOME_PRODUCT_CTA_LABEL,
+  DEFAULT_HOME_PRODUCT_HEADER,
+  DEFAULT_HOME_PRODUCT_TITLE,
   DEFAULT_PRIVACY_POLICY,
   DEFAULT_RETURN_POLICY,
   DEFAULT_SHIPPING_INSTRUCTIONS,
   DEFAULT_TERMS,
   DEFAULT_TOP_BANNER,
   FOOTER_SOCIAL_ICON_OPTIONS,
+  HOME_PRODUCT_CTA_MAX,
+  HOME_PRODUCT_TITLE_MAX,
+  SITE_SETTING_KEY_HOME_PRODUCT_HEADER,
   SITE_SETTING_KEY_PRIVACY_POLICY,
   SITE_SETTING_KEY_RETURN_POLICY,
   SITE_SETTING_KEY_SHIPPING_INSTRUCTIONS,
@@ -27,13 +33,20 @@ import {
   SITE_SETTING_KEY_TOP_BANNER,
   readHeroSlideText,
   resolveHeroSlideCopy,
+  resolveHomeProductHeader,
   type FooterSocialLink,
   type HeroSlide,
+  type HomeProductHeader,
   type TopBanner,
 } from '../../constants/siteContent'
 import { adminGetSiteSettings, adminUpsertSiteSetting } from '../../services/adminService'
 import { uploadProductImageFiles } from '../../services/productImageService'
-import { footerSocialPayload, heroSlidesPayload, topBannerPayload } from '../../services/siteContentService'
+import {
+  footerSocialPayload,
+  heroSlidesPayload,
+  homeProductHeaderPayload,
+  topBannerPayload,
+} from '../../services/siteContentService'
 
 function parseHeroFromSettings(raw: Record<string, unknown> | undefined): HeroSlide[] {
   const value = raw?.[SITE_SETTING_KEY_HERO_SLIDES]
@@ -84,6 +97,17 @@ function parseSocialFromSettings(raw: Record<string, unknown> | undefined): Foot
   return parsed.length > 0 ? parsed : [...DEFAULT_FOOTER_SOCIAL_LINKS]
 }
 
+function parseHomeProductHeaderFromSettings(raw: Record<string, unknown> | undefined): HomeProductHeader {
+  const value = raw?.[SITE_SETTING_KEY_HOME_PRODUCT_HEADER]
+  if (!value || typeof value !== 'object') return { title: '', ctaLabel: '' }
+  const title = (value as { title?: unknown }).title
+  const ctaLabel = (value as { ctaLabel?: unknown }).ctaLabel
+  return {
+    title: typeof title === 'string' ? title : '',
+    ctaLabel: typeof ctaLabel === 'string' ? ctaLabel : '',
+  }
+}
+
 function parseTopBannerFromSettings(raw: Record<string, unknown> | undefined): TopBanner {
   const value = raw?.[SITE_SETTING_KEY_TOP_BANNER]
   if (!value || typeof value !== 'object') return { ...DEFAULT_TOP_BANNER }
@@ -128,14 +152,20 @@ function AdminSiteContentContent() {
     () => parseTopBannerFromSettings(settingsQuery.data),
     [settingsQuery.data],
   )
+  const persistedProductHeader = useMemo(
+    () => parseHomeProductHeaderFromSettings(settingsQuery.data),
+    [settingsQuery.data],
+  )
 
   const [heroDraft, setHeroDraft] = useState<HeroSlide[] | null>(null)
   const [socialDraft, setSocialDraft] = useState<FooterSocialLink[] | null>(null)
   const [topBannerDraft, setTopBannerDraft] = useState<TopBanner | null>(null)
+  const [productHeaderDraft, setProductHeaderDraft] = useState<HomeProductHeader | null>(null)
 
   const heroSlides = heroDraft ?? persistedHero
   const socialLinks = socialDraft ?? persistedSocial
   const topBanner = topBannerDraft ?? persistedTopBanner
+  const productHeader = productHeaderDraft ?? persistedProductHeader
 
   const saveHeroMutation = useMutation({
     mutationFn: () =>
@@ -187,6 +217,34 @@ function AdminSiteContentContent() {
     onError: (err) => toast.error(err instanceof Error ? err.message : 'Reset failed'),
   })
 
+  const saveProductHeaderMutation = useMutation({
+    mutationFn: () =>
+      adminUpsertSiteSetting(
+        SITE_SETTING_KEY_HOME_PRODUCT_HEADER,
+        homeProductHeaderPayload(productHeader),
+      ),
+    onSuccess: () => {
+      toast.success('Product section header saved')
+      setProductHeaderDraft(null)
+      void invalidateSiteContent(queryClient)
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Save failed'),
+  })
+
+  const resetProductHeaderMutation = useMutation({
+    mutationFn: () =>
+      adminUpsertSiteSetting(
+        SITE_SETTING_KEY_HOME_PRODUCT_HEADER,
+        homeProductHeaderPayload({ ...DEFAULT_HOME_PRODUCT_HEADER }),
+      ),
+    onSuccess: () => {
+      toast.success('Product section header reset to defaults')
+      setProductHeaderDraft(null)
+      void invalidateSiteContent(queryClient)
+    },
+    onError: (err) => toast.error(err instanceof Error ? err.message : 'Reset failed'),
+  })
+
   const saveTopBannerMutation = useMutation({
     mutationFn: () => adminUpsertSiteSetting(SITE_SETTING_KEY_TOP_BANNER, topBannerPayload(topBanner)),
     onSuccess: () => {
@@ -220,6 +278,10 @@ function AdminSiteContentContent() {
     setTopBannerDraft(next)
   }
 
+  function updateProductHeader(next: HomeProductHeader) {
+    setProductHeaderDraft(next)
+  }
+
   function saveTopBanner() {
     if (topBanner.enabled && !topBanner.text.trim()) {
       toast.error('Message is required when the bar is enabled')
@@ -237,7 +299,7 @@ function AdminSiteContentContent() {
       <AdminPageHeader
         eyebrow="Storefront"
         title="Site content"
-        description="Hero images and overlay text, announcement bar, footer links, return policy, and shipping instructions."
+        description="Hero images and overlay text, announcement bar, home product heading, footer links, return policy, and shipping instructions."
       />
 
       <TopBannerEditor
@@ -256,6 +318,15 @@ function AdminSiteContentContent() {
         onReset={() => resetHeroMutation.mutate()}
         saving={saveHeroMutation.isPending}
         resetting={resetHeroMutation.isPending}
+      />
+
+      <HomeProductHeaderEditor
+        header={productHeader}
+        onChange={updateProductHeader}
+        onSave={() => saveProductHeaderMutation.mutate()}
+        onReset={() => resetProductHeaderMutation.mutate()}
+        saving={saveProductHeaderMutation.isPending}
+        resetting={resetProductHeaderMutation.isPending}
       />
 
       <SocialLinksEditor
@@ -606,6 +677,76 @@ function HeroSlidesEditor({
         </Button>
         <Button type="button" onClick={onSave} disabled={saving}>
           {saving ? 'Saving…' : 'Save hero'}
+        </Button>
+        <Button type="button" variant="outline" onClick={onReset} disabled={resetting}>
+          Reset to defaults
+        </Button>
+      </div>
+    </section>
+  )
+}
+
+function HomeProductHeaderEditor({
+  header,
+  onChange,
+  onSave,
+  onReset,
+  saving,
+  resetting,
+}: {
+  header: HomeProductHeader
+  onChange: (header: HomeProductHeader) => void
+  onSave: () => void
+  onReset: () => void
+  saving: boolean
+  resetting: boolean
+}) {
+  const preview = resolveHomeProductHeader(header)
+
+  return (
+    <section className="space-y-4 border border-neutral-200 bg-white p-6">
+      <div>
+        <h2 className="font-serif text-xl text-neutral-900">Product section header</h2>
+        <p className="mt-1 text-sm text-neutral-600">
+          Heading and button on the home page product grid, directly under the hero. A blank field
+          uses the built-in line. The button still opens the shop.
+        </p>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div>
+          <FieldLabel id="home-product-title">Heading</FieldLabel>
+          <Input
+            id="home-product-title"
+            value={header.title ?? ''}
+            maxLength={HOME_PRODUCT_TITLE_MAX}
+            onChange={(e) => onChange({ ...header, title: e.target.value })}
+            placeholder={DEFAULT_HOME_PRODUCT_TITLE}
+          />
+        </div>
+        <div>
+          <FieldLabel id="home-product-cta">Button label</FieldLabel>
+          <Input
+            id="home-product-cta"
+            value={header.ctaLabel ?? ''}
+            maxLength={HOME_PRODUCT_CTA_MAX}
+            onChange={(e) => onChange({ ...header, ctaLabel: e.target.value })}
+            placeholder={DEFAULT_HOME_PRODUCT_CTA_LABEL}
+          />
+        </div>
+      </div>
+
+      <div className="rounded border border-neutral-100 bg-neutral-50 px-4 py-3">
+        <p className="text-[10px] font-medium uppercase tracking-[0.2em] text-neutral-500">Preview</p>
+        <div className="mt-3 flex items-center justify-between gap-4">
+          <p className="section-title-mertra">{preview.title}</p>
+          <span className="btn-view-all-pill shrink-0">{preview.ctaLabel}</span>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-3">
+        <Button type="button" onClick={onSave} disabled={saving}>
+          {saving ? 'Saving…' : 'Save product header'}
         </Button>
         <Button type="button" variant="outline" onClick={onReset} disabled={resetting}>
           Reset to defaults

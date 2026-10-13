@@ -8,7 +8,7 @@
 // wiping the catalog or failing the build.
 import { createClient } from '@supabase/supabase-js'
 import { readFile, writeFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import {
   PUBLIC_SITEMAP_PAGES,
@@ -59,8 +59,39 @@ function buildXml(urls) {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`
 }
 
-function isExcludedLoc(loc) {
+export function isExcludedLoc(loc) {
   return SITEMAP_EXCLUDED_PREFIXES.some((prefix) => loc === prefix || loc.startsWith(`${prefix}/`))
+}
+
+/** Returns an error message when a path must not be listed in the sitemap. */
+export function sitemapLocError(loc) {
+  if (typeof loc !== 'string' || loc.length === 0) return 'missing path'
+  if (!loc.startsWith('/')) return 'path must start with /'
+  if (loc.includes('?') || loc.includes('#') || /\s/.test(loc)) {
+    return 'path must be canonical, with no query, hash, or space'
+  }
+  if (loc !== '/' && loc.endsWith('/')) return 'path must not have a trailing slash'
+  if (loc.includes('//')) return 'path must not contain an empty segment'
+  if (isExcludedLoc(loc)) return 'path is private, noindex, or a redirect'
+  if (loc.startsWith('/product/')) {
+    const slug = loc.slice('/product/'.length)
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/i.test(slug)) return 'product path must be a single public slug'
+  }
+  return null
+}
+
+export function assertSitemapEntries(urls) {
+  const seen = new Set()
+  for (const url of urls) {
+    const error = sitemapLocError(url.loc)
+    if (error) throw new Error(`[generate-sitemap] ${url.loc || '(empty)'}: ${error}`)
+    if (seen.has(url.loc)) throw new Error(`[generate-sitemap] duplicate path ${url.loc}`)
+    seen.add(url.loc)
+    const absolute = `${SITE_URL}${url.loc}`
+    if (!absolute.startsWith('https://krewnox.ca/')) {
+      throw new Error(`[generate-sitemap] ${absolute} is not an absolute HTTPS URL on krewnox.ca`)
+    }
+  }
 }
 
 /** Loads local .env without a dependency so `npm run sitemap` can fetch products. */
@@ -129,7 +160,7 @@ async function readExistingProductUrls() {
       } catch {
         continue
       }
-      if (!path.startsWith('/product/')) continue
+      if (!path.startsWith('/product/') || sitemapLocError(path)) continue
       const lastmod = block.match(/<lastmod>([^<]+)<\/lastmod>/)?.[1]
       const changefreq = block.match(/<changefreq>([^<]+)<\/changefreq>/)?.[1] ?? 'weekly'
       const priority = block.match(/<priority>([^<]+)<\/priority>/)?.[1] ?? '0.8'
@@ -142,14 +173,23 @@ async function readExistingProductUrls() {
 }
 
 function productUrlsFromRows(products) {
-  return products
-    .filter((p) => typeof p.slug === 'string' && p.slug.trim().length > 0)
-    .map((p) => ({
-      loc: `/product/${p.slug}`,
-      lastmod: isoDate(p.created_at),
+  const urls = []
+  for (const product of products) {
+    if (typeof product.slug !== 'string') continue
+    const loc = `/product/${product.slug.trim()}`
+    if (sitemapLocError(loc)) {
+      console.warn(`[generate-sitemap] Skipping product that cannot be indexed: ${product.slug}`)
+      continue
+    }
+    urls.push({
+      loc,
+      lastmod: isoDate(product.created_at),
       changefreq: 'weekly',
       priority: '0.8',
-    }))
+    })
+  }
+  urls.sort((a, b) => a.loc.localeCompare(b.loc))
+  return urls
 }
 
 /**
@@ -211,12 +251,7 @@ async function main() {
     products === null ? await readExistingProductUrls() : productUrlsFromRows(products)
 
   const urls = [...PUBLIC_SITEMAP_PAGES, ...productUrls]
-  const leaked = urls.filter((url) => isExcludedLoc(url.loc))
-  if (leaked.length > 0) {
-    throw new Error(
-      `[generate-sitemap] Refusing to write private/noindex URLs: ${leaked.map((u) => u.loc).join(', ')}`,
-    )
-  }
+  assertSitemapEntries(urls)
 
   const xml = buildXml(urls)
   await writeFile(OUTPUT_PATH, xml, 'utf8')
@@ -226,6 +261,11 @@ async function main() {
   )
 }
 
-main().catch((err) => {
-  console.warn('[generate-sitemap] Unexpected error — keeping existing public/sitemap.xml as-is.', err)
-})
+const isDirectRun = Boolean(process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)
+
+if (isDirectRun) {
+  main().catch((err) => {
+    console.error('[generate-sitemap] Refusing to leave an invalid sitemap in place.', err)
+    process.exitCode = 1
+  })
+}

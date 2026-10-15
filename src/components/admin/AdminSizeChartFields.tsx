@@ -1,6 +1,7 @@
 import {
   addSizeChartColumn,
   addSizeChartRow,
+  DEFAULT_SIZE_CHOICE_NOTE,
   emptySizeChart,
   fillStandardSizeChart,
   moveSizeChartColumn,
@@ -13,6 +14,7 @@ import {
   setSizeChartColumnKind,
   sizeChartColumnKind,
   sizeChartHasMeasurements,
+  sizeChoiceNote,
 } from '../../lib/sizeChart'
 import type { AdminProductPayload } from '../../services/adminService'
 import type { ProductKind, SizeChart, SizeChartColumnKind } from '../../types'
@@ -43,7 +45,8 @@ export function AdminSizeChartFields({ form, productKind, onChange }: AdminSizeC
     ) {
       return
     }
-    updateChart(fillStandardSizeChart(productKind, form.sizes, productKind === 'footwear' ? 'cm' : chart.unit))
+    const next = fillStandardSizeChart(productKind, form.sizes, productKind === 'footwear' ? 'cm' : chart.unit)
+    updateChart({ ...next, notes: chart.notes })
   }
 
   function removeColumn(columnId: string, label: string) {
@@ -235,15 +238,19 @@ export function AdminSizeChartFields({ form, productKind, onChange }: AdminSizeC
       )}
 
       <div>
-        <FieldLabel id="size-chart-notes">Fit notes</FieldLabel>
+        <FieldLabel id="size-chart-notes">Fit note</FieldLabel>
+        <p className="mt-1 text-xs leading-relaxed text-neutral-500">
+          Shown on the product page under the size buttons. Edit this sentence to customize it. Clearing it restores
+          the default wording.
+        </p>
         <textarea
           id="size-chart-notes"
           rows={3}
           maxLength={2000}
-          value={chart.notes}
+          value={sizeChoiceNote(chart.notes)}
           onChange={(event) => updateChart({ ...chart, notes: event.target.value })}
           className="mt-1 w-full border border-neutral-300 bg-white px-3 py-2 text-sm"
-          placeholder="How this piece fits, between-size advice, or measuring notes."
+          placeholder={DEFAULT_SIZE_CHOICE_NOTE}
         />
       </div>
     </div>

@@ -13,7 +13,7 @@ import { useWishlistStore, selectWishlistHas } from '../../store/wishlistStore'
 import { sizeLabelForKind } from '../../lib/productCategoryConfig'
 import { DEFAULT_RETURN_POLICY, DEFAULT_SHIPPING_INSTRUCTIONS } from '../../constants/siteContent'
 import { usePublicSiteContent } from '../../hooks/usePublicSiteContent'
-import { sizeChartHasMeasurements } from '../../lib/sizeChart'
+import { sizeChartHasMeasurements, sizeChoiceNote } from '../../lib/sizeChart'
 import { formatPrice } from '../../utils/formatPrice'
 import { cn } from '../../utils/cn'
 
@@ -171,7 +171,7 @@ type DetailProps = {
   product: Product
 }
 
-function ProductDetail({ product }: DetailProps) {
+export function ProductDetail({ product }: DetailProps) {
   const navigate = useNavigate()
   const sizes = product.sizes ?? []
   const colors = product.colors ?? []
@@ -182,6 +182,7 @@ function ProductDetail({ product }: DetailProps) {
   const [qty, setQty] = useState(1)
   const sizeChart = sizeChartHasMeasurements(product.sizeChart) ? product.sizeChart : null
   const chartUnit = sizeChart?.unit ?? 'in'
+  const fitNote = sizeChoiceNote(product.sizeChart?.notes)
 
   const addLine = useCartStore((s) => s.addLine)
   const openCart = useUiStore((s) => s.openCart)
@@ -385,13 +386,14 @@ function ProductDetail({ product }: DetailProps) {
                       </button>
                     ))}
                   </div>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">
-                    {soldOut
-                      ? 'Every size is currently unavailable.'
-                      : unavailableSizes.length
-                        ? 'Crossed-out sizes are not available for this piece.'
-                        : 'Choose a size. The size chart below uses the same labels.'}
-                  </p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">{fitNote}</p>
+                  {soldOut ? (
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">Every size is currently unavailable.</p>
+                  ) : unavailableSizes.length ? (
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">
+                      Crossed-out sizes are not available for this piece.
+                    </p>
+                  ) : null}
                   {sizeError ? <p className="mt-2 text-xs text-rose-600">{sizeError}</p> : null}
                 </div>
               ) : null}
@@ -442,7 +444,9 @@ function ProductDetail({ product }: DetailProps) {
               {sizeChart ? (
                 <DetailAccordion title="Size chart">
                   <SizeChartTable chart={sizeChart} displayUnit={chartUnit} highlightSize={size} compact />
-                  {sizeChart.notes.trim() ? <p className="mt-4">{sizeChart.notes}</p> : null}
+                  {sizeChart.notes.trim() && sizeChart.notes.trim() !== fitNote ? (
+                    <p className="mt-4">{sizeChart.notes}</p>
+                  ) : null}
                 </DetailAccordion>
               ) : null}
               <DetailAccordion title="Shipping">

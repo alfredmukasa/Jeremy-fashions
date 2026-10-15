@@ -49,14 +49,22 @@ const FOOTWEAR_DEFAULTS: Record<string, Record<string, string>> = {
   '13': { us: '13', uk: '12', eu: '47.5', cm: '31' },
 }
 
-function notesForKind(kind: ProductKind): string {
-  if (kind === 'footwear') {
-    return 'US sizing. If you are between sizes, take the larger size. Width is a standard D last unless noted.'
-  }
-  if (kind === 'accessories') {
-    return 'Dimensions are approximate and measured at the widest points of the piece.'
-  }
-  return 'Garment measurements, not body measurements. If you are between sizes, size up for a relaxed fit.'
+/** Shown under the size buttons when an admin has not written a fit note. */
+export const DEFAULT_SIZE_CHOICE_NOTE =
+  'Choose a size. The size chart below uses the same labels.'
+
+/** Previous automatic size-chart footnotes. Size buttons keep the default sentence until an admin writes a different note. */
+const LEGACY_SIZE_CHART_NOTES = new Set([
+  'Garment measurements, not body measurements. If you are between sizes, size up for a relaxed fit.',
+  'US sizing. If you are between sizes, take the larger size. Width is a standard D last unless noted.',
+  'Dimensions are approximate and measured at the widest points of the piece.',
+])
+
+/** Product-page copy under the size buttons. Blank or untouched notes keep the default sentence. */
+export function sizeChoiceNote(notes: string | null | undefined): string {
+  const trimmed = notes?.trim() ?? ''
+  if (!trimmed || LEGACY_SIZE_CHART_NOTES.has(trimmed)) return DEFAULT_SIZE_CHOICE_NOTE
+  return trimmed
 }
 
 const TEXT_COLUMN_IDS = new Set(['us', 'uk', 'eu'])
@@ -221,7 +229,7 @@ export function emptySizeChart(kind: ProductKind, sizes: string[] = []): SizeCha
     unit: kind === 'footwear' ? 'cm' : 'in',
     columns: sizeChartColumnsForKind(kind),
     rows: sizes.map((size) => ({ size, values: {} })),
-    notes: notesForKind(kind),
+    notes: DEFAULT_SIZE_CHOICE_NOTE,
   }
 }
 
@@ -248,7 +256,7 @@ export function fillStandardSizeChart(kind: ProductKind, sizes: string[], unit: 
   return {
     unit,
     columns,
-    notes: notesForKind(kind),
+    notes: DEFAULT_SIZE_CHOICE_NOTE,
     rows: sizes.map((size) => {
       const source = standardValues(kind, size)
       const values: Record<string, string> = {}
@@ -329,18 +337,20 @@ export function parseSizeChart(raw: unknown): SizeChart | null {
         .filter((row) => row.size.trim().length > 0)
     : []
 
-  if (!columns.length || !rows.length) return null
+  const notes = typeof nested.notes === 'string' ? nested.notes : ''
+  if ((!columns.length || !rows.length) && !notes.trim()) return null
 
   return {
     unit,
     columns,
     rows,
-    notes: typeof nested.notes === 'string' ? nested.notes : '',
+    notes,
   }
 }
 
 export function attributesWithoutSizeChart(raw: Record<string, unknown>): Record<string, unknown> {
-  const { [SIZE_CHART_ATTRIBUTE_KEY]: _ignored, ...rest } = raw
+  const rest = { ...raw }
+  delete rest[SIZE_CHART_ATTRIBUTE_KEY]
   return rest
 }
 

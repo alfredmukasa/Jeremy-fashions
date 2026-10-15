@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
-import { resolveSizeChart } from '../../lib/sizeChart'
+import { resolveSizeChart, sizeChoiceNote } from '../../lib/sizeChart'
 import type { Product } from '../../types'
 import { formatPrice } from '../../utils/formatPrice'
 import { SizeChartTable } from '../product/SizeChart'
@@ -89,6 +89,7 @@ export function AdminProductPreview({ product, storefrontReady }: AdminProductPr
                   </span>
                 ))}
               </div>
+              <p className="mt-2 text-xs text-neutral-500">{sizeChoiceNote(product.sizeChart?.notes)}</p>
             </div>
           ) : (
             <p className="text-xs text-neutral-500">No sizes selected yet.</p>

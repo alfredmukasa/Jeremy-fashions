@@ -25,6 +25,7 @@ import type { ShippingAddress } from '../../types'
 import { getDefaultShippingAddress, shippingAddressToCheckoutValues } from '../../utils/shippingAddress'
 
 import { CheckoutAddressFields, type CheckoutFormValues } from '../../components/checkout/CheckoutAddressFields'
+import { GuestCheckoutAccountNote } from '../../components/checkout/GuestCheckoutAccountNote'
 import { CheckoutPolicyNote } from '../../components/checkout/CheckoutPolicyNote'
 import { CheckoutShippingSelector } from '../../components/checkout/CheckoutShippingSelector'
 import { CheckoutCartSummary } from '../../components/checkout/CheckoutCartSummary'
@@ -525,11 +526,7 @@ function CheckoutGrid(props: {
                   {...props.register('email')}
                 />
                 <FieldError message={props.errors.email?.message} />
-                {!props.isSignedIn ? (
-                  <p className="mt-2 text-xs text-neutral-500">
-                    We&rsquo;ll send your receipt and tracking updates here — no account required.
-                  </p>
-                ) : null}
+                {!props.isSignedIn ? <GuestCheckoutAccountNote email={props.watch('email')} /> : null}
               </div>
             </section>
 

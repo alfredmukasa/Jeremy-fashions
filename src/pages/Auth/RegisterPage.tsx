@@ -1,8 +1,9 @@
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
+import { guestLoginPath } from '../../lib/guestAuthPaths'
 import { useAuth } from '../../context/AuthContext'
 import { AUTH_UNAVAILABLE_MESSAGE, friendlyAuthError } from '../../lib/authErrors'
 import { isSupabaseConfigured } from '../../lib/supabase'
@@ -15,14 +16,18 @@ import { AuthLayout } from '../../components/auth/AuthLayout'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const { user, loading, signUp } = useAuth()
   const [busy, setBusy] = useState(false)
   const [fieldError, setFieldError] = useState<string | null>(null)
   const presetEmail = searchParams.get('email') ?? ''
+  const from = (location.state as { from?: string } | null)?.from
+  const redirectTo =
+    from && from !== ROUTES.login && from !== ROUTES.register ? from : ROUTES.account
 
   if (!loading && user) {
-    return <Navigate to={ROUTES.account} replace />
+    return <Navigate to={redirectTo} replace />
   }
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
@@ -51,7 +56,12 @@ export default function RegisterPage() {
 
     const fullName = [first, last].filter(Boolean).join(' ')
     setBusy(true)
-    const { error, session } = await signUp({ email, password, fullName: fullName || email })
+    const { error, session } = await signUp({
+      email,
+      password,
+      fullName: fullName || email,
+      next: redirectTo,
+    })
     setBusy(false)
     if (error) {
       toast.error(friendlyAuthError(error.message))
@@ -59,10 +69,10 @@ export default function RegisterPage() {
     }
     if (session) {
       toast.success('Account created — you are signed in.')
-      navigate(ROUTES.account, { replace: true })
+      navigate(redirectTo, { replace: true })
     } else {
       toast.success('Check your email to confirm your account, then sign in.')
-      navigate(ROUTES.login, { replace: true })
+      navigate(ROUTES.login, { replace: true, state: { from: redirectTo } })
     }
   }
 
@@ -73,7 +83,7 @@ export default function RegisterPage() {
       footer={
         <p className="text-center text-sm text-neutral-500">
           Already have an account?{' '}
-          <Link to={ROUTES.login} className="font-medium text-white underline-offset-4 hover:underline">
+          <Link to={guestLoginPath(presetEmail)} state={location.state} className="font-medium text-white underline-offset-4 hover:underline">
             Sign in
           </Link>
         </p>

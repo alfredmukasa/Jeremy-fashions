@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { HiOutlineInformationCircle } from 'react-icons/hi2'
 
 import { ROUTES } from '../../constants'
 import { resolveSizeChart, sizeChoiceNote } from '../../lib/sizeChart'
@@ -89,7 +90,10 @@ export function AdminProductPreview({ product, storefrontReady }: AdminProductPr
                   </span>
                 ))}
               </div>
-              <p className="mt-2 text-xs text-neutral-500">{sizeChoiceNote(product.sizeChart?.notes)}</p>
+              <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-neutral-500">
+                <HiOutlineInformationCircle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{sizeChoiceNote(product.sizeChart?.notes)}</span>
+              </p>
             </div>
           ) : (
             <p className="text-xs text-neutral-500">No sizes selected yet.</p>

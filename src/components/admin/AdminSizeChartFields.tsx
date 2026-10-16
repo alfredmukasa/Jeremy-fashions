@@ -238,7 +238,7 @@ export function AdminSizeChartFields({ form, productKind, onChange }: AdminSizeC
       )}
 
       <div>
-        <FieldLabel id="size-chart-notes">Fit note</FieldLabel>
+        <FieldLabel id="size-chart-notes">Fit notes</FieldLabel>
         <p className="mt-1 text-xs leading-relaxed text-neutral-500">
           Shown on the product page under the size buttons. Edit this sentence to customize it. Clearing it restores
           the default wording.

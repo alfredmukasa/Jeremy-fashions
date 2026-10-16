@@ -66,9 +66,11 @@ test('product details show the default fit note under apparel sizes', async () =
     const sizeLabel = html.indexOf('Apparel size')
     const sizeButton = html.indexOf('>M<')
     const note = html.indexOf(DEFAULT_SIZE_CHOICE_NOTE)
+    const icon = html.lastIndexOf('<svg', note)
     assert.ok(sizeLabel > -1)
     assert.ok(sizeButton > sizeLabel)
     assert.ok(note > sizeButton)
+    assert.ok(icon > sizeButton)
     assert.equal(html.includes('Garment measurements, not body measurements'), false)
   } finally {
     await server.close()
@@ -78,11 +80,14 @@ test('product details show the default fit note under apparel sizes', async () =
 test('an admin fit note replaces the default sentence under the size buttons', async () => {
   const server = await startServer()
   try {
-    const html = await renderProduct(server, 'Roomy through the chest.')
+    const noteText = 'Please Go to individual products for size reference'
+    const html = await renderProduct(server, noteText)
     const sizeButton = html.indexOf('>M<')
-    const note = html.indexOf('Roomy through the chest.')
+    const note = html.indexOf(noteText)
+    const icon = html.lastIndexOf('<svg', note)
     assert.ok(sizeButton > -1)
     assert.ok(note > sizeButton)
+    assert.ok(icon > sizeButton)
     assert.equal(html.includes(DEFAULT_SIZE_CHOICE_NOTE), false)
   } finally {
     await server.close()

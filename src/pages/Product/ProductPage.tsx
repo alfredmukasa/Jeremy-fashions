@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { HiOutlineChevronDown, HiOutlineHeart, HiOutlineShoppingBag } from 'react-icons/hi2'
+import { HiOutlineChevronDown, HiOutlineHeart, HiOutlineInformationCircle, HiOutlineShoppingBag } from 'react-icons/hi2'
 import toast from 'react-hot-toast'
 
 import type { Product } from '../../types'
@@ -386,7 +386,10 @@ export function ProductDetail({ product }: DetailProps) {
                       </button>
                     ))}
                   </div>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">{fitNote}</p>
+                  <p className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-[var(--text-muted)]">
+                    <HiOutlineInformationCircle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                    <span>{fitNote}</span>
+                  </p>
                   {soldOut ? (
                     <p className="mt-2 text-xs text-[var(--text-muted)]">Every size is currently unavailable.</p>
                   ) : unavailableSizes.length ? (

@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { useAuth } from '../../context/AuthContext'
 import { AUTH_UNAVAILABLE_MESSAGE, friendlyAuthError } from '../../lib/authErrors'
 import { isSupabaseConfigured } from '../../lib/supabase'
+import { clearAdminOAuthReturn } from '../../lib/adminLoginPolicy'
 
 import { AuthButton } from './AuthButton'
 
@@ -13,6 +14,7 @@ export function GoogleAuthButton({ label = 'Continue with Google' }: { label?: s
   const [busy, setBusy] = useState(false)
 
   async function handleClick() {
+    clearAdminOAuthReturn()
     if (!isSupabaseConfigured) {
       toast.error(AUTH_UNAVAILABLE_MESSAGE)
       return

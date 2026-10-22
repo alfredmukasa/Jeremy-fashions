@@ -18,7 +18,7 @@ import {
 } from '../domain/checkoutPricing.js'
 import { DEFAULT_SHIPPING_RATES } from '../domain/shippingRates.js'
 import { loadShippingRates } from './shippingSettings.js'
-import { sendOrderReceiptIfNeeded } from './confirmationEmail.js'
+import { sendPaidOrderEmails } from './paidOrderEmails.js'
 import { recordDiscountRedemption, resolveDiscount, type AppliedDiscount } from './discountCodes.js'
 import { requireSupabaseAdmin, supabaseAnon } from '../lib/supabase.js'
 import type { CheckoutAddress, CheckoutLineItem } from '../types.js'
@@ -645,7 +645,7 @@ export async function markOrderPaidFromIntent(paymentIntent: Stripe.PaymentInten
 
   if (paymentSettled(existing.payment_status)) {
     if (existing.payment_status === 'paid') {
-      await sendOrderReceiptIfNeeded(existing.id)
+      await sendPaidOrderEmails(existing.id)
     }
     return existing
   }
@@ -732,7 +732,7 @@ export async function markOrderPaidFromIntent(paymentIntent: Stripe.PaymentInten
   }
 
   if (paidRow) {
-    await sendOrderReceiptIfNeeded(existing.id)
+    await sendPaidOrderEmails(existing.id)
   }
 
   return paidRow ?? existing

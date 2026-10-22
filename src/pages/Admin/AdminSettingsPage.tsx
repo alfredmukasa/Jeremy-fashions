@@ -4,6 +4,7 @@ import toast from 'react-hot-toast'
 
 import { AdminPageHeader } from '../../components/admin/AdminPageHeader'
 import { RequireAdminPermission } from '../../components/admin/RequireAdminPermission'
+import { PurchaseEmailSettings } from '../../components/admin/PurchaseEmailSettings'
 import { Button } from '../../components/common/Button'
 import { FieldLabel, Input } from '../../components/common/Input'
 import { SITE_SETTING_KEY_CONTACT_RECIPIENT } from '../../constants/siteContent'
@@ -181,6 +182,9 @@ function AdminSettingsContent() {
           {saveMutation.isPending ? 'Saving…' : 'Save settings'}
         </Button>
       </form>
+
+      <PurchaseEmailSettings stored={settingsQuery.data?.purchase_notifications} supportEmail={persisted.supportEmail}
+        isLoading={settingsQuery.isLoading} loadFailed={settingsQuery.isError} />
 
       <ShippingSettingsForm
         stored={settingsQuery.data?.[SHIPPING_RATES_KEY]}

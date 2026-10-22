@@ -3,6 +3,7 @@ import type Stripe from 'stripe'
 
 import { config } from '../config.js'
 import { stripe } from '../lib/stripe.js'
+import { sendAdminPurchaseEmailIfNeeded } from '../services/adminPurchaseEmail.js'
 import {
   claimWebhookEvent,
   releaseWebhookEvent,
@@ -45,6 +46,7 @@ webhooksRouter.post('/stripe', async (req, res) => {
     const orderId = await resolveOrderIdFromStripeEvent(event)
     const claim = await claimWebhookEvent(event.id, event.type, orderId)
     if (claim === 'duplicate') {
+      if (orderId) await sendAdminPurchaseEmailIfNeeded(orderId)
       return res.json({ received: true, duplicate: true })
     }
 

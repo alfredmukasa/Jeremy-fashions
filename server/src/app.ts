@@ -5,6 +5,7 @@ import helmet from 'helmet'
 import rateLimit from 'express-rate-limit'
 
 import { config } from './config.js'
+import { adminNotificationsRouter } from './routes/adminNotifications.js'
 import { contactRouter } from './routes/contact.js'
 import { ordersRouter } from './routes/orders.js'
 import { paymentsRouter } from './routes/payments.js'
@@ -110,6 +111,7 @@ app.use('/api/payments/create-payment-intent', paymentsLimiter)
 app.use('/api/orders/:id/status', orderLookupLimiter)
 app.use('/api/payments', paymentsRouter)
 app.use('/api/orders', ordersRouter)
+app.use('/api/admin', adminNotificationsRouter)
 app.use('/api/contact/notify', contactNotifyLimiter)
 app.use('/api/contact', contactRouter)
 // Bot-only prerendered HTML for social-crawler Open Graph tags — see socialPreview.ts

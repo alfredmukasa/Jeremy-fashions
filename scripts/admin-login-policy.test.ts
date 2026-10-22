@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { adminReturnPath } from '../src/lib/adminLoginPolicy.ts'
+import {
+  adminReturnPath,
+  rememberAdminOAuthReturn,
+  readAdminOAuthReturn,
+  clearAdminOAuthReturn,
+} from '../src/lib/adminLoginPolicy.ts'
 import {
   clearAdminLoginFailures,
   getAdminLoginLockoutRemainingMs,
@@ -24,6 +29,48 @@ test('staff redirects reject external destinations, slash escapes and login loop
     '/krewnox-admin/orders',
   )
   assert.equal(adminReturnPath('/ops/settings', '/ops'), '/ops/settings')
+})
+
+test('staff OAuth intent is tab-scoped, expires, clears for other flows, and handles blocked storage', () => {
+  const originalStorage = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'sessionStorage',
+  )
+  const originalNow = Date.now
+  const values = new Map<string, string>()
+  let now = 1_000_000
+  Date.now = () => now
+  Object.defineProperty(globalThis, 'sessionStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+    },
+  })
+  try {
+    assert.equal(rememberAdminOAuthReturn('/krewnox-admin/orders'), true)
+    assert.equal(readAdminOAuthReturn(), '/krewnox-admin/orders')
+    clearAdminOAuthReturn()
+    assert.equal(readAdminOAuthReturn(), null)
+    rememberAdminOAuthReturn('/krewnox-admin')
+    now += 600_001
+    assert.equal(readAdminOAuthReturn(), null)
+    Object.defineProperty(globalThis, 'sessionStorage', {
+      configurable: true,
+      get() {
+        throw new Error('blocked')
+      },
+    })
+    assert.equal(rememberAdminOAuthReturn('/krewnox-admin'), false)
+    assert.equal(readAdminOAuthReturn(), null)
+    clearAdminOAuthReturn()
+  } finally {
+    Date.now = originalNow
+    if (originalStorage)
+      Object.defineProperty(globalThis, 'sessionStorage', originalStorage)
+    else Reflect.deleteProperty(globalThis, 'sessionStorage')
+  }
 })
 
 test('browser password cooldown survives shared storage, expires and handles unavailable storage', () => {

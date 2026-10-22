@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
@@ -8,7 +8,11 @@ import {
 } from '../../lib/authErrors'
 import { sanitizeNextPath } from '../../lib/authRedirect'
 import { isAdminUser, isEmailAllowedForAdmin } from '../../lib/adminAuth'
-import { adminReturnPath } from '../../lib/adminLoginPolicy'
+import {
+  adminReturnPath,
+  readAdminOAuthReturn,
+  clearAdminOAuthReturn,
+} from '../../lib/adminLoginPolicy'
 import { clearAdminLoginFailures } from '../Admin/adminLoginLockout'
 import { isSupabaseConfigured, supabase } from '../../lib/supabase'
 
@@ -26,17 +30,18 @@ function parseHashParams(): URLSearchParams {
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const adminFlow = searchParams.get('type') === 'admin'
+  const [adminReturn] = useState(() => readAdminOAuthReturn())
+  const adminFlow =
+    searchParams.get('type') === 'admin' ||
+    (!searchParams.get('type') && Boolean(adminReturn))
   const returnToLogin = adminFlow ? ROUTES.adminLogin : ROUTES.login
   const [status, setStatus] = useState<CallbackStatus>('loading')
   const [message, setMessage] = useState('')
   const [successTitle, setSuccessTitle] = useState('Welcome back')
-  const handled = useRef(false)
 
+  // React StrictMode may restart this effect. The SDK deduplicates its URL-code
+  // exchange; cancellation prevents an obsolete effect from completing the flow.
   useEffect(() => {
-    if (handled.current) return
-    handled.current = true
-
     let cancelled = false
 
     async function finish() {
@@ -56,6 +61,7 @@ export default function AuthCallbackPage() {
       const oauthDescription = searchParams.get('error_description')
 
       if (oauthError) {
+        clearAdminOAuthReturn()
         if (!cancelled) {
           setStatus('error')
           setMessage(friendlyAuthError(oauthDescription ?? oauthError))
@@ -85,6 +91,7 @@ export default function AuthCallbackPage() {
         const { data: sessionData, error: sessionError } =
           await client.auth.getSession()
         if (sessionError) throw sessionError
+        if (cancelled) return
 
         if (!sessionData.session) {
           throw new Error(
@@ -108,11 +115,12 @@ export default function AuthCallbackPage() {
           hashParams.get('type') === 'recovery'
 
         if (isRecovery) {
+          clearAdminOAuthReturn()
           navigate(ROUTES.resetPassword, { replace: true })
           return
         }
 
-        if (flowType === 'admin') {
+        if (adminFlow) {
           const { data, error } = await client.auth.getUser()
           if (
             error ||
@@ -125,15 +133,24 @@ export default function AuthCallbackPage() {
             )
           }
           clearAdminLoginFailures()
+          clearAdminOAuthReturn()
           if (!cancelled)
-            navigate(adminReturnPath(searchParams.get('next'), ROUTES.admin), {
-              replace: true,
-            })
+            navigate(
+              adminReturnPath(
+                adminReturn ?? searchParams.get('next'),
+                ROUTES.admin,
+              ),
+              {
+                replace: true,
+              },
+            )
           return
         }
 
         const isEmailFlow =
           flowType === 'signup' || flowType === 'email' || flowType === 'invite'
+
+        clearAdminOAuthReturn()
 
         setStatus('success')
         setSuccessTitle(isEmailFlow ? 'Email confirmed' : 'Welcome back')
@@ -150,6 +167,7 @@ export default function AuthCallbackPage() {
         }, 900)
       } catch (err) {
         if (cancelled) return
+        clearAdminOAuthReturn()
         const raw =
           err instanceof Error
             ? err.message
@@ -163,7 +181,7 @@ export default function AuthCallbackPage() {
     return () => {
       cancelled = true
     }
-  }, [navigate, searchParams])
+  }, [navigate, searchParams, adminFlow, adminReturn])
 
   if (status === 'loading') {
     return (

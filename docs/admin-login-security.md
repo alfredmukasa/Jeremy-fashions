@@ -1,6 +1,6 @@
 # Admin sign-in
 
-The admin page supports Google OAuth through the existing Supabase provider. The callback verifies the signed-in user with Supabase and requires the existing admin role and optional email allowlist. Google never grants an admin role. Return paths stay inside the configured admin area. Customer Google sign-in is unchanged.
+The admin page supports Google OAuth through the existing Supabase provider and exact callback URL. A short-lived, per-tab marker preserves the staff return path without adding query parameters to the allowlisted callback. The callback verifies the signed-in user with Supabase and requires the existing admin role and optional email allowlist. Google never grants an admin role. Return paths stay inside the configured admin area. Customer Google sign-in clears any abandoned staff marker before starting its normal flow.
 
 The staff password form uses `/api/admin/auth/password`. Apply `0023_admin_login_limits.sql` before deploying. The endpoint permits five attempts per email and source IP in a 15-minute window, plus 20 attempts per source IP across email addresses. Successful staff sign-in clears the email/IP counter. Limits are stored in a service-only table, so browser-storage clearing and serverless restarts do not reset them. Identifiers are SHA-256 hashes; passwords and session tokens are not stored in this table. Expired buckets are cleaned up during requests.
 

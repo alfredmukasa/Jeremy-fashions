@@ -12,6 +12,8 @@ import {
   ADMIN_LOGIN_MAX_FAILURES,
   ADMIN_PASSWORD_MAX_LENGTH,
   adminReturnPath,
+  rememberAdminOAuthReturn,
+  clearAdminOAuthReturn,
 } from '../../lib/adminLoginPolicy'
 import { friendlyAuthError } from '../../lib/authErrors'
 
@@ -182,18 +184,25 @@ export default function AdminLoginPage() {
 
   async function signInWithGoogle() {
     if (pending.current) return
+    if (!rememberAdminOAuthReturn(from)) {
+      toast.error(
+        'Your browser blocked sign-in storage. Allow site data and try again.',
+      )
+      return
+    }
     pending.current = true
     setBusy(true)
     try {
       const { error } = await sb.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: getAuthCallbackUrl({ next: from, type: 'admin' }),
+          redirectTo: getAuthCallbackUrl(),
           queryParams: { prompt: 'select_account' },
         },
       })
       if (error) throw error
     } catch (error) {
+      clearAdminOAuthReturn()
       pending.current = false
       setBusy(false)
       toast.error(

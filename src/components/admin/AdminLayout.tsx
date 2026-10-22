@@ -6,13 +6,14 @@ import { FiMenu, FiX } from 'react-icons/fi'
 import { ROUTES } from '../../constants'
 import { BrandLogo } from '../common/BrandLogo'
 import { isAppOwner } from '../../lib/adminAuth'
-import { getAdminRole } from '../../lib/adminPermissions'
+import { getAdminRole, hasAdminPermission } from '../../lib/adminPermissions'
 import { supabase } from '../../lib/supabase'
 import { Button } from '../common/Button'
 import { Container } from '../layout/Container'
 import { Seo } from '../seo/Seo'
 import { useAdminSession } from './AdminSessionContext'
 import { AdminSidebar } from './AdminSidebar'
+import { AdminPurchaseNotifications } from './AdminPurchaseNotifications'
 
 export function AdminLayout() {
   const session = useAdminSession()
@@ -40,6 +41,7 @@ export function AdminLayout() {
             <BrandLogo variant="light" size="sm" />
             <p className="font-serif text-xl">Admin</p>
           </div>
+          {hasAdminPermission(session.user, 'orders.manage') ? <AdminPurchaseNotifications /> : null}
           <div className="hidden items-center gap-4 text-sm text-white/70 md:flex">
             <span>{session.user.email}</span>
             {owner ? (

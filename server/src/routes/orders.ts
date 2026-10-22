@@ -4,7 +4,7 @@ import { orderStatusLookup } from '../domain/orderLookup.js'
 import { stripe } from '../lib/stripe.js'
 import type { AuthedRequest } from '../middleware/auth.js'
 import { optionalUser } from '../middleware/auth.js'
-import { sendOrderReceiptIfNeeded } from '../services/confirmationEmail.js'
+import { sendPaidOrderEmails } from '../services/paidOrderEmails.js'
 import { getOrderConfirmation, syncOrderFromPaymentIntent } from '../services/orderService.js'
 import { requireSupabaseAdmin } from '../lib/supabase.js'
 
@@ -68,7 +68,7 @@ async function syncPendingPaymentFromStripe(rawId: string) {
 
   if (error || !data?.id || !data.stripe_payment_intent_id) return
   if (data.payment_status === 'paid') {
-    await sendOrderReceiptIfNeeded(data.id)
+    await sendPaidOrderEmails(data.id)
     return
   }
   if (data.payment_status === 'refunded' || data.payment_status === 'partial_refund') return

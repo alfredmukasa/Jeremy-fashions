@@ -12,7 +12,8 @@
     "build:server": "npm run build --prefix server",
     "sitemap": "node scripts/generate-sitemap.mjs",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:notifications": "node --import ./server/node_modules/tsx/dist/loader.mjs --test scripts/purchase-notification-database.test.ts server/test/adminPurchaseEmail.test.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -36,6 +37,7 @@
     "zustand": "^5.0.13"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.11",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.2.4",
     "@types/node": "^24.12.2",

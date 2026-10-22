@@ -2,8 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ROUTES } from '../../constants'
-import { AUTH_UNAVAILABLE_MESSAGE, friendlyAuthError } from '../../lib/authErrors'
+import {
+  AUTH_UNAVAILABLE_MESSAGE,
+  friendlyAuthError,
+} from '../../lib/authErrors'
 import { sanitizeNextPath } from '../../lib/authRedirect'
+import { isAdminUser, isEmailAllowedForAdmin } from '../../lib/adminAuth'
+import { adminReturnPath } from '../../lib/adminLoginPolicy'
+import { clearAdminLoginFailures } from '../Admin/adminLoginLockout'
 import { isSupabaseConfigured, supabase } from '../../lib/supabase'
 
 import { AuthButton } from '../../components/auth/AuthButton'
@@ -20,6 +26,8 @@ function parseHashParams(): URLSearchParams {
 export default function AuthCallbackPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const adminFlow = searchParams.get('type') === 'admin'
+  const returnToLogin = adminFlow ? ROUTES.adminLogin : ROUTES.login
   const [status, setStatus] = useState<CallbackStatus>('loading')
   const [message, setMessage] = useState('')
   const [successTitle, setSuccessTitle] = useState('Welcome back')
@@ -42,7 +50,8 @@ export default function AuthCallbackPage() {
 
       const client = supabase
       const next = sanitizeNextPath(searchParams.get('next'))
-      const flowType = searchParams.get('type') ?? searchParams.get('flow') ?? ''
+      const flowType =
+        searchParams.get('type') ?? searchParams.get('flow') ?? ''
       const oauthError = searchParams.get('error')
       const oauthDescription = searchParams.get('error_description')
 
@@ -73,7 +82,8 @@ export default function AuthCallbackPage() {
         // (including this `getSession()` call) — calling `exchangeCodeForSession(code)`
         // ourselves here would reuse an already-consumed code and throw "PKCE code verifier
         // not found in storage" every time, since the one-time verifier is already gone.
-        const { data: sessionData, error: sessionError } = await client.auth.getSession()
+        const { data: sessionData, error: sessionError } =
+          await client.auth.getSession()
         if (sessionError) throw sessionError
 
         if (!sessionData.session) {
@@ -84,7 +94,11 @@ export default function AuthCallbackPage() {
           )
         }
 
-        window.history.replaceState({}, document.title, `${window.location.pathname}`)
+        window.history.replaceState(
+          {},
+          document.title,
+          `${window.location.pathname}`,
+        )
 
         if (cancelled) return
 
@@ -98,7 +112,28 @@ export default function AuthCallbackPage() {
           return
         }
 
-        const isEmailFlow = flowType === 'signup' || flowType === 'email' || flowType === 'invite'
+        if (flowType === 'admin') {
+          const { data, error } = await client.auth.getUser()
+          if (
+            error ||
+            !isAdminUser(data.user) ||
+            !isEmailAllowedForAdmin(data.user?.email)
+          ) {
+            await client.auth.signOut({ scope: 'local' })
+            throw new Error(
+              'This Google account is not authorized for staff access. Use an existing admin account.',
+            )
+          }
+          clearAdminLoginFailures()
+          if (!cancelled)
+            navigate(adminReturnPath(searchParams.get('next'), ROUTES.admin), {
+              replace: true,
+            })
+          return
+        }
+
+        const isEmailFlow =
+          flowType === 'signup' || flowType === 'email' || flowType === 'invite'
 
         setStatus('success')
         setSuccessTitle(isEmailFlow ? 'Email confirmed' : 'Welcome back')
@@ -115,7 +150,10 @@ export default function AuthCallbackPage() {
         }, 900)
       } catch (err) {
         if (cancelled) return
-        const raw = err instanceof Error ? err.message : 'We could not finish signing you in. Please try again.'
+        const raw =
+          err instanceof Error
+            ? err.message
+            : 'We could not finish signing you in. Please try again.'
         setStatus('error')
         setMessage(friendlyAuthError(raw))
       }
@@ -141,11 +179,7 @@ export default function AuthCallbackPage() {
 
   if (status === 'success') {
     return (
-      <AuthLayout
-        eyebrow="Welcome"
-        title={successTitle}
-        subtitle={message}
-      >
+      <AuthLayout eyebrow="Welcome" title={successTitle} subtitle={message}>
         <AuthLoader className="min-h-[32vh] bg-transparent text-neutral-400" />
       </AuthLayout>
     )
@@ -158,20 +192,35 @@ export default function AuthCallbackPage() {
       subtitle={message}
       footer={
         <p className="text-center text-sm text-neutral-500">
-          <Link to={ROUTES.login} className="font-medium text-white underline-offset-4 hover:underline">
+          <Link
+            to={returnToLogin}
+            className="font-medium text-white underline-offset-4 hover:underline"
+          >
             Return to sign in
           </Link>
-          {' · '}
-          <Link to={ROUTES.register} className="text-neutral-300 underline-offset-4 hover:underline">
-            Create account
-          </Link>
+          {adminFlow ? null : (
+            <>
+              {' · '}
+              <Link
+                to={ROUTES.register}
+                className="text-neutral-300 underline-offset-4 hover:underline"
+              >
+                Create account
+              </Link>
+            </>
+          )}
         </p>
       }
     >
       <div className="space-y-4">
-        <p className="border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">{message}</p>
-        <AuthButton type="button" onClick={() => navigate(ROUTES.login, { replace: true })}>
-          Go to sign in
+        <p className="border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
+          {message}
+        </p>
+        <AuthButton
+          type="button"
+          onClick={() => navigate(returnToLogin, { replace: true })}
+        >
+          {adminFlow ? 'Return to staff sign-in' : 'Go to sign in'}
         </AuthButton>
       </div>
     </AuthLayout>

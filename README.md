@@ -1,5 +1,15 @@
 # React + TypeScript + Vite
 
+## Sitemap
+
+The only sitemap for this store is [https://krewnox.ca/sitemap.xml](https://krewnox.ca/sitemap.xml).
+
+`npm run sitemap` (`scripts/generate-sitemap.mjs`) writes `public/sitemap.xml` before every production build. Static pages come from `src/constants/publicSitemapPages.mjs`. Active product URLs are loaded from Supabase (`products` where `status` is `active`) when `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are set. `npm run sitemap:check` checks that the file is valid XML and lists only canonical HTTPS pages.
+
+`public/robots.txt` already points crawlers at that sitemap. Shop filters such as `/shop?tag=new` stay out of the file; their canonical URL is `https://krewnox.ca/shop`. Cart, checkout, account, login, and admin URLs are excluded.
+
+In Google Search Console, submit only `https://krewnox.ca/sitemap.xml`. Remove any sitemap entries that are ordinary page URLs (`/shipping`, `/privacy`, `/terms`, `/contact`, `/waitlist`, `/shop`, `/shop?tag=new`, or a product page). Those addresses return HTML, which is why Search Console reports “Sitemap is HTML” or “Couldn’t fetch”.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

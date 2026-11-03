@@ -22,7 +22,7 @@ export const socialPreviewRouter = Router()
 const SITE_URL = 'https://krewnox.ca'
 const SITE_NAME = 'KREWNOX'
 const DEFAULT_DESCRIPTION =
-  'KREWNOX is a modern fashion studio for tailored outerwear, sculptural sneakers, and studio-grade essentials — designed as a system, not a statement.'
+  'Shop the KREWNOX Season 1 Fall Collection: tracksuit sets, quarter zip hoodies and sweatpants. Prices in CAD.'
 
 type MetaImage = {
   url: string
@@ -202,9 +202,9 @@ async function homeMeta(): Promise<PageMeta> {
   const hero = await withTimeout(fetchHeroImage(), 4000, null)
 
   return {
-    title: `${SITE_NAME} — Modern Fashion, Outerwear & Sneakers`,
+    title: `${SITE_NAME} — Tracksuits, Hoodies & Sweatpants`,
     description:
-      'Shop KREWNOX — tailored outerwear, sculptural sneakers, and studio-grade essentials designed as a system, not a statement. New arrivals dropping weekly.',
+      'Shop the KREWNOX Season 1 Fall Collection: tracksuit sets, quarter zip hoodies and sweatpants. Prices in CAD.',
     path: '/',
     type: 'website',
     image: hero ? { url: hero.src, alt: hero.alt } : undefined,
@@ -290,7 +290,7 @@ function shopMeta(): PageMeta {
   return {
     title: `Shop All — ${SITE_NAME}`,
     description:
-      'Browse the full KREWNOX collection — tailored outerwear, sculptural sneakers, and studio-grade essentials designed as a system.',
+      'Browse the full KREWNOX collection: tracksuit sets, quarter zip hoodies and sweatpants.',
     path: '/shop',
     jsonLd: [
       breadcrumbJsonLd([
@@ -331,7 +331,7 @@ function legalMeta(path: string): PageMeta {
 }
 
 function genericMeta(path: string, noindex: boolean): PageMeta {
-  return { title: `${SITE_NAME} — Modern Fashion, Outerwear & Sneakers`, description: DEFAULT_DESCRIPTION, path, noindex }
+  return { title: `${SITE_NAME} — Tracksuits, Hoodies & Sweatpants`, description: DEFAULT_DESCRIPTION, path, noindex }
 }
 
 function normalizePath(rawPath: string): string {

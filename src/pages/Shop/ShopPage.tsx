@@ -134,8 +134,8 @@ export default function ShopPage() {
 
   const seoTitle = categoryParam ? `Shop ${categoryParam.replace(/-/g, ' ')}` : 'Shop All'
   const seoDescription = categoryParam
-    ? `Browse the ${categoryParam.replace(/-/g, ' ')} collection at KREWNOX — tailored outerwear, sculptural sneakers, and studio-grade essentials.`
-    : 'Browse the full KREWNOX collection — tailored outerwear, sculptural sneakers, and studio-grade essentials designed as a system.'
+    ? `Browse the ${categoryParam.replace(/-/g, ' ')} collection at KREWNOX.`
+    : 'Browse the full KREWNOX collection: tracksuit sets, quarter zip hoodies and sweatpants.'
 
   return (
     <div className="pb-8">

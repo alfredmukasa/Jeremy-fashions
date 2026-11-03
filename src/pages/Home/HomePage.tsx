@@ -13,7 +13,7 @@ import { Seo } from '../../components/seo/Seo'
 import { ROUTES } from '../../constants'
 
 const HOME_DESCRIPTION =
-  'Shop KREWNOX — tailored outerwear, sculptural sneakers, and studio-grade essentials designed as a system, not a statement. New arrivals dropping weekly.'
+  'Shop the KREWNOX Season 1 Fall Collection: tracksuit sets, quarter zip hoodies and sweatpants. Prices in CAD.'
 
 export default function HomePage() {
   const { data: products, loading, error } = useProducts()
@@ -37,7 +37,7 @@ export default function HomePage() {
   return (
     <div>
       <Seo
-        title="KREWNOX — Modern Fashion, Outerwear & Sneakers"
+        title="KREWNOX — Tracksuits, Hoodies & Sweatpants"
         rawTitle
         description={HOME_DESCRIPTION}
         path="/"

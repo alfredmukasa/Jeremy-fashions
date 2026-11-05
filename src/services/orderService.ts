@@ -26,6 +26,7 @@ export type CustomerOrderLineItem = {
 
 export type CustomerOrderAddress = {
   fullName: string
+  phone?: string
   line1: string
   line2?: string
   city: string
@@ -122,6 +123,7 @@ function parseAddress(raw: unknown): CustomerOrderAddress | null {
   if (!fullName && !line1) return null
   return {
     fullName,
+    phone: typeof value.phone === 'string' ? value.phone : undefined,
     line1,
     line2: typeof value.line2 === 'string' ? value.line2 : undefined,
     city,
@@ -318,3 +320,4 @@ export async function getCustomerOrderPaymentStatus(orderId: string): Promise<{
     status: data.status,
   }
 }
+

@@ -1,3 +1,4 @@
+import { isValidShippingPhone } from '../domain/shippingPhone.js'
 import type { NextFunction, Response } from 'express'
 
 import type { AuthedRequest } from './auth.js'
@@ -74,7 +75,13 @@ function parseAddress(value: CheckoutAddress | undefined, label: string): Checko
     throw new CheckoutError(`Complete ${label} address details are required.`, 400)
   }
 
+  const phone = typeof value?.phone === 'string' ? value.phone.trim() : undefined
+  if (label === 'shipping' && !isValidShippingPhone(phone)) {
+    throw new CheckoutError('Enter a valid shipping contact number (7–15 digits).', 400)
+  }
+
   return {
+    phone,
     fullName,
     line1,
     line2: value?.line2?.trim() || undefined,
@@ -84,3 +91,4 @@ function parseAddress(value: CheckoutAddress | undefined, label: string): Checko
     country,
   }
 }
+

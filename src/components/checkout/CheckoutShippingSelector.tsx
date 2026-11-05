@@ -5,7 +5,7 @@ import { ROUTES } from '../../constants'
 import type { ShippingAddress } from '../../types'
 import { formatShippingAddressSummary, shippingAddressToCheckoutValues } from '../../utils/shippingAddress'
 
-import { CheckoutAddressFields, type CheckoutFormValues } from './CheckoutAddressFields'
+import { CheckoutPhoneField, CheckoutAddressFields, type CheckoutFormValues } from './CheckoutAddressFields'
 
 type CheckoutShippingSelectorProps = {
   addresses: ShippingAddress[]
@@ -81,6 +81,7 @@ export function CheckoutShippingSelector({
                     onSelectSavedAddress(address.id)
                     const values = shippingAddressToCheckoutValues(address)
                     setValue('shipping.fullName', values.fullName)
+                    setValue('shipping.phone', values.phone ?? '')
                     setValue('shipping.line1', values.line1)
                     setValue('shipping.line2', values.line2 ?? '')
                     setValue('shipping.city', values.city)
@@ -110,6 +111,8 @@ export function CheckoutShippingSelector({
         Ship to a different address
       </label>
 
+      {!useNewAddress ? <CheckoutPhoneField register={register} errors={errors} /> : null}
+
       {useNewAddress ? (
         <CheckoutAddressFields prefix="shipping" register={register} errors={errors} watch={watch} setValue={setValue} />
       ) : null}
@@ -134,3 +137,4 @@ function CheckoutAddressHeader({ address }: { address: ShippingAddress }) {
     </div>
   )
 }
+

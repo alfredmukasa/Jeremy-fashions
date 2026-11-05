@@ -20,6 +20,7 @@ function formatAddress(order: CustomerOrderDetail): string | null {
     address.line2,
     `${address.city}, ${address.region} ${address.postalCode}`,
     address.country,
+    address.phone ? `Tel: ${address.phone}` : undefined,
   ]
     .filter(Boolean)
     .join(', ')
@@ -145,3 +146,4 @@ function OrderLine({ item }: { item: CustomerOrderDetail['items'][number] }) {
     </div>
   )
 }
+

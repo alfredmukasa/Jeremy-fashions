@@ -5,6 +5,7 @@ import { FieldLabel, Input } from '../common/Input'
 export type ShippingAddressFormValues = {
   label?: string
   fullName: string
+  phone: string
   line1: string
   line2?: string
   city: string
@@ -41,6 +42,14 @@ export function ShippingAddressForm({
         <FieldLabel id="address-fullName">Full name</FieldLabel>
         <Input id="address-fullName" autoComplete="name" {...register('fullName')} />
         <FieldError message={errors.fullName?.message} />
+      </div>
+      <div className="sm:col-span-2">
+        <FieldLabel id="address-phone">Contact number</FieldLabel>
+        <Input id="address-phone" type="tel" autoComplete="tel" maxLength={40}
+          aria-required="true" aria-invalid={Boolean(errors.phone)} aria-describedby="address-phone-help"
+          {...register('phone')} />
+        <p id="address-phone-help" className="mt-2 text-xs text-neutral-600">Used to contact you about your delivery. Include your country code.</p>
+        <FieldError message={errors.phone?.message} />
       </div>
       <div className="sm:col-span-2">
         <FieldLabel id="address-line1">Address</FieldLabel>
@@ -89,3 +98,4 @@ export function ShippingAddressForm({
     </div>
   )
 }
+

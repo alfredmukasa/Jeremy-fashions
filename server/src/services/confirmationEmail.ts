@@ -76,7 +76,8 @@ export function formatShippingAddress(raw: unknown): string | null {
   const country = typeof value.country === 'string' ? value.country.trim() : ''
   if (!fullName && !line1) return null
   const cityLine = [city, region, postalCode].filter(Boolean).join(' ')
-  const lines = [fullName, line1, line2, cityLine, country].filter(Boolean)
+  const phone = typeof value.phone === 'string' && value.phone.trim() ? `Tel: ${value.phone.trim()}` : ''
+  const lines = [fullName, line1, line2, cityLine, country, phone].filter(Boolean)
   return lines.length ? lines.join('\n') : null
 }
 
@@ -364,3 +365,4 @@ function escapeHtml(value: string) {
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;')
 }
+

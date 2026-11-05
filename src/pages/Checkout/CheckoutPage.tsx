@@ -1,3 +1,4 @@
+import { isValidShippingPhone } from '../../utils/shippingPhone'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Elements } from '@stripe/react-stripe-js'
@@ -49,7 +50,9 @@ const addressSchema = z.object({
 const checkoutSchema = z
   .object({
     email: z.string().trim().toLowerCase().email('Enter a valid email address.'),
-    shipping: addressSchema,
+    shipping: addressSchema.extend({
+      phone: z.string().trim().refine(isValidShippingPhone, 'Enter a valid contact number (7–15 digits).'),
+    }),
     billing: z.object({
       fullName: z.string().optional(),
       line1: z.string().optional(),
@@ -131,6 +134,7 @@ export default function CheckoutPage() {
     defaultValues: {
       email: user?.email ?? '',
       shipping: {
+        phone: '',
         fullName: '',
         line1: '',
         line2: '',
@@ -182,6 +186,7 @@ export default function CheckoutPage() {
     setSelectedAddressId(defaultAddress.id)
     const values = shippingAddressToCheckoutValues(defaultAddress)
     setValue('shipping.fullName', values.fullName)
+    setValue('shipping.phone', values.phone ?? '')
     setValue('shipping.line1', values.line1)
     setValue('shipping.line2', values.line2 ?? '')
     setValue('shipping.city', values.city)
@@ -693,3 +698,4 @@ function CheckoutDesktopSubmit({ isPreparingPayment }: { isPreparingPayment: boo
     </div>
   )
 }
+

@@ -1,5 +1,6 @@
 export type CheckoutAddress = {
   fullName: string
+  phone?: string
   line1: string
   line2?: string
   city: string
@@ -33,3 +34,4 @@ export type AuthenticatedUser = {
   id: string
   email: string
 }
+

@@ -1,3 +1,4 @@
+import { isValidShippingPhone } from '../../utils/shippingPhone'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -21,6 +22,7 @@ import { ShippingAddressForm, type ShippingAddressFormValues } from './ShippingA
 
 const addressSchema = z.object({
   label: z.string().trim().max(40, 'Keep labels under 40 characters.').optional().or(z.literal('')),
+  phone: z.string().trim().refine(isValidShippingPhone, 'Enter a valid contact number (7–15 digits).'),
   fullName: z.string().trim().min(2, 'Enter the full name for this address.'),
   line1: z.string().trim().min(3, 'Enter a street address.'),
   line2: z.string().trim().optional(),
@@ -35,6 +37,7 @@ function toFormValues(address?: ShippingAddress): ShippingAddressFormValues {
   return {
     label: address?.label ?? '',
     fullName: address?.fullName ?? '',
+    phone: address?.phone ?? '',
     line1: address?.line1 ?? '',
     line2: address?.line2 ?? '',
     city: address?.city ?? '',
@@ -78,6 +81,7 @@ export function ShippingAddressManager() {
       updateShippingAddress(id, {
         label: values.label,
         fullName: values.fullName,
+        phone: values.phone,
         line1: values.line1,
         line2: values.line2,
         city: values.city,
@@ -157,6 +161,7 @@ export function ShippingAddressManager() {
           onSubmit={(values) => createMutation.mutate({
             label: values.label,
             fullName: values.fullName,
+            phone: values.phone,
             line1: values.line1,
             line2: values.line2,
             city: values.city,
@@ -302,3 +307,4 @@ function AddressEditorActions({
     </div>
   )
 }
+

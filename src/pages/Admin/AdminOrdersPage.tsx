@@ -93,7 +93,7 @@ function addressLines(source: Record<string, unknown> | null | undefined): strin
     readText(source, ['line2']),
     [city, region, postal].filter(Boolean).join(', '),
     readText(source, ['country']),
-    readText(source, ['phone']),
+    readText(source, ['phone']) ? `Tel: ${readText(source, ['phone'])}` : '',
   ].filter(Boolean)
 }
 
@@ -468,3 +468,4 @@ function AdminOrderRowView({
     </article>
   )
 }
+

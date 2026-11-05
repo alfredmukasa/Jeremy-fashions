@@ -5,6 +5,7 @@ const API_BASE = (import.meta.env.VITE_PAYMENTS_API_URL as string | undefined)?.
 
 export type CheckoutAddressInput = {
   fullName: string
+  phone?: string
   line1: string
   line2?: string
   city: string
@@ -200,3 +201,4 @@ export async function getGuestOrderStatus(orderId: string, email: string): Promi
     currency: confirmation.currency,
   }
 }
+

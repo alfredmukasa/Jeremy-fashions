@@ -111,6 +111,7 @@ export type ShippingAddress = {
   updatedAt: string
   label?: string | null
   fullName: string
+  phone?: string
   line1: string
   line2?: string
   city: string
@@ -123,6 +124,7 @@ export type ShippingAddress = {
 export type ShippingAddressInput = {
   label?: string
   fullName: string
+  phone?: string
   line1: string
   line2?: string
   city: string
@@ -146,3 +148,4 @@ export type CartLine = {
    */
   snapshot: CartLineSnapshot
 }
+

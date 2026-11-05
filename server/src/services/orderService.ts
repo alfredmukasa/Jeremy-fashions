@@ -1120,9 +1120,10 @@ function getSellingPrice(price: number, comparePrice: number | string | null) {
   return roundMoney(Number(comparePrice))
 }
 
-function toAddressJson(address: CheckoutAddress) {
+export function toAddressJson(address: CheckoutAddress) {
   return {
     full_name: address.fullName,
+    phone: address.phone ?? null,
     line1: address.line1,
     line2: address.line2 ?? null,
     city: address.city,
@@ -1132,7 +1133,7 @@ function toAddressJson(address: CheckoutAddress) {
   }
 }
 
-function parseAddress(raw: unknown): CheckoutAddress | null {
+export function parseAddress(raw: unknown): CheckoutAddress | null {
   if (!raw || typeof raw !== 'object') return null
   const value = raw as Record<string, unknown>
   const fullName =
@@ -1146,6 +1147,7 @@ function parseAddress(raw: unknown): CheckoutAddress | null {
   if (!fullName && !line1) return null
   return {
     fullName,
+    phone: typeof value.phone === 'string' ? value.phone : undefined,
     line1,
     line2: typeof value.line2 === 'string' ? value.line2 : undefined,
     city,
@@ -1154,3 +1156,4 @@ function parseAddress(raw: unknown): CheckoutAddress | null {
     country,
   }
 }
+

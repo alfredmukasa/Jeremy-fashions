@@ -166,6 +166,7 @@ export function CheckoutConfirmation({ orderId, email, isSignedIn, accessToken }
                 order.shippingAddress.line2,
                 `${order.shippingAddress.city}, ${order.shippingAddress.region} ${order.shippingAddress.postalCode}`,
                 order.shippingAddress.country,
+                order.shippingAddress.phone ? `Tel: ${order.shippingAddress.phone}` : undefined,
               ]
                 .filter(Boolean)
                 .join('\n')
@@ -213,3 +214,4 @@ export function CheckoutConfirmation({ orderId, email, isSignedIn, accessToken }
     </Container>
   )
 }
+

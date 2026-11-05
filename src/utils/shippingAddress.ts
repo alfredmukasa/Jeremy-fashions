@@ -4,6 +4,7 @@ import type { ShippingAddress, ShippingAddressInput } from '../types'
 export function shippingAddressToCheckoutValues(address: ShippingAddress): CheckoutAddressValues {
   return {
     fullName: address.fullName,
+    phone: address.phone ?? '',
     line1: address.line1,
     line2: address.line2,
     city: address.city,
@@ -20,6 +21,7 @@ export function checkoutValuesToShippingAddressInput(
   return {
     label: label?.trim() || undefined,
     fullName: values.fullName.trim(),
+    phone: values.phone?.trim(),
     line1: values.line1.trim(),
     line2: values.line2?.trim() || undefined,
     city: values.city.trim(),
@@ -36,6 +38,7 @@ export function formatShippingAddressSummary(address: ShippingAddress) {
     address.line2,
     `${address.city}, ${address.region} ${address.postalCode}`,
     address.country,
+    address.phone ? `Tel: ${address.phone}` : undefined,
   ].filter(Boolean)
 
   return lines.join(' · ')
@@ -44,3 +47,4 @@ export function formatShippingAddressSummary(address: ShippingAddress) {
 export function getDefaultShippingAddress(addresses: ShippingAddress[]) {
   return addresses.find((address) => address.isDefault) ?? addresses[0] ?? null
 }
+

@@ -7,6 +7,7 @@ type ShippingAddressRow = {
   updated_at: string
   user_id: string
   label: string | null
+  phone: string | null
   full_name: string
   line1: string
   line2: string | null
@@ -24,6 +25,7 @@ function mapRow(row: ShippingAddressRow): ShippingAddress {
     updatedAt: row.updated_at,
     label: row.label,
     fullName: row.full_name,
+    phone: row.phone ?? undefined,
     line1: row.line1,
     line2: row.line2 ?? undefined,
     city: row.city,
@@ -38,6 +40,7 @@ function toRowPayload(input: ShippingAddressInput) {
   return {
     label: input.label?.trim() || null,
     full_name: input.fullName.trim(),
+    phone: input.phone?.trim() || null,
     line1: input.line1.trim(),
     line2: input.line2?.trim() || null,
     city: input.city.trim(),
@@ -74,7 +77,7 @@ export async function listShippingAddresses(): Promise<ShippingAddress[]> {
   const { data, error } = await client
     .from('user_shipping_addresses')
     .select(
-      'id, created_at, updated_at, user_id, label, full_name, line1, line2, city, region, postal_code, country, is_default',
+      'id, created_at, updated_at, user_id, label, full_name, phone, line1, line2, city, region, postal_code, country, is_default',
     )
     .eq('user_id', userId)
     .order('is_default', { ascending: false })
@@ -105,7 +108,7 @@ export async function createShippingAddress(input: ShippingAddressInput): Promis
       ...toRowPayload(input),
     })
     .select(
-      'id, created_at, updated_at, user_id, label, full_name, line1, line2, city, region, postal_code, country, is_default',
+      'id, created_at, updated_at, user_id, label, full_name, phone, line1, line2, city, region, postal_code, country, is_default',
     )
     .single()
 
@@ -128,7 +131,7 @@ export async function updateShippingAddress(
     .eq('id', id)
     .eq('user_id', userId)
     .select(
-      'id, created_at, updated_at, user_id, label, full_name, line1, line2, city, region, postal_code, country, is_default',
+      'id, created_at, updated_at, user_id, label, full_name, phone, line1, line2, city, region, postal_code, country, is_default',
     )
     .single()
 
@@ -158,7 +161,7 @@ export async function setDefaultShippingAddress(id: string): Promise<ShippingAdd
     .eq('id', id)
     .eq('user_id', userId)
     .select(
-      'id, created_at, updated_at, user_id, label, full_name, line1, line2, city, region, postal_code, country, is_default',
+      'id, created_at, updated_at, user_id, label, full_name, phone, line1, line2, city, region, postal_code, country, is_default',
     )
     .single()
 
@@ -168,3 +171,4 @@ export async function setDefaultShippingAddress(id: string): Promise<ShippingAdd
 
   return mapRow(data as ShippingAddressRow)
 }
+

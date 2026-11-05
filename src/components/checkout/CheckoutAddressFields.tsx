@@ -7,6 +7,7 @@ import { FieldLabel, Input } from '../common/Input'
 
 export type CheckoutAddressValues = {
   fullName: string
+  phone?: string
   line1: string
   line2?: string
   city: string
@@ -25,7 +26,7 @@ type CheckoutAddressFieldsProps = {
 
 export type CheckoutFormValues = {
   email: string
-  shipping: CheckoutAddressValues
+  shipping: CheckoutAddressValues & { phone: string }
   billing: Partial<CheckoutAddressValues>
   billingSameAsShipping: boolean
 }
@@ -57,6 +58,7 @@ export function CheckoutAddressFields({ prefix, register, errors, watch, setValu
         />
         <FieldError message={fieldErrors?.fullName?.message} />
       </div>
+      {prefix === 'shipping' ? <CheckoutPhoneField register={register} errors={errors} /> : null}
       <div className="sm:col-span-2">
         <FieldLabel id={`${prefix}-line1`}>Address</FieldLabel>
         <Input
@@ -136,6 +138,20 @@ export function CheckoutAddressFields({ prefix, register, errors, watch, setValu
         />
         <FieldError message={fieldErrors?.postalCode?.message} />
       </div>
+    </div>
+  )
+}
+
+
+export function CheckoutPhoneField({ register, errors }: Pick<CheckoutAddressFieldsProps, 'register' | 'errors'>) {
+  return (
+    <div className="sm:col-span-2">
+      <FieldLabel id="shipping-phone">Contact number</FieldLabel>
+      <Input id="shipping-phone" type="tel" autoComplete="shipping tel" maxLength={40}
+        aria-required="true" aria-invalid={Boolean(errors.shipping?.phone)} aria-describedby="shipping-phone-help"
+        {...register('shipping.phone')} />
+      <p id="shipping-phone-help" className="mt-2 text-xs text-neutral-600">Used to contact you about your delivery. Include your country code.</p>
+      <FieldError message={errors.shipping?.phone?.message} />
     </div>
   )
 }

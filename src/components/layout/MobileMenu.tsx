@@ -31,7 +31,6 @@ export function MobileMenu() {
       : user
         ? [
             { to: ROUTES.account, label: 'Account' },
-            { to: ROUTES.saved, label: 'Saved' },
             { to: ROUTES.orders, label: 'Orders' },
             { to: ROUTES.profile, label: 'Profile' },
           ]

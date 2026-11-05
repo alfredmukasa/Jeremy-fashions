@@ -1,3 +1,4 @@
+import { AdvertisingConsent } from '../components/marketing/AdvertisingConsent'
 import { useEffect } from 'react'
 import { Outlet, useLocation, Navigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -72,6 +73,8 @@ export function MainLayout() {
         </AnimatePresence>
       </main>
       <Footer />
+      <AdvertisingConsent />
     </motion.div>
   )
 }
+

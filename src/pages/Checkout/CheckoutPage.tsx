@@ -1,3 +1,4 @@
+import { trackMeta } from '../../lib/metaPixel'
 import { isValidShippingPhone } from '../../utils/shippingPhone'
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
@@ -323,6 +324,7 @@ export default function CheckoutPage() {
         session?.access_token,
       )
 
+      trackMeta('InitiateCheckout', {content_ids: lines.map(line => line.productId), content_type: 'product', num_items: lines.reduce((sum, line) => sum + line.quantity, 0), currency: 'CAD', value: response.totals?.total}, `checkout-${response.orderId}`)
       setClientSecret(response.clientSecret)
       setOrderId(response.orderId)
       if (response.totals) {

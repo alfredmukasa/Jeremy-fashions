@@ -1,3 +1,4 @@
+import { trackMeta } from '../lib/metaPixel'
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 
@@ -43,6 +44,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       lines: [],
       addLine: (product, size, colorName, quantity = 1) => {
+        trackMeta('AddToCart', { content_ids: [product.id], content_type: 'product', value: (product.salePrice ?? product.price) * quantity, currency: 'CAD', contents: [{id: product.id, quantity}] })
         const key = lineKey(product.id, size, colorName)
         const lines = get().lines
         const snapshot = snapshotFor(product)
@@ -136,3 +138,4 @@ export const useCartStore = create<CartState>()(
     },
   ),
 )
+

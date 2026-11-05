@@ -94,8 +94,7 @@ function StaticPrivacyPolicy() {
           </li>
         </ul>
         <p>
-          We do not currently use third-party advertising trackers or web analytics services (like Google
-          Analytics) on the Site. If that changes, we'll update this policy.
+          With your permission, we use Meta Pixel to measure page visits, product views, cart additions, checkout starts, and completed purchases, and to support personalized advertising on Facebook and Instagram. Meta may receive browser and device information, IP address, page URLs, product identifiers and purchase values, and use cookies to associate activity with its services. We do not include your shipping address, phone number or email in our event parameters. You can reject advertising cookies or change your choice using Advertising cookie settings at the bottom of the site. Rejecting does not affect shopping or checkout.
         </p>
       </section>
 
@@ -240,3 +239,4 @@ function StaticPrivacyPolicy() {
     </LegalPageLayout>
   )
 }
+

@@ -1,3 +1,5 @@
+import { useEffect } from 'react'
+import { trackPurchase } from '../../lib/metaPixel'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 
@@ -38,6 +40,12 @@ export function CheckoutConfirmation({ orderId, email, isSignedIn, accessToken }
   })
 
   const order = confirmationQuery.data
+  useEffect(() => {
+    const purchase = () => { if (order) trackPurchase(order) }
+    purchase()
+    window.addEventListener('advertising-consent', purchase)
+    return () => window.removeEventListener('advertising-consent', purchase)
+  }, [order])
   const paymentStatus = normalizePaymentStatus(order?.paymentStatus ?? 'processing')
   const waitingTooLong = Boolean(startedAt.data && Date.now() - startedAt.data > 120_000 && paymentStatus === 'processing')
 

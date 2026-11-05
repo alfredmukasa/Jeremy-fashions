@@ -1,3 +1,4 @@
+import { trackMeta } from '../../lib/metaPixel'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -509,6 +510,13 @@ export default function ProductPage() {
   const { slug } = useParams()
   const normalizedSlug = slug ? decodeURIComponent(slug) : undefined
   const { data: product, loading, error } = useProduct(normalizedSlug)
+  useEffect(() => {
+    if (!product) return
+    const view = () => trackMeta('ViewContent', {content_ids: [product.id], content_type: 'product', content_name: product.name, value: product.salePrice ?? product.price, currency: 'CAD'}, `view-${product.id}-${window.location.pathname}`)
+    view()
+    window.addEventListener('advertising-consent', view)
+    return () => window.removeEventListener('advertising-consent', view)
+  }, [product])
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
@@ -537,3 +545,4 @@ export default function ProductPage() {
 
   return <ProductDetail key={normalizedSlug} product={product} />
 }
+

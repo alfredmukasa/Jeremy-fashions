@@ -69,7 +69,9 @@ export default function RegisterPage() {
   return (
     <AuthLayout
       eyebrow="Register"
-      title="Join the studio list"
+      title="Create an account"
+      indexable
+      description="Create a KREWNOX account to track orders, save pieces and check out faster."
       footer={
         <p className="text-center text-sm text-neutral-500">
           Already have an account?{' '}

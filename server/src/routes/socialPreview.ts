@@ -58,8 +58,6 @@ const PRIVATE_FIRST_SEGMENTS = new Set([
   'orders',
   'profile',
   'saved',
-  'login',
-  'register',
   'forgot-password',
   'reset-password',
   'auth',
@@ -330,6 +328,17 @@ function legalMeta(path: string): PageMeta {
   return { title: `${page.title} — Krewnox`, description: page.description, path }
 }
 
+const AUTH_PAGES: Record<string, { title: string; description: string }> = {
+  '/login': {
+    title: 'Sign in',
+    description: 'Sign in to your KREWNOX account to track orders, save pieces and check out faster.',
+  },
+  '/register': {
+    title: 'Create an account',
+    description: 'Create a KREWNOX account to track orders, save pieces and check out faster.',
+  },
+}
+
 function genericMeta(path: string, noindex: boolean): PageMeta {
   return { title: `${SITE_NAME} — Tracksuits, Hoodies & Sweatpants`, description: DEFAULT_DESCRIPTION, path, noindex }
 }
@@ -371,6 +380,11 @@ export async function renderSocialPreviewHtml(rawPath: string): Promise<string> 
 
     if (LEGAL_PAGES[path]) {
       return renderHtml(legalMeta(path))
+    }
+
+    if (AUTH_PAGES[path]) {
+      const page = AUTH_PAGES[path]
+      return renderHtml({ title: `${page.title} — ${SITE_NAME}`, description: page.description, path })
     }
 
     const isPrivate = segments.length > 0 && PRIVATE_FIRST_SEGMENTS.has(segments[0])

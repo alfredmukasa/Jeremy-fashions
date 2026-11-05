@@ -18,6 +18,8 @@ export const SITE_URL = 'https://krewnox.ca'
 export const PUBLIC_SITEMAP_PAGES = [
   { loc: '/', changefreq: 'daily', priority: '1.0' },
   { loc: '/shop', changefreq: 'daily', priority: '0.9' },
+  { loc: '/login', changefreq: 'monthly', priority: '0.3' },
+  { loc: '/register', changefreq: 'monthly', priority: '0.3' },
   { loc: '/waitlist', changefreq: 'weekly', priority: '0.4' },
   { loc: '/contact', changefreq: 'monthly', priority: '0.5' },
   { loc: '/terms', changefreq: 'monthly', priority: '0.3', lastmod: '2026-08-05' },
@@ -37,8 +39,6 @@ export const SITEMAP_EXCLUDED_PREFIXES = [
   '/orders',
   '/profile',
   '/saved',
-  '/login',
-  '/register',
   '/forgot-password',
   '/reset-password',
   '/auth',

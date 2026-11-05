@@ -8,8 +8,6 @@ Disallow: /account
 Disallow: /orders
 Disallow: /profile
 Disallow: /saved
-Disallow: /login
-Disallow: /register
 Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /auth/callback

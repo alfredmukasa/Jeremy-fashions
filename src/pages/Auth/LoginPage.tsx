@@ -67,7 +67,9 @@ export default function LoginPage() {
   return (
     <AuthLayout
       eyebrow="Sign in"
-      title="Welcome back"
+      title="Sign in"
+      indexable
+      description="Sign in to your KREWNOX account to track orders, save pieces and check out faster."
       footer={
         <p className="text-center text-sm text-neutral-500">
           New here?{' '}

@@ -10,6 +10,10 @@ type AuthLayoutProps = {
   eyebrow?: string
   children: ReactNode
   footer?: ReactNode
+  /** Meta description for indexable screens (sign-in / sign-up). Defaults to the subtitle. */
+  description?: string
+  /** Lets search engines index this screen. Password-reset and callback flows stay noindex. */
+  indexable?: boolean
 }
 
 /**
@@ -22,14 +26,18 @@ const AUTH_SIDE_IMAGE =
 /**
  * Editorial split: visual panel + form. Matches luxury / monochrome direction from the auth spec.
  *
- * Shared by every sign-in/sign-up/password flow, so `noindex` is set here once rather
- * than in each page — auth screens have no unique public search value and shouldn't
- * be indexed regardless of which one is rendered.
+ * Shared by every sign-in/sign-up/password flow. Defaults to `noindex`; only the public
+ * sign-in and sign-up pages opt in with `indexable` (and are listed in the sitemap).
  */
-export function AuthLayout({ title, subtitle, eyebrow, children, footer }: AuthLayoutProps) {
+export function AuthLayout({ title, subtitle, eyebrow, children, footer, description, indexable = false }: AuthLayoutProps) {
   return (
     <div className="min-h-svh bg-neutral-950 text-neutral-100">
-      <Seo title={title} description={subtitle ?? title} path={window.location.pathname} noindex />
+      <Seo
+        title={title}
+        description={description ?? subtitle ?? title}
+        path={window.location.pathname}
+        noindex={!indexable}
+      />
       <div className="grid min-h-svh lg:grid-cols-2">
         <div className="relative hidden overflow-hidden lg:block">
           <img

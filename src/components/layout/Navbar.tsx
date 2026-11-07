@@ -217,15 +217,26 @@ export function Navbar() {
             ) : null}
 
             {!waitlistMode && !user ? (
-              <Link
-                to={ROUTES.login}
-                className={cn(
-                  'hidden px-2 py-2 text-[10px] font-medium uppercase tracking-[0.2em] transition-opacity hover:opacity-50 md:inline-flex',
-                  iconTone,
-                )}
-              >
-                Sign In
-              </Link>
+              <>
+                <Link
+                  to={ROUTES.login}
+                  className={cn(
+                    'hidden px-2 py-2 text-[10px] font-medium uppercase tracking-[0.2em] transition-opacity hover:opacity-50 md:inline-flex',
+                    iconTone,
+                  )}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  to={ROUTES.register}
+                  className={cn(
+                    'hidden px-2 py-2 text-[10px] font-medium uppercase tracking-[0.2em] transition-opacity hover:opacity-50 md:inline-flex',
+                    iconTone,
+                  )}
+                >
+                  Sign Up
+                </Link>
+              </>
             ) : null}
 
             {!waitlistMode ? (

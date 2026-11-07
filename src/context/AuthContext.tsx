@@ -11,7 +11,7 @@ import type { Session, User } from '@supabase/supabase-js'
 
 import { ROUTES } from '../constants'
 import { AUTH_UNAVAILABLE_MESSAGE } from '../lib/authErrors'
-import { getAuthCallbackUrl } from '../lib/authRedirect'
+import { getAuthCallbackUrl, sanitizeNextPath } from '../lib/authRedirect'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
 
 type SignInResult = { error: Error | null }
@@ -22,8 +22,8 @@ export type AuthContextValue = {
   session: Session | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<SignInResult>
-  signUp: (args: { email: string; password: string; fullName: string }) => Promise<SignUpResult>
-  signInWithGoogle: () => Promise<SignInResult>
+  signUp: (args: { email: string; password: string; fullName: string; next?: string }) => Promise<SignUpResult>
+  signInWithGoogle: (next?: string) => Promise<SignInResult>
   signOut: () => Promise<void>
   resetPasswordForEmail: (email: string) => Promise<SignInResult>
   updatePassword: (password: string) => Promise<SignInResult>
@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signUp = useCallback(
-    async (args: { email: string; password: string; fullName: string }): Promise<SignUpResult> => {
+    async (args: { email: string; password: string; fullName: string; next?: string }): Promise<SignUpResult> => {
       if (!supabase) {
         return { error: new Error(AUTH_UNAVAILABLE_MESSAGE), session: null }
       }
@@ -118,7 +118,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password: args.password,
         options: {
           data: { full_name: args.fullName },
-          emailRedirectTo: getAuthCallbackUrl({ type: 'signup' }),
+          emailRedirectTo: getAuthCallbackUrl({
+            type: 'signup',
+            next: sanitizeNextPath(args.next),
+          }),
         },
       })
       return {
@@ -129,14 +132,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   )
 
-  const signInWithGoogle = useCallback(async (): Promise<SignInResult> => {
+  const signInWithGoogle = useCallback(async (next?: string): Promise<SignInResult> => {
     if (!supabase) {
       return { error: new Error(AUTH_UNAVAILABLE_MESSAGE) }
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: getAuthCallbackUrl({ next: ROUTES.account }),
+        redirectTo: getAuthCallbackUrl({ next: sanitizeNextPath(next) }),
       },
     })
     return { error: error ? new Error(error.message) : null }

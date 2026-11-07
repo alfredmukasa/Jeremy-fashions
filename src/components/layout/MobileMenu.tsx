@@ -39,7 +39,7 @@ export function MobileMenu() {
           ? []
           : [
               { to: ROUTES.login, label: 'Sign In' },
-              { to: ROUTES.register, label: 'Register' },
+              { to: ROUTES.register, label: 'Sign Up' },
             ]
 
   const items = [...publicItems, ...authItems]

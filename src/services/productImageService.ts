@@ -19,6 +19,48 @@ function sanitizeFileName(name: string): string {
     .replace(/^-|-$/g, '')
 }
 
+/**
+ * Reduce Supabase Storage transfer size for newly uploaded product photography.
+ * Preserve formats that may be animated or vector, and keep the original if
+ * the browser cannot encode WebP or the optimized output is not smaller.
+ * Existing public URLs are untouched.
+ */
+async function optimizeProductImage(file: File): Promise<File> {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) return file
+  if (typeof createImageBitmap !== 'function') return file
+
+  let bitmap: ImageBitmap | undefined
+  try {
+    bitmap = await createImageBitmap(file)
+    const longest = Math.max(bitmap.width, bitmap.height)
+    if (!longest) return file
+    const scale = Math.min(1, 1600 / longest)
+    const width = Math.max(1, Math.round(bitmap.width * scale))
+    const height = Math.max(1, Math.round(bitmap.height * scale))
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    const context = canvas.getContext('2d')
+    if (!context) return file
+    context.drawImage(bitmap, 0, 0, width, height)
+
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, 'image/webp', 0.78),
+    )
+    if (!blob || blob.type !== 'image/webp' || blob.size >= file.size) return file
+    const baseName = file.name.replace(/\.[^.]+$/, '')
+    return new File([blob], `${baseName}.webp`, {
+      type: 'image/webp',
+      lastModified: file.lastModified,
+    })
+  } catch {
+    // An optimization failure should not prevent the merchant uploading an image.
+    return file
+  } finally {
+    bitmap?.close()
+  }
+}
+
 export async function uploadProductImageFiles(folder: string, files: File[]): Promise<string[]> {
   const client = requireClient()
   const urls: string[] = []
@@ -31,12 +73,14 @@ export async function uploadProductImageFiles(folder: string, files: File[]): Pr
       throw new Error(`Image too large (max 10 MB): ${file.name}`)
     }
 
-    const safeName = sanitizeFileName(file.name) || 'image.jpg'
+    const optimized = await optimizeProductImage(file)
+    const safeName = sanitizeFileName(optimized.name) || 'image.jpg'
     const path = `${folder}/${Date.now()}-${crypto.randomUUID()}-${safeName}`
-    const { error } = await client.storage.from(BUCKET).upload(path, file, {
-      cacheControl: '3600',
+    const { error } = await client.storage.from(BUCKET).upload(path, optimized, {
+      // Paths are UUID-versioned, so long-lived browser caching is safe.
+      cacheControl: '2592000',
       upsert: false,
-      contentType: file.type,
+      contentType: optimized.type,
     })
 
     if (error) throw new Error(error.message)

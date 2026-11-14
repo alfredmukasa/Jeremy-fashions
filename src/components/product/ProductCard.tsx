@@ -139,7 +139,7 @@ export function ProductCard({ product, className }: Props) {
                 loading="lazy"
                 draggable={false}
               />
-              {images.length > 1 ? (
+              {showHoverChrome && hasMultipleImages && imgB !== imgA ? (
                 <motion.img
                   src={imgB}
                   alt=""

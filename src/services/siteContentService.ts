@@ -36,6 +36,7 @@ import {
 import { parseContactRecipient } from '../lib/contactRecipient'
 import { parseStorePolicy } from '../lib/storePolicy'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { loadCloudflareCatalog } from './cloudflareCatalog'
 
 export type PublicSiteContent = {
   heroSlides: HeroSlide[]
@@ -156,6 +157,11 @@ function parseTopBanner(raw: unknown): TopBanner | null {
 export { formatPolicyUpdated, parseStorePolicy, storePolicyPayload, validateStorePolicy } from '../lib/storePolicy'
 
 export async function fetchPublicSiteContent(): Promise<PublicSiteContent> {
+  const catalog = await loadCloudflareCatalog()
+  if (catalog) {
+    return applySiteSettings(catalog.siteSettings)
+  }
+
   if (!isSupabaseConfigured || !supabase) {
     return defaultSiteContent()
   }
@@ -170,9 +176,15 @@ export async function fetchPublicSiteContent(): Promise<PublicSiteContent> {
     return defaultSiteContent()
   }
 
+  return applySiteSettings(data ?? [])
+}
+
+function applySiteSettings(
+  rows: { key: string; value: unknown; updated_at?: string | null }[],
+): PublicSiteContent {
   const content = defaultSiteContent()
 
-  for (const row of data ?? []) {
+  for (const row of rows) {
     const updatedAt = typeof row.updated_at === 'string' ? row.updated_at : undefined
     if (row.key === SITE_SETTING_KEY_HERO_SLIDES) {
       content.heroSlides = parseHeroSlides(row.value) ?? content.heroSlides

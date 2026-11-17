@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase'
 import type { Category, Product } from '../types'
 
 import { rankRecommendedProducts } from '../lib/recommendations'
+import { loadCloudflareCatalog } from './cloudflareCatalog'
 import { mapCategoryRow, mapProductRow, type CategoryRow, type ProductRow } from './mappers'
 
 const PRODUCT_COLUMNS =
@@ -58,6 +59,9 @@ async function runQuery<T>(
 }
 
 export async function getProducts(): Promise<Product[]> {
+  const catalog = await loadCloudflareCatalog()
+  if (catalog) return catalog.products.map(mapProductRow)
+
   const client = requireCatalogClient()
 
   const data = await runQuery('getProducts', () =>
@@ -72,6 +76,15 @@ export async function getProducts(): Promise<Product[]> {
 }
 
 export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
+  const catalog = await loadCloudflareCatalog()
+  if (catalog) {
+    return catalog.products
+      .map(mapProductRow)
+      .filter((product) => product.featured)
+      .sort((a, b) => b.rating - a.rating)
+      .slice(0, limit)
+  }
+
   const client = requireCatalogClient()
 
   const data = await runQuery('getFeaturedProducts', () =>
@@ -90,6 +103,12 @@ export async function getFeaturedProducts(limit = 6): Promise<Product[]> {
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   if (!slug) return null
 
+  const catalog = await loadCloudflareCatalog()
+  if (catalog) {
+    const row = catalog.products.find((product) => product.slug === slug)
+    return row ? mapProductRow(row) : null
+  }
+
   const client = requireCatalogClient()
 
   const data = await runQuery('getProductBySlug', () =>
@@ -106,6 +125,16 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 export async function getRelatedProducts(product: Product, limit = 4): Promise<Product[]> {
+  const catalog = await loadCloudflareCatalog()
+  if (catalog) {
+    const pool = catalog.products
+      .filter((row) => row.id !== product.id)
+      .map(mapProductRow)
+    const sameCategory = pool.filter((item) => item.category === product.category)
+    const rankedPool = sameCategory.length >= limit ? sameCategory : pool
+    return rankRecommendedProducts(product, rankedPool, limit)
+  }
+
   const client = requireCatalogClient()
 
   try {
@@ -145,6 +174,9 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
 }
 
 export async function getCategories(): Promise<Category[]> {
+  const catalog = await loadCloudflareCatalog()
+  if (catalog) return catalog.categories.map(mapCategoryRow)
+
   const client = requireCatalogClient()
 
   const data = await runQuery('getCategories', () =>

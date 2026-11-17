@@ -35,4 +35,7 @@ export const config = {
   supabaseUrl: required('SUPABASE_URL'),
   supabaseAnonKey: required('SUPABASE_ANON_KEY'),
   supabaseServiceRoleKey: optional('SUPABASE_SERVICE_ROLE_KEY'),
+  cloudflareAccountId: optional('CLOUDFLARE_ACCOUNT_ID'),
+  cloudflareApiToken: optional('CLOUDFLARE_API_TOKEN'),
+  cloudflareD1DatabaseId: optional('CLOUDFLARE_D1_DATABASE_ID'),
 }

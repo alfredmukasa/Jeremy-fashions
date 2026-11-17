@@ -1,6 +1,8 @@
 import { Router } from 'express'
 
+import { isD1Configured } from '../lib/d1.js'
 import { supabaseAnon } from '../lib/supabase.js'
+import { readPublicCatalog } from '../services/publicCatalog.js'
 
 /**
  * Serves pre-rendered, bot-safe HTML with real Open Graph / Twitter Card / JSON-LD tags
@@ -179,6 +181,25 @@ function breadcrumbJsonLd(items: { name: string; path: string }[]) {
 type HeroSlide = { src: string; alt: string }
 
 async function fetchHeroImage(): Promise<HeroSlide | null> {
+  if (isD1Configured()) {
+    try {
+      const catalog = await readPublicCatalog()
+      const row = catalog.siteSettings.find((setting) => setting.key === 'hero_slides')
+      const slides = (row?.value as { slides?: unknown } | undefined)?.slides
+      if (Array.isArray(slides) && slides.length > 0) {
+        const first = slides[0] as { src?: unknown; alt?: unknown }
+        if (typeof first?.src === 'string' && first.src.trim()) {
+          return {
+            src: first.src.trim(),
+            alt: typeof first.alt === 'string' && first.alt.trim() ? first.alt.trim() : 'Hero background',
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[socialPreview] D1 hero read failed', error)
+    }
+  }
+
   const { data, error } = await supabaseAnon
     .from('site_settings')
     .select('value')
@@ -224,6 +245,29 @@ type ProductRow = {
 }
 
 async function fetchActiveProductBySlug(slug: string): Promise<ProductRow | null> {
+  if (isD1Configured()) {
+    try {
+      const catalog = await readPublicCatalog()
+      const product = catalog.products.find((row) => row.slug === slug)
+      if (product) {
+        return {
+          title: product.title,
+          slug: product.slug,
+          description: product.description,
+          price: product.price,
+          compare_price: product.compare_price,
+          category: product.category,
+          brand: product.brand,
+          stock_quantity: product.stock_quantity,
+          image_url: product.image_url,
+          gallery_images: product.gallery_images,
+        }
+      }
+    } catch (error) {
+      console.error('[socialPreview] D1 product read failed', error)
+    }
+  }
+
   const { data, error } = await supabaseAnon
     .from('products')
     .select(

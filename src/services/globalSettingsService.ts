@@ -1,4 +1,5 @@
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
+import { loadCloudflareCatalog } from './cloudflareCatalog'
 
 /** Singleton row for storefront-wide flags (see migration `0011_waitlist_mode_global_settings.sql`). */
 export const GLOBAL_SETTINGS_ROW_ID = '00000000-0000-0000-0000-000000000001'
@@ -8,6 +9,9 @@ export const GLOBAL_SETTINGS_ROW_ID = '00000000-0000-0000-0000-000000000001'
  * When Supabase is not configured, defaults to false so local development keeps working.
  */
 export async function fetchPublicWaitlistMode(): Promise<boolean> {
+  const catalog = await loadCloudflareCatalog()
+  if (catalog) return catalog.waitlistMode
+
   if (!isSupabaseConfigured || !supabase) return false
 
   const { data, error } = await supabase

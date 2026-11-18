@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { queryD1 } from '../lib/d1.js'
+import { queryD1, queryD1In } from '../lib/d1.js'
 import { d1Client } from '../lib/d1Client.js'
 import { readSession, type SessionUser } from '../lib/session.js'
 
@@ -54,12 +54,12 @@ async function attachEmbeds(table: string, rows: Record<string, unknown>[], embe
   for (const embed of embeds) {
     if (table !== 'orders' || embed.table !== 'order_items') continue
     const ids = rows.map((row) => String(row.id ?? '')).filter(Boolean)
-    const items = ids.length ? await queryD1<Record<string, unknown>>(`SELECT * FROM order_items WHERE order_id IN (${ids.map(() => '?').join(', ')})`, ids) : []
+    const items = await queryD1In<Record<string, unknown>>('SELECT * FROM order_items WHERE order_id', ids)
     const productEmbed = splitSelect(embed.columns).embeds.find((entry) => entry.table === 'products')
     let products: Record<string, unknown>[] = []
     if (productEmbed) {
       const productIds = [...new Set(items.map((item) => String(item.product_id ?? '')).filter(Boolean))]
-      products = productIds.length ? await queryD1<Record<string, unknown>>(`SELECT id, image_url, gallery_images FROM products WHERE id IN (${productIds.map(() => '?').join(', ')})`, productIds) : []
+      products = await queryD1In<Record<string, unknown>>('SELECT id, image_url, gallery_images FROM products WHERE id', productIds)
     }
     for (const row of rows) {
       row.order_items = items.filter((item) => item.order_id === row.id).map((item) => productEmbed ? { ...item, products: products.find((product) => product.id === item.product_id) ?? null } : item)

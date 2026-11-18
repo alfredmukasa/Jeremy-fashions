@@ -39,11 +39,22 @@ export type PurchaseConnectionStatus = {
 }
 
 export async function getPurchaseInbox(): Promise<PurchaseInbox> {
-  if (!supabase) throw new Error('Database connection is unavailable.')
-  const { data, error } = await supabase.rpc('admin_purchase_inbox')
-  if (error)
-    throw new Error('Purchase notifications could not be loaded. Try again.')
-  return data as PurchaseInbox
+  // The store runs on Cloudflare D1, which has no Postgres RPC. Read the inbox
+  // from the server endpoint that ports admin_purchase_inbox() (migration 0022).
+  const session = await supabase?.auth.getSession()
+  const token = session?.data.session?.access_token
+  if (!token) throw new Error('Sign in again to view purchase alerts.')
+  const base = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+  const response = await fetch(`${base}/admin/purchase-inbox`, {
+    headers: { Authorization: `Bearer ${token}` },
+  })
+  const result = await response.json().catch(() => null)
+  if (!response.ok || !result)
+    throw new Error(
+      (result && result.error) ||
+        'Purchase notifications could not be loaded. Try again.',
+    )
+  return result as PurchaseInbox
 }
 
 export async function markPurchasesRead(orderIds: string[], adminId: string) {

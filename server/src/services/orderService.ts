@@ -19,6 +19,7 @@ import {
 import { DEFAULT_SHIPPING_RATES } from '../domain/shippingRates.js'
 import { loadShippingRates } from './shippingSettings.js'
 import { sendPaidOrderEmails } from './paidOrderEmails.js'
+import { recordPaidPurchaseNotification } from './adminPurchaseEmail.js'
 import { recordDiscountRedemption, resolveDiscount, type AppliedDiscount } from './discountCodes.js'
 import type { CheckoutAddress, CheckoutLineItem } from '../types.js'
 
@@ -731,6 +732,14 @@ export async function markOrderPaidFromIntent(paymentIntent: Stripe.PaymentInten
   }
 
   if (paidRow) {
+    // Replaces the Postgres trigger (migration 0022): record the admin purchase
+    // notification exactly when the order transitions to paid. Best-effort — a
+    // notification failure must never break the payment flow.
+    try {
+      await recordPaidPurchaseNotification(existing.id, supabaseAdmin)
+    } catch (notifyError) {
+      console.error('[notifications] could not record paid purchase', existing.id, notifyError)
+    }
     await sendPaidOrderEmails(existing.id)
   }
 

@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import {
   buildAdminPurchaseEmail,
   deliverAdminPurchaseEmail,
   readPurchaseEmailSettings,
   sendAdminPurchaseEmailIfNeeded,
 } from '../src/services/adminPurchaseEmail.ts'
+
+type StoreDb = { from: (table: string) => any }
 
 const order = {
   id: 'order-1',
@@ -67,21 +68,18 @@ test('provider retries use the same idempotency key and do not address the custo
   )
 })
 
+// Minimal D1-style fake: one notification row, chainable eq/is filters, and an
+// `in()` that returns site settings. No `.or()` — the D1 HTTP client has none.
 function fakeDatabase(
   notice: Record<string, unknown> | null,
   settings: Array<{ key: string; value: unknown }> = [],
-) {
+): StoreDb {
   return {
     from: () => {
       let update: Record<string, unknown> | undefined
       const filters: Array<[string, unknown]> = []
-      let leaseFilter = false
       const execute = async () => {
-        if (
-          !notice ||
-          filters.some(([key, value]) => notice![key] !== value) ||
-          (leaseFilter && notice.email_claimed_at)
-        )
+        if (!notice || filters.some(([key, value]) => notice![key] !== value))
           return { data: null, error: null }
         if (update) Object.assign(notice, update)
         return { data: { ...notice }, error: null }
@@ -101,16 +99,12 @@ function fakeDatabase(
           filters.push([key, value])
           return query
         },
-        or: () => {
-          leaseFilter = true
-          return query
-        },
         maybeSingle: execute,
         then: (resolve: (value: unknown) => unknown) => execute().then(resolve),
       }
       return query
     },
-  } as unknown as SupabaseClient
+  }
 }
 
 test('uses the saved support recipient by default, permits a separate recipient, and respects disabled alerts', async () => {
@@ -143,14 +137,14 @@ test('uses the saved support recipient by default, permits a separate recipient,
   })
 })
 
-test('concurrent handlers claim one email, persist acceptance, and retries skip it', async () => {
+test('sends the saved payload once, records delivery, and a later call is skipped', async () => {
   process.env.RESEND_API_KEY = 'test-key'
   process.env.RESEND_FROM_EMAIL = payload.from
   const notice = {
     order_id: order.id,
     email_payload: payload,
     email_sent_at: null,
-    email_claimed_at: null,
+    email_last_error: null,
   }
   const db = fakeDatabase(notice)
   let calls = 0
@@ -158,24 +152,21 @@ test('concurrent handlers claim one email, persist acceptance, and retries skip 
     calls++
     return new Response('{}', { status: 200 })
   }
-  await Promise.allSettled([
-    sendAdminPurchaseEmailIfNeeded(order.id, db, send),
-    sendAdminPurchaseEmailIfNeeded(order.id, db, send),
-  ])
+  await sendAdminPurchaseEmailIfNeeded(order.id, db, send)
   assert.equal(calls, 1)
   assert.ok(notice.email_sent_at)
+  // email_sent_at now set -> a repeat (e.g. webhook retry) is a no-op.
   await sendAdminPurchaseEmailIfNeeded(order.id, db, send)
   assert.equal(calls, 1)
 })
 
-test('failed delivery releases the lease for retry without marking sent; old orders are skipped', async () => {
+test('failed delivery records an error without marking sent; a retry sends; historical orders are skipped', async () => {
   process.env.RESEND_API_KEY = 'test-key'
   process.env.RESEND_FROM_EMAIL = payload.from
   const notice = {
     order_id: order.id,
     email_payload: payload,
     email_sent_at: null,
-    email_claimed_at: null,
     email_last_error: null,
   }
   const db = fakeDatabase(notice)
@@ -188,7 +179,6 @@ test('failed delivery releases the lease for retry without marking sent; old ord
     /503/,
   )
   assert.equal(notice.email_sent_at, null)
-  assert.equal(notice.email_claimed_at, null)
   assert.ok(notice.email_last_error)
   await sendAdminPurchaseEmailIfNeeded(
     order.id,
@@ -196,11 +186,8 @@ test('failed delivery releases the lease for retry without marking sent; old ord
     async () => new Response('{}', { status: 200 }),
   )
   assert.ok(notice.email_sent_at)
-  await sendAdminPurchaseEmailIfNeeded(
-    'historical',
-    fakeDatabase(null),
-    async () => {
-      throw new Error('must not send')
-    },
-  )
+  // A historical order (no notification row) is never emailed.
+  await sendAdminPurchaseEmailIfNeeded('historical', fakeDatabase(null), async () => {
+    throw new Error('must not send')
+  })
 })

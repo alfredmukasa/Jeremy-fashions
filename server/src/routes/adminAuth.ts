@@ -1,53 +1,47 @@
-import { createClient } from '@supabase/supabase-js'
 import { Router } from 'express'
+import type { Session } from '@supabase/supabase-js'
 
-import { config } from '../config.js'
-import { requireSupabaseAdmin } from '../lib/supabase.js'
 import {
   attemptAdminLogin,
   type AdminLoginLimit,
 } from '../services/adminLogin.js'
+import { loginWithPassword } from '../services/cloudflareAuth.js'
+
+const attempts = new Map<string, { count: number; start: number }>()
 
 export const adminAuthRouter = Router()
 adminAuthRouter.post('/password', async (req, res) => {
   res.set('Cache-Control', 'private, no-store')
   res.set('Pragma', 'no-cache')
   try {
-    const db = requireSupabaseAdmin()
-    // An isolated client prevents simultaneous sign-ins sharing server session state.
-    const client = createClient(config.supabaseUrl, config.supabaseAnonKey, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false,
-      },
-    })
     const result = await attemptAdminLogin(req.body, req.ip || 'unknown', {
       consume: async (ipKey, identityKey) => {
-        const { data, error } = await db.rpc('claim_admin_login_attempt', {
-          p_ip_key: ipKey,
-          p_identity_key: identityKey,
-        })
-        if (error || !data) throw new Error('Login protection is unavailable.')
-        return data as AdminLoginLimit
+        const key = `${ipKey}:${identityKey}`
+        const now = Date.now()
+        const current = attempts.get(key)
+        if (!current || now - current.start > 15 * 60 * 1000) {
+          attempts.set(key, { count: 1, start: now })
+          return { allowed: true, retryAfterSeconds: 0, attemptsRemaining: 7 }
+        }
+        current.count += 1
+        const limit: AdminLoginLimit = current.count > 8
+          ? { allowed: false, retryAfterSeconds: 900, attemptsRemaining: 0 }
+          : { allowed: true, retryAfterSeconds: 0, attemptsRemaining: Math.max(0, 8 - current.count) }
+        return limit
       },
       authenticate: async (email, password) => {
-        const { data, error } = await client.auth.signInWithPassword({
-          email,
-          password,
-        })
-        return error ? null : data.session
+        const signedIn = await loginWithPassword(email, password)
+        if (!signedIn) return null
+        return {
+          access_token: signedIn.token,
+          refresh_token: signedIn.token,
+          user: { id: signedIn.user.id, email: signedIn.user.email, app_metadata: signedIn.user.app_metadata },
+        } as Session
       },
       clearIdentity: async (identityKey) => {
-        const { error } = await db
-          .from('admin_login_limits')
-          .delete()
-          .eq('bucket_key', `identity:${identityKey}`)
-        if (error) throw new Error('Login protection is unavailable.')
+        for (const key of attempts.keys()) if (key.includes(identityKey)) attempts.delete(key)
       },
-      discardSession: async () => {
-        await client.auth.signOut({ scope: 'local' })
-      },
+      discardSession: async () => undefined,
       allowedEmails: (process.env.VITE_ADMIN_ALLOWED_EMAILS ?? '')
         .split(',')
         .map((value) => value.trim().toLowerCase())

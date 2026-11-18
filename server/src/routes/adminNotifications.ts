@@ -2,7 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 
-import { supabaseAnon, requireSupabaseAdmin } from '../lib/supabase.js'
+import { d1Client } from '../lib/d1Client.js'
+import { readSession } from '../lib/session.js'
 import {
   deliverAdminPurchaseEmail,
   readPurchaseEmailSettings,
@@ -16,13 +17,12 @@ adminNotificationsRouter.use(async (req, res, next) => {
     : ''
   if (!token)
     return res.status(401).json({ error: 'Staff sign-in is required.' })
-  const { data, error } = await supabaseAnon.auth.getUser(token)
-  if (error || !data.user)
+  const session = readSession(token)
+  if (!session)
     return res.status(401).json({ error: 'Staff sign-in is required.' })
-  // Server verifies app_metadata from Supabase, never from browser-supplied data.
   if (
-    data.user.app_metadata.role !== 'admin' ||
-    (data.user.app_metadata.admin_role ?? 'SUPER_ADMIN') !== 'SUPER_ADMIN'
+    session.app_metadata.role !== 'admin' ||
+    (session.app_metadata.admin_role ?? 'SUPER_ADMIN') !== 'SUPER_ADMIN'
   ) {
     return res.status(403).json({
       error: 'Only settings administrators can manage purchase alerts.',
@@ -37,7 +37,7 @@ adminNotificationsRouter.get(
     res.set('Cache-Control', 'private, no-store')
     let databaseConnected = false
     try {
-      const check = await requireSupabaseAdmin()
+      const check = await d1Client
         .from('admin_purchase_notifications')
         .select('order_id')
         .limit(1)
@@ -66,7 +66,7 @@ adminNotificationsRouter.post(
         return res
           .status(503)
           .json({ error: 'The email service is not configured.' })
-      const settings = await readPurchaseEmailSettings(requireSupabaseAdmin())
+      const settings = await readPurchaseEmailSettings(d1Client)
       await deliverAdminPurchaseEmail(
         `test-${randomUUID()}`,
         {

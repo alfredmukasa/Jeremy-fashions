@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+type StoreDb = { from: (table: string) => any }
 
 import { currencyCode, formatReceiptMoney } from './confirmationEmail.js'
 import {
@@ -26,14 +26,14 @@ type PurchaseOrder = {
   }>
 }
 
-export async function readPurchaseEmailSettings(client: SupabaseClient) {
+export async function readPurchaseEmailSettings(client: StoreDb) {
   const { data: settings, error } = await client
     .from('site_settings')
     .select('key, value')
     .in('key', ['purchase_notifications', 'contact_recipient', 'storefront'])
   if (error) throw new Error('Purchase email settings could not be loaded.')
   const values = Object.fromEntries(
-    (settings ?? []).map((row) => [row.key, row.value]),
+    (settings ?? []).map((row: { key: string; value: { email?: string } }) => [row.key, row.value]),
   )
   const override =
     typeof values.purchase_notifications?.email === 'string'
@@ -103,11 +103,11 @@ export async function deliverAdminPurchaseEmail(
 // failure; subsequent attempts reuse the saved payload and provider key.
 export async function sendAdminPurchaseEmailIfNeeded(
   orderId: string,
-  db?: SupabaseClient,
+  db?: StoreDb,
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
   const client =
-    db ?? (await import('../lib/supabase.js')).requireSupabaseAdmin()
+    db ?? (await import('../lib/d1Client.js')).d1Client
   const { data: notice, error } = await client
     .from('admin_purchase_notifications')
     .select('order_id, email_sent_at, email_payload')

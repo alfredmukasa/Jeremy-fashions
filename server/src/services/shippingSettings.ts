@@ -4,7 +4,7 @@ import {
   parseShippingRates,
   type ShippingRates,
 } from '../domain/shippingRates.js'
-import { supabaseAdmin } from '../lib/supabase.js'
+import { isD1Configured, queryD1 } from '../lib/d1.js'
 
 /**
  * Reads the admin shipping setting with the service role.
@@ -12,17 +12,12 @@ import { supabaseAdmin } from '../lib/supabase.js'
  * keeps the documented default (CA$12, complimentary at CA$250).
  */
 export async function loadShippingRates(): Promise<ShippingRates> {
-  if (!supabaseAdmin) return { ...DEFAULT_SHIPPING_RATES }
+  if (!isD1Configured()) return { ...DEFAULT_SHIPPING_RATES }
 
   try {
-    const { data, error } = await supabaseAdmin
-      .from('site_settings')
-      .select('value')
-      .eq('key', SHIPPING_RATES_KEY)
-      .maybeSingle()
-
-    if (error || !data) return { ...DEFAULT_SHIPPING_RATES }
-    return parseShippingRates(data.value)
+    const rows = await queryD1<{ value: string }>('SELECT value FROM site_settings WHERE key = ? LIMIT 1', [SHIPPING_RATES_KEY])
+    if (!rows[0]) return { ...DEFAULT_SHIPPING_RATES }
+    return parseShippingRates(rows[0].value)
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown error'
     console.error('[shipping] unable to read admin shipping rates; using defaults', message)

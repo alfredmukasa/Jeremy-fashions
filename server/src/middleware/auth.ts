@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 
-import { supabaseAnon } from '../lib/supabase.js'
+import { readSession } from '../lib/session.js'
 import type { AuthenticatedUser } from '../types.js'
 
 export type AuthedRequest = Request & {
@@ -15,15 +15,15 @@ export async function requireUser(req: AuthedRequest, res: Response, next: NextF
   }
 
   const token = header.slice('Bearer '.length).trim()
-  const { data, error } = await supabaseAnon.auth.getUser(token)
+  const session = readSession(token)
 
-  if (error || !data.user?.id || !data.user.email) {
+  if (!session) {
     return res.status(401).json({ error: 'Your session has expired. Sign in again and retry checkout.' })
   }
 
   req.user = {
-    id: data.user.id,
-    email: data.user.email,
+    id: session.id,
+    email: session.email,
   }
   req.accessToken = token
 
@@ -42,15 +42,15 @@ export async function optionalUser(req: AuthedRequest, res: Response, next: Next
   }
 
   const token = header.slice('Bearer '.length).trim()
-  const { data, error } = await supabaseAnon.auth.getUser(token)
+  const session = readSession(token)
 
-  if (error || !data.user?.id || !data.user.email) {
+  if (!session) {
     return res.status(401).json({ error: 'Your session has expired. Sign in again and retry checkout.' })
   }
 
   req.user = {
-    id: data.user.id,
-    email: data.user.email,
+    id: session.id,
+    email: session.email,
   }
   req.accessToken = token
 

@@ -1,6 +1,6 @@
 import { Router } from 'express'
 
-import { supabaseAdmin, supabaseAnon } from '../lib/supabase.js'
+import { d1Client } from '../lib/d1Client.js'
 import {
   deliverContactEmail,
   isValidContactEmail,
@@ -17,8 +17,7 @@ function readField(value: unknown, max: number): string {
 }
 
 async function readConfiguredRecipient(): Promise<string> {
-  const client = supabaseAdmin ?? supabaseAnon
-  const { data, error } = await client
+  const { data, error } = await d1Client
     .from('site_settings')
     .select('key, value')
     .in('key', [CONTACT_RECIPIENT_KEY, STOREFRONT_KEY])
@@ -28,8 +27,8 @@ async function readConfiguredRecipient(): Promise<string> {
     return resolveConfiguredSupportEmail(null)
   }
 
-  const contact = data?.find((row) => row.key === CONTACT_RECIPIENT_KEY)?.value
-  const storefront = data?.find((row) => row.key === STOREFRONT_KEY)?.value
+  const contact = data?.find((row: { key?: string; value?: unknown }) => row.key === CONTACT_RECIPIENT_KEY)?.value
+  const storefront = data?.find((row: { key?: string; value?: unknown }) => row.key === STOREFRONT_KEY)?.value
   return resolveConfiguredSupportEmail(contact, storefront)
 }
 

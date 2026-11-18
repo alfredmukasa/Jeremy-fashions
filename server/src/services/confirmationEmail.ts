@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { StoreDb } from '../lib/d1Client.js'
 
 import { isValidContactEmail, resolveConfiguredSupportEmail } from './contactMail.js'
 
@@ -244,9 +244,17 @@ const RECEIPT_SELECT =
  * webhook retry or the order-status sync can send exactly once.
  */
 export async function sendOrderReceiptIfNeeded(orderId: string): Promise<boolean> {
-  const { requireSupabaseAdmin } = await import('../lib/supabase.js')
-  const supabaseAdmin = requireSupabaseAdmin()
-  const { data, error } = await supabaseAdmin.from('orders').select(RECEIPT_SELECT).eq('id', orderId).maybeSingle()
+  const { d1Client } = await import('../lib/d1Client.js')
+  const supabaseAdmin = d1Client
+  const { data, error } = await supabaseAdmin
+    .from('orders')
+    .select('id, email, order_number, payment_status, total_amount, subtotal_amount, shipping_amount, tax_amount, discount_amount, currency, shipping_address, payment_metadata, confirmation_email_sent_at')
+    .eq('id', orderId)
+    .maybeSingle()
+  if (data) {
+    const items = await supabaseAdmin.from('order_items').select('title, quantity, unit_price, size, color_name, line_total').eq('order_id', orderId)
+    data.order_items = items.data ?? []
+  }
   if (error || !data) {
     console.warn('[email] receipt skipped; order could not be loaded', error?.message ?? orderId)
     return false
@@ -336,12 +344,12 @@ function receiptFromOrder(row: OrderMailRow, email: string): ReceiptContent {
   }
 }
 
-async function readSupportReplyTo(supabaseAdmin: SupabaseClient): Promise<string | undefined> {
+async function readSupportReplyTo(supabaseAdmin: StoreDb): Promise<string | undefined> {
   try {
     const { data, error } = await supabaseAdmin.from('site_settings').select('key, value').in('key', ['contact_recipient', 'storefront'])
     if (error) return undefined
-    const contact = data?.find((entry) => entry.key === 'contact_recipient')?.value
-    const storefront = data?.find((entry) => entry.key === 'storefront')?.value
+    const contact = data?.find((entry: { key?: string; value?: unknown }) => entry.key === 'contact_recipient')?.value
+    const storefront = data?.find((entry: { key?: string; value?: unknown }) => entry.key === 'storefront')?.value
     return resolveConfiguredSupportEmail(contact, storefront)
   } catch {
     return undefined

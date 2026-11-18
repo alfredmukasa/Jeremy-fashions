@@ -7,7 +7,9 @@ import rateLimit from 'express-rate-limit'
 import { config } from './config.js'
 import { adminAuthRouter } from './routes/adminAuth.js'
 import { adminNotificationsRouter } from './routes/adminNotifications.js'
+import { authRouter } from './routes/auth.js'
 import { catalogRouter } from './routes/catalog.js'
+import { dataRouter } from './routes/data.js'
 import { contactRouter } from './routes/contact.js'
 import { ordersRouter } from './routes/orders.js'
 import { paymentsRouter } from './routes/payments.js'
@@ -109,6 +111,8 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhooksRouter)
 app.use(express.json())
 app.use('/api', apiLimiter)
+app.use('/api/auth', authRouter)
+app.use('/api/data', dataRouter)
 app.use('/api', catalogRouter)
 app.use('/api/payments/create-payment-intent', paymentsLimiter)
 app.use('/api/orders/:id/status', orderLookupLimiter)

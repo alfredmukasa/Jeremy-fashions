@@ -146,7 +146,19 @@ export const supabase = {
     },
     signInWithPassword(input: { email: string; password: string }) { return authRequest('login', input) },
     signUp(input: { email: string; password: string; options?: { data?: { full_name?: string } } }) { return authRequest('register', { email: input.email, password: input.password, fullName: input.options?.data?.full_name ?? '' }) },
-    async signInWithOAuth() { return { data: { url: null }, error: { message: 'Google sign-in is paused while the store runs on Cloudflare. Use email and password.' } } },
+    async signInWithOAuth(input: { provider: string; options?: { redirectTo?: string } }) {
+      if (input?.provider !== 'google') {
+        return { data: { provider: input?.provider, url: null }, error: { message: 'Only Google sign-in is available.' } }
+      }
+      let next = ''
+      try {
+        const redirectTo = input?.options?.redirectTo
+        if (redirectTo) next = new URL(redirectTo).searchParams.get('next') ?? ''
+      } catch { /* ignore malformed redirect */ }
+      const url = `/api/auth/google/start${next ? `?next=${encodeURIComponent(next)}` : ''}`
+      if (typeof window !== 'undefined') window.location.assign(url)
+      return { data: { provider: 'google', url }, error: null }
+    },
     async signOut() { writeStored(null); return { error: null } },
     async setSession(input: { access_token: string; refresh_token: string }) {
       const user = userFromToken(input.access_token)
@@ -164,6 +176,29 @@ export const supabase = {
       if (!response.ok) return { data: { user: null }, error: { message: result.error || 'Unable to update the password.' } }
       return { data: { user: session.user }, error: null }
     },
-    async resetPasswordForEmail() { return { data: null, error: { message: 'Password reset email is paused while the store runs on Cloudflare. Sign in with your current password.' } } },
+    async resetPasswordForEmail(email: string) {
+      // The server always answers generically (no user enumeration), so success here
+      // means "the request was accepted", not "an account exists".
+      const response = await fetch('/api/auth/password/forgot', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (!response.ok) {
+        const result = (await response.json().catch(() => ({}))) as { error?: string }
+        return { data: null, error: { message: result.error || 'Could not send the reset email. Try again.' } }
+      }
+      return { data: {}, error: null }
+    },
+    async confirmPasswordReset(input: { token: string; password: string }) {
+      const response = await fetch('/api/auth/password/reset', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ token: input.token, password: input.password }),
+      })
+      const result = (await response.json().catch(() => ({}))) as { error?: string }
+      if (!response.ok) return { data: { user: null }, error: { message: result.error || 'This reset link is invalid or has expired.' } }
+      return { data: { user: null }, error: null }
+    },
   },
 } as unknown as SupabaseClient

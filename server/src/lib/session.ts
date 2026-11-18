@@ -13,6 +13,11 @@ function secret(): string {
   return process.env.AUTH_SESSION_SECRET?.trim() || config.cloudflareApiToken || ''
 }
 
+/** Shared HMAC key for session tokens and the OAuth state cookie. */
+export function getSessionSecret(): string {
+  return secret()
+}
+
 export function signSession(user: SessionUser, ttlSeconds = 60 * 60 * 24 * 14): string {
   const key = secret()
   if (!key) throw new Error('Auth session secret is not configured.')

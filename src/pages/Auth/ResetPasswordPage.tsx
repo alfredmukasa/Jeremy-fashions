@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 
 import { ROUTES } from '../../constants'
@@ -11,11 +11,12 @@ import { MIN_PASSWORD, validatePassword } from '../../utils/passwordValidation'
 import { AuthButton } from '../../components/auth/AuthButton'
 import { AuthInput } from '../../components/auth/AuthInput'
 import { AuthLayout } from '../../components/auth/AuthLayout'
-import { AuthLoader } from '../../components/auth/AuthLoader'
 
 export default function ResetPasswordPage() {
   const navigate = useNavigate()
-  const { user, loading, signOut, updatePassword } = useAuth()
+  const [searchParams] = useSearchParams()
+  const token = searchParams.get('token') ?? ''
+  const { resetPasswordWithToken } = useAuth()
   const [busy, setBusy] = useState(false)
   const [fieldError, setFieldError] = useState<string | null>(null)
 
@@ -38,26 +39,18 @@ export default function ResetPasswordPage() {
     }
 
     setBusy(true)
-    const { error } = await updatePassword(password)
+    const { error } = await resetPasswordWithToken(token, password)
     if (error) {
       setBusy(false)
       toast.error(friendlyAuthError(error.message))
       return
     }
 
-    await signOut()
+    toast.success('Your password has been updated. Sign in with your new password.')
     navigate(`${ROUTES.login}?reset=1`, { replace: true })
   }
 
-  if (loading) {
-    return (
-      <AuthLayout eyebrow="Password" title="Set a new password">
-        <AuthLoader className="min-h-[32vh] bg-transparent text-neutral-400" />
-      </AuthLayout>
-    )
-  }
-
-  if (!user) {
+  if (!token) {
     return (
       <AuthLayout
         eyebrow="Link issue"

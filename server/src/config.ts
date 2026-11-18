@@ -38,4 +38,16 @@ export const config = {
   cloudflareAccountId: optional('CLOUDFLARE_ACCOUNT_ID'),
   cloudflareApiToken: optional('CLOUDFLARE_API_TOKEN'),
   cloudflareD1DatabaseId: optional('CLOUDFLARE_D1_DATABASE_ID'),
+  // Public origin of the storefront. Used for password-reset links and the default
+  // Google OAuth redirect URI. PUBLIC_SITE_URL is accepted as an alias of APP_BASE_URL.
+  appBaseUrl: (process.env.APP_BASE_URL?.trim() || process.env.PUBLIC_SITE_URL?.trim() || 'https://krewnox.ca').replace(/\/$/, ''),
+  // Google OAuth (OpenID Connect) sign-in. All server-only; never prefix with VITE_.
+  googleOAuthClientId: optional('GOOGLE_OAUTH_CLIENT_ID'),
+  googleOAuthClientSecret: optional('GOOGLE_OAUTH_CLIENT_SECRET'),
+  googleOAuthRedirectUri: process.env.GOOGLE_OAUTH_REDIRECT_URI?.trim() || undefined,
+}
+
+/** Where Google sends the browser after consent. Must match a registered Authorized redirect URI. */
+export function googleRedirectUri(): string {
+  return config.googleOAuthRedirectUri || `${config.appBaseUrl}/api/auth/google/callback`
 }

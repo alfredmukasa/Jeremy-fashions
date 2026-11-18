@@ -119,6 +119,8 @@ dataRouter.post('/', async (req, res) => {
   if (action === 'select' && Array.isArray(result.data)) {
     await attachEmbeds(table, result.data, parsed.embeds)
   }
-  res.set('Cache-Control', admin || user ? 'private, no-store' : 'public, max-age=30')
+  // Do not cache database-backed POST responses: waitlist, inventory and admin changes must not appear stale.
+  // Public product assets can be cached separately at the CDN with explicit invalidation.
+  res.set('Cache-Control', 'no-store')
   return res.json(result)
 })

@@ -11,6 +11,7 @@ import { AuthButton } from '../../components/auth/AuthButton'
 import { AuthDivider, GoogleAuthButton } from '../../components/auth/GoogleAuthButton'
 import { AuthInput } from '../../components/auth/AuthInput'
 import { AuthLayout } from '../../components/auth/AuthLayout'
+import { isGoogleSigninEnabled } from '../../lib/googleSignin'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -83,8 +84,12 @@ export default function LoginPage() {
         <p className="text-sm text-neutral-500">One moment…</p>
       ) : (
         <div className="space-y-6">
-          <GoogleAuthButton label="Continue with Google" />
-          <AuthDivider />
+          {isGoogleSigninEnabled() ? (
+            <>
+              <GoogleAuthButton label="Continue with Google" />
+              <AuthDivider />
+            </>
+          ) : null}
           <form onSubmit={submit} className="space-y-5">
             {notice === 'confirmed' ? (
               <p className="border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">

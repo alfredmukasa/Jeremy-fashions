@@ -26,6 +26,7 @@ export type AuthContextValue = {
   signInWithGoogle: () => Promise<SignInResult>
   signOut: () => Promise<void>
   resetPasswordForEmail: (email: string) => Promise<SignInResult>
+  resetPasswordWithToken: (token: string, password: string) => Promise<SignInResult>
   updatePassword: (password: string) => Promise<SignInResult>
 }
 
@@ -156,6 +157,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error ? new Error(error.message) : null }
   }, [])
 
+  const resetPasswordWithToken = useCallback(async (token: string, password: string): Promise<SignInResult> => {
+    if (!supabase) {
+      return { error: new Error(AUTH_UNAVAILABLE_MESSAGE) }
+    }
+    const auth = supabase.auth as unknown as {
+      confirmPasswordReset: (input: { token: string; password: string }) => Promise<{ error: { message: string } | null }>
+    }
+    const { error } = await auth.confirmPasswordReset({ token, password })
+    return { error: error ? new Error(error.message) : null }
+  }, [])
+
   const updatePassword = useCallback(async (password: string): Promise<SignInResult> => {
     if (!supabase) {
       return { error: new Error(AUTH_UNAVAILABLE_MESSAGE) }
@@ -174,9 +186,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithGoogle,
       signOut,
       resetPasswordForEmail,
+      resetPasswordWithToken,
       updatePassword,
     }),
-    [session, loading, signIn, signUp, signInWithGoogle, signOut, resetPasswordForEmail, updatePassword],
+    [session, loading, signIn, signUp, signInWithGoogle, signOut, resetPasswordForEmail, resetPasswordWithToken, updatePassword],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

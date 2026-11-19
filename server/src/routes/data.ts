@@ -79,6 +79,12 @@ dataRouter.post('/', async (req, res) => {
   if (action !== 'select' && !admin && !(action === 'insert' && PUBLIC_INSERT.has(table)) && !user) return res.status(401).json({ data: null, error: { message: 'Sign in to change this data.' } })
   if (!admin && action !== 'select' && !PUBLIC_INSERT.has(table) && !OWNER_COLUMN[table]) return res.status(403).json({ data: null, error: { message: 'You cannot change that data.' } })
   const ownerColumn = OWNER_COLUMN[table]
+  // A signed-in non-admin may only read public tables or their own owner-scoped
+  // rows. Everything else (discount codes, audit logs, admin and waitlist tables)
+  // stays admin-only, preserving the Supabase RLS the D1 migration must keep.
+  if (action === 'select' && !admin && !PUBLIC_READ.has(table) && !ownerColumn) {
+    return res.status(403).json({ data: null, error: { message: 'You cannot view that data.' } })
+  }
   if (!admin && user && ownerColumn && action !== 'insert' && action !== 'upsert') {
     if (!filters.some((filter) => filter.op === 'eq' && filter.column === ownerColumn && filter.value === user.id)) filters.push({ op: 'eq', column: ownerColumn, value: user.id })
   }

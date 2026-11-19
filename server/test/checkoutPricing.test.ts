@@ -233,6 +233,27 @@ test('uses the admin shipping setting once and keeps new totals in CAD', () => {
   assert.equal(calculateOrderTotals([], 0, { flatRate: 20, freeThreshold: null }).shipping, 0)
 })
 
+test('parses the admin rate from the raw JSON string D1 stores (not just an object)', () => {
+  // The service-role read returns site_settings.value unparsed, exactly as the
+  // admin save wrote it via JSON.stringify. Checkout must honour it, not the default.
+  const stored = JSON.stringify({ flatRate: 20, freeThreshold: null, currency: 'CAD' })
+  const rates = parseShippingRates(stored)
+  assert.equal(rates.flatRate, 20)
+  assert.equal(rates.freeThreshold, null)
+  assert.equal(
+    calculateOrderTotals([{ productId: 'p', quantity: 1, unitPrice: 500 }], 0, rates).shipping,
+    20,
+  )
+
+  const withThreshold = parseShippingRates(JSON.stringify({ flatRate: 15, freeThreshold: 300 }))
+  assert.equal(withThreshold.flatRate, 15)
+  assert.equal(withThreshold.freeThreshold, 300)
+
+  // Non-JSON / empty strings still fall back to the documented default.
+  assert.equal(parseShippingRates('not json').flatRate, 12)
+  assert.equal(parseShippingRates('   ').flatRate, 12)
+})
+
 test('recreates an in-progress USD payment intent instead of reusing it', () => {
   assert.deepEqual(
     planPaymentIntent({

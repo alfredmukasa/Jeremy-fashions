@@ -39,11 +39,24 @@ function readNonNegativeMoney(value: unknown, max: number): number | null {
 
 /** Invalid or missing admin JSON falls back to the documented default. A stored currency label is ignored. */
 export function parseShippingRates(value: unknown): ShippingRates {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  // D1 stores the setting as JSON text, and the service-role read (loadShippingRates)
+  // returns that raw string unparsed, so accept a JSON string as well as an object.
+  let parsed: unknown = value
+  if (typeof parsed === 'string') {
+    const trimmed = parsed.trim()
+    if (!trimmed) return { ...DEFAULT_SHIPPING_RATES }
+    try {
+      parsed = JSON.parse(trimmed)
+    } catch {
+      return { ...DEFAULT_SHIPPING_RATES }
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
     return { ...DEFAULT_SHIPPING_RATES }
   }
 
-  const raw = value as Record<string, unknown>
+  const raw = parsed as Record<string, unknown>
   const flatRate = readNonNegativeMoney(raw.flatRate, MAX_FLAT)
   if (flatRate == null) return { ...DEFAULT_SHIPPING_RATES }
 

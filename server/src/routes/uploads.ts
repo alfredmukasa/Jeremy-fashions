@@ -58,13 +58,24 @@ uploadsRouter.post('/sign', async (req, res) => {
   }
 
   const path = `${folder.replace(/\/+$/, '')}/${Date.now()}-${randomUUID()}-${sanitizeFileName(fileName ?? '')}`
-  const signed = await supabaseAdmin.storage.from(BUCKET).createSignedUploadUrl(path)
-  if (signed.error || !signed.data?.token)
+  try {
+    const signed = await supabaseAdmin.storage.from(BUCKET).createSignedUploadUrl(path)
+    if (signed.error || !signed.data?.token) {
+      const err = signed.error as { name?: string; message?: string; status?: number } | null
+      console.error('[uploads] createSignedUploadUrl failed', {
+        bucket: BUCKET,
+        status: err?.status,
+        name: err?.name,
+        message: err?.message,
+      })
+      return res.status(502).json({ error: 'Could not prepare the image upload. Try again.' })
+    }
+    const publicUrl = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl
+    if (!publicUrl)
+      return res.status(502).json({ error: 'Could not resolve the uploaded image URL.' })
+    return res.json({ path, token: signed.data.token, publicUrl })
+  } catch (error) {
+    console.error('[uploads] createSignedUploadUrl threw', error instanceof Error ? error.message : error)
     return res.status(502).json({ error: 'Could not prepare the image upload. Try again.' })
-
-  const publicUrl = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl
-  if (!publicUrl)
-    return res.status(502).json({ error: 'Could not resolve the uploaded image URL.' })
-
-  return res.json({ path, token: signed.data.token, publicUrl })
+  }
 })

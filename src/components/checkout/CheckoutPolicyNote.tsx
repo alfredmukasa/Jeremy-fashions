@@ -77,7 +77,9 @@ export function CheckoutPolicyNote({
   const { returnsBody } = useCheckoutPolicies()
   const shippingRatesQuery = useShippingRates()
   const isShipping = kind === 'shipping'
-  const rateNote = shippingRateNote(shippingRatesQuery.data ?? DEFAULT_SHIPPING_RATES)
+  const rateNote = shippingRatesQuery.isFetched
+    ? shippingRateNote(shippingRatesQuery.data ?? DEFAULT_SHIPPING_RATES)
+    : '…'
   const body = isShipping ? rateNote : returnsBody
 
   if (!isShipping && variant === 'full') {
@@ -100,7 +102,9 @@ export function CheckoutPolicyNote({
 export function CheckoutAssuranceNotes() {
   const { returnsBody } = useCheckoutPolicies()
   const shippingRatesQuery = useShippingRates()
-  const rateNote = shippingRateNote(shippingRatesQuery.data ?? DEFAULT_SHIPPING_RATES)
+  const rateNote = shippingRatesQuery.isFetched
+    ? shippingRateNote(shippingRatesQuery.data ?? DEFAULT_SHIPPING_RATES)
+    : '…'
 
   return (
     <div className="mt-6 space-y-4 border-t border-neutral-200 pt-6">

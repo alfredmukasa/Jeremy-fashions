@@ -37,13 +37,31 @@ function readNonNegativeMoney(value: unknown, max: number): number | null {
   return roundShippingMoney(numeric)
 }
 
+/**
+ * D1 stores site_settings.value as TEXT (JSON.stringify). The Cloudflare query
+ * API returns that string, so checkout must decode it before reading flatRate.
+ */
+function asRateObject(value: unknown): Record<string, unknown> | null {
+  let parsed: unknown = value
+  if (typeof parsed === 'string') {
+    const trimmed = parsed.trim()
+    if (!trimmed.startsWith('{')) return null
+    try {
+      parsed = JSON.parse(trimmed) as unknown
+    } catch {
+      return null
+    }
+  }
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
+  return parsed as Record<string, unknown>
+}
+
 /** Invalid or missing admin JSON falls back to the documented default. A stored currency label is ignored. */
 export function parseShippingRates(value: unknown): ShippingRates {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+  const raw = asRateObject(value)
+  if (!raw) {
     return { ...DEFAULT_SHIPPING_RATES }
   }
-
-  const raw = value as Record<string, unknown>
   const flatRate = readNonNegativeMoney(raw.flatRate, MAX_FLAT)
   if (flatRate == null) return { ...DEFAULT_SHIPPING_RATES }
 

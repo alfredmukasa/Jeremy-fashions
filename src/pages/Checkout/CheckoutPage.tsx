@@ -106,6 +106,7 @@ export default function CheckoutPage() {
   const [isApplyingDiscount, setIsApplyingDiscount] = useState(false)
   const shippingRatesQuery = useShippingRates()
   const shippingRates = shippingRatesQuery.data ?? DEFAULT_SHIPPING_RATES
+  const shippingKnown = shippingRatesQuery.isFetched
   const previewTotals = useMemo(
     () => calculateCheckoutTotals(subtotal, 0, shippingRates),
     [shippingRates, subtotal],
@@ -433,6 +434,7 @@ export default function CheckoutPage() {
           lines={lines}
           totals={totals}
           currency={currency}
+          shippingKnown={shippingKnown}
           discountCode={discountInput}
           discountMessage={
             appliedQuote?.discount
@@ -485,6 +487,7 @@ function CheckoutGrid(props: {
   lines: ReturnType<typeof useCartStore.getState>['lines']
   totals: ReturnType<typeof calculateCheckoutTotals>
   currency: string
+  shippingKnown: boolean
   discountCode: string
   discountMessage: string | null
   discountError: string | null
@@ -605,6 +608,7 @@ function CheckoutGrid(props: {
                 lines={props.lines}
                 totals={props.totals}
                 currency={props.currency}
+                shippingKnown={props.shippingKnown}
                 isSubmitting={props.isPreparingPayment}
                 submitLabel="Continue to payment"
                 discountCode={props.discountCode}
@@ -635,6 +639,7 @@ function CheckoutGrid(props: {
                 lines={props.lines}
                 totals={props.totals}
                 currency={props.currency}
+                shippingKnown={props.shippingKnown}
                 showSubmit={false}
               />
             </div>
@@ -674,6 +679,7 @@ function CheckoutGrid(props: {
           lines={props.lines}
           totals={props.totals}
           currency={props.currency}
+          shippingKnown={props.shippingKnown}
           isSubmitting={props.isPreparingPayment}
           showSubmit={props.step === 'details'}
           submitLabel="Continue to payment"

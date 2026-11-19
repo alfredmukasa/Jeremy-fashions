@@ -26,6 +26,7 @@ type CheckoutCartSummaryProps = {
   onRemoveDiscount?: () => void
   discountInputId?: string
   showAddOn?: boolean
+  shippingKnown?: boolean
 }
 
 export function CheckoutCartSummary({
@@ -44,6 +45,7 @@ export function CheckoutCartSummary({
   onRemoveDiscount,
   discountInputId = 'discount-code',
   showAddOn = showSubmit,
+  shippingKnown = true,
 }: CheckoutCartSummaryProps) {
   const { data: products } = useProducts()
   const price = (amount: number) => formatPrice(amount, currency)
@@ -87,7 +89,7 @@ export function CheckoutCartSummary({
         <div className="flex justify-between text-neutral-600">
           <span>Shipping</span>
           <span className="tabular-nums">
-            {totals.shipping === 0 ? 'Complimentary' : price(totals.shipping)}
+            {shippingKnown ? (totals.shipping === 0 ? 'Complimentary' : price(totals.shipping)) : '…'}
           </span>
         </div>
         <div className="flex justify-between text-neutral-600">
@@ -136,7 +138,9 @@ export function CheckoutCartSummary({
       ) : null}
       <div className="mt-6 flex items-center justify-between border-t border-neutral-200 pt-6 text-base font-semibold">
         <span>Total</span>
-        <span className="tabular-nums">{price(totals.total)}</span>
+        <span className="tabular-nums">
+          {shippingKnown ? price(totals.total) : price(totals.subtotal - totals.discount + totals.tax)}
+        </span>
       </div>
       {showSubmit ? (
         <Button className="mt-8 w-full" type="submit" disabled={isSubmitting}>

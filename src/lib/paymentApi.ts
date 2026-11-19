@@ -108,7 +108,7 @@ export async function createPaymentIntent(
 
 export async function fetchShippingRates(): Promise<ShippingRates> {
   try {
-    const response = await fetch(`${API_BASE}/payments/shipping-rates`)
+    const response = await fetch(`${API_BASE}/payments/shipping-rates`, { cache: 'no-store' })
     if (!response.ok) return { ...DEFAULT_SHIPPING_RATES }
     const data: unknown = await response.json().catch(() => null)
     return parseShippingRates(data)

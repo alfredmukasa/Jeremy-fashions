@@ -231,6 +231,18 @@ test('uses the admin shipping setting once and keeps new totals in CAD', () => {
   assert.equal(parseShippingRates({ flatRate: -5, freeThreshold: 10 }).flatRate, 12)
   assert.equal(parseShippingRates({ flatRate: 4, freeThreshold: -1 }).freeThreshold, 250)
   assert.equal(calculateOrderTotals([], 0, { flatRate: 20, freeThreshold: null }).shipping, 0)
+
+  // D1 stores site_settings.value as TEXT. Checkout must decode that JSON string
+  // instead of falling back to the CA$12 default.
+  const fromD1 = parseShippingRates('{"flatRate":15,"freeThreshold":250,"currency":"CAD"}')
+  assert.equal(fromD1.flatRate, 15)
+  assert.equal(fromD1.freeThreshold, 250)
+  assert.equal(
+    calculateOrderTotals([{ productId: 'p', quantity: 1, unitPrice: 40 }], 0, fromD1).shipping,
+    15,
+  )
+  assert.equal(parseShippingRates('{"flatRate":9,"freeThreshold":null}').freeThreshold, null)
+  assert.equal(parseShippingRates('not-json').flatRate, 12)
 })
 
 test('recreates an in-progress USD payment intent instead of reusing it', () => {

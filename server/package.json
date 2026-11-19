@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.105.4",
+    "aws4fetch": "^1.0.20",
     "bcryptjs": "^3.0.3",
     "compression": "^1.8.0",
     "cors": "^2.8.5",

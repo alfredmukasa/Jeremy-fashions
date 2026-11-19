@@ -1,16 +1,17 @@
 import { Router } from 'express'
 import type { Request } from 'express'
 import { randomUUID } from 'node:crypto'
+import { AwsClient } from 'aws4fetch'
 
+import { config } from '../config.js'
 import { readSession } from '../lib/session.js'
-import { requireSupabaseAdmin } from '../lib/supabase.js'
 
 export const uploadsRouter = Router()
 
-const BUCKET = 'product-images'
 // Folder segments are product ids/slugs or `site-hero/<uuid>`. No dots (blocks
 // path traversal), no leading slash.
 const ALLOWED_FOLDER = /^[a-z0-9][a-z0-9/_-]{0,120}$/i
+const SIGN_EXPIRY_SECONDS = 300
 
 function adminUser(req: Request) {
   const header = req.headers.authorization
@@ -30,15 +31,25 @@ function sanitizeFileName(name: string): string {
   return safe || 'image.jpg'
 }
 
-// Mint a Supabase Storage signed upload URL. The browser then uploads the file
-// directly to Storage with the returned token, so large images never pass
-// through this serverless function (Vercel caps request bodies well below the
-// 10 MB image limit), and the service-role signature bypasses the legacy
-// Supabase-auth RLS that the Cloudflare session can no longer satisfy.
+function r2Endpoint(): string | null {
+  if (config.r2Endpoint) return config.r2Endpoint.replace(/\/$/, '')
+  if (config.r2AccountId) return `https://${config.r2AccountId}.r2.cloudflarestorage.com`
+  return null
+}
+
+function r2Ready(): boolean {
+  return Boolean(config.r2AccessKeyId && config.r2SecretAccessKey && config.r2Bucket && config.r2PublicBaseUrl && r2Endpoint())
+}
+
+// Mint a presigned R2 (S3) PUT URL. The browser uploads the file straight to R2
+// with it, so large images never pass through this serverless function and no
+// R2 credentials ever reach the client.
 uploadsRouter.post('/sign', async (req, res) => {
   res.set('Cache-Control', 'private, no-store')
   if (!adminUser(req))
     return res.status(403).json({ error: 'Admin sign-in is required to upload images.' })
+  if (!r2Ready())
+    return res.status(503).json({ error: 'Image storage is not configured yet.' })
 
   const { folder, fileName, contentType } = (req.body ?? {}) as {
     folder?: string
@@ -50,32 +61,27 @@ uploadsRouter.post('/sign', async (req, res) => {
   if (!contentType || !contentType.startsWith('image/'))
     return res.status(400).json({ error: 'Only image uploads are allowed.' })
 
-  let supabaseAdmin
-  try {
-    supabaseAdmin = requireSupabaseAdmin()
-  } catch {
-    return res.status(503).json({ error: 'Image storage is not configured.' })
-  }
+  const key = `${folder.replace(/\/+$/, '')}/${Date.now()}-${randomUUID()}-${sanitizeFileName(fileName ?? '')}`
+  const endpoint = r2Endpoint() as string
+  const objectUrl = `${endpoint}/${config.r2Bucket}/${key}`
 
-  const path = `${folder.replace(/\/+$/, '')}/${Date.now()}-${randomUUID()}-${sanitizeFileName(fileName ?? '')}`
   try {
-    const signed = await supabaseAdmin.storage.from(BUCKET).createSignedUploadUrl(path)
-    if (signed.error || !signed.data?.token) {
-      const err = signed.error as { name?: string; message?: string; status?: number } | null
-      console.error('[uploads] createSignedUploadUrl failed', {
-        bucket: BUCKET,
-        status: err?.status,
-        name: err?.name,
-        message: err?.message,
-      })
-      return res.status(502).json({ error: 'Could not prepare the image upload. Try again.' })
-    }
-    const publicUrl = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path).data.publicUrl
-    if (!publicUrl)
-      return res.status(502).json({ error: 'Could not resolve the uploaded image URL.' })
-    return res.json({ path, token: signed.data.token, publicUrl })
+    const client = new AwsClient({
+      accessKeyId: config.r2AccessKeyId as string,
+      secretAccessKey: config.r2SecretAccessKey as string,
+      service: 's3',
+      region: 'auto',
+    })
+    // signQuery moves auth into the URL; content-type is left unsigned so the
+    // browser sets it on PUT (R2 stores it as the object's content type).
+    const signed = await client.sign(
+      `${objectUrl}?X-Amz-Expires=${SIGN_EXPIRY_SECONDS}`,
+      { method: 'PUT', aws: { signQuery: true } },
+    )
+    const publicUrl = `${(config.r2PublicBaseUrl as string).replace(/\/$/, '')}/${key}`
+    return res.json({ uploadUrl: signed.url, publicUrl, key })
   } catch (error) {
-    console.error('[uploads] createSignedUploadUrl threw', error instanceof Error ? error.message : error)
+    console.error('[uploads] R2 presign failed', error instanceof Error ? error.message : error)
     return res.status(502).json({ error: 'Could not prepare the image upload. Try again.' })
   }
 })

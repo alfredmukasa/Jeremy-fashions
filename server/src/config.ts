@@ -38,6 +38,13 @@ export const config = {
   cloudflareAccountId: optional('CLOUDFLARE_ACCOUNT_ID'),
   cloudflareApiToken: optional('CLOUDFLARE_API_TOKEN'),
   cloudflareD1DatabaseId: optional('CLOUDFLARE_D1_DATABASE_ID'),
+  // Cloudflare R2 image storage (S3 API). Access key id + secret are server-only.
+  r2AccountId: optional('CLOUDFLARE_R2_ACCOUNT_ID') ?? optional('CLOUDFLARE_ACCOUNT_ID'),
+  r2Bucket: optional('CLOUDFLARE_R2_BUCKET'),
+  r2AccessKeyId: optional('CLOUDFLARE_R2_ACCESS_KEY_ID'),
+  r2SecretAccessKey: optional('CLOUDFLARE_R2_SECRET_ACCESS_KEY'),
+  r2Endpoint: optional('CLOUDFLARE_R2_ENDPOINT'),
+  r2PublicBaseUrl: optional('CLOUDFLARE_R2_PUBLIC_BASE_URL'),
   // Public origin of the storefront. Used for password-reset links and the default
   // Google OAuth redirect URI. PUBLIC_SITE_URL is accepted as an alias of APP_BASE_URL.
   appBaseUrl: (process.env.APP_BASE_URL?.trim() || process.env.PUBLIC_SITE_URL?.trim() || 'https://krewnox.ca').replace(/\/$/, ''),

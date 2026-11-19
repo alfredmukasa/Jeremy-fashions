@@ -100,8 +100,12 @@ class D1Request {
     return this
   }
   upsert(values: Record<string, unknown> | Record<string, unknown>[], options?: { onConflict?: string }): this {
-    const columns = (options?.onConflict ?? 'id').split(',').map((column) => column.trim()).filter(Boolean)
-    this.conflictColumns = columns.length ? columns : ['id']
+    const rows = Array.isArray(values) ? values : [values]
+    const explicit = (options?.onConflict ?? '').split(',').map((column) => column.trim()).filter(Boolean)
+    // site_settings (hero slides and the rest of the admin CMS) is keyed by `key`.
+    // Defaulting that upsert to ON CONFLICT(id) makes D1 reject the save.
+    const keyed = rows.length > 0 && rows.every((row) => row.key && !row.id)
+    this.conflictColumns = explicit.length ? explicit : keyed ? ['key'] : ['id']
     return this.insert(values)
   }
   update(patch: Record<string, unknown>): this { this.write = { kind: 'update', patch }; return this }

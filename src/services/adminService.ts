@@ -582,11 +582,14 @@ export async function adminGetSiteSettings(): Promise<Record<string, unknown>> {
 
 export async function adminUpsertSiteSetting(key: string, value: Record<string, unknown>): Promise<void> {
   const client = requireClient()
-  const { error } = await client.from('site_settings').upsert({
-    key,
-    value,
-    updated_at: new Date().toISOString(),
-  })
+  const { error } = await client.from('site_settings').upsert(
+    {
+      key,
+      value,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'key' },
+  )
 
   if (error) throw new Error(error.message)
 }

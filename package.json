@@ -13,7 +13,7 @@
     "sitemap": "node scripts/generate-sitemap.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:shipping": "node --import ./server/node_modules/tsx/dist/loader.mjs --test scripts/shipping-phone.test.ts scripts/shipping-phone-form.test.tsx",
+    "test:shipping": "node --import ./server/node_modules/tsx/dist/loader.mjs --test scripts/shipping-phone.test.ts scripts/shipping-phone-form.test.tsx scripts/shipping-rates.test.ts",
     "test:notifications": "node --import ./server/node_modules/tsx/dist/loader.mjs --test scripts/purchase-notification-database.test.ts server/test/adminPurchaseEmail.test.ts"
   },
   "dependencies": {

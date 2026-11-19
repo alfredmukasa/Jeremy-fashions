@@ -235,6 +235,7 @@ paymentsRouter.post(
 
 paymentsRouter.get('/shipping-rates', async (_req, res) => {
   const rates = await loadShippingRates()
+  res.set('Cache-Control', 'no-store')
   return res.json({
     currency: 'CAD',
     flatRate: rates.flatRate,

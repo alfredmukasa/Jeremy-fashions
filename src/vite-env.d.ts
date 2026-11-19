@@ -12,6 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_ADMIN_BASE_PATH?: string
   readonly VITE_STRIPE_PUBLISHABLE_KEY?: string
   readonly VITE_PAYMENTS_API_URL?: string
+  /** Set to "true" to show the "Continue with Google" button. Omitted/other = Google sign-in paused. */
+  readonly VITE_GOOGLE_SIGNIN_ENABLED?: string
 }
 
 interface ImportMeta {

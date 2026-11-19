@@ -7,7 +7,10 @@ import rateLimit from 'express-rate-limit'
 import { config } from './config.js'
 import { adminAuthRouter } from './routes/adminAuth.js'
 import { adminNotificationsRouter } from './routes/adminNotifications.js'
+import { purchaseInboxRouter } from './routes/purchaseInbox.js'
+import { authRouter } from './routes/auth.js'
 import { catalogRouter } from './routes/catalog.js'
+import { dataRouter } from './routes/data.js'
 import { contactRouter } from './routes/contact.js'
 import { ordersRouter } from './routes/orders.js'
 import { paymentsRouter } from './routes/payments.js'
@@ -109,12 +112,15 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/webhooks', express.raw({ type: 'application/json' }), webhooksRouter)
 app.use(express.json())
 app.use('/api', apiLimiter)
+app.use('/api/auth', authRouter)
+app.use('/api/data', dataRouter)
 app.use('/api', catalogRouter)
 app.use('/api/payments/create-payment-intent', paymentsLimiter)
 app.use('/api/orders/:id/status', orderLookupLimiter)
 app.use('/api/payments', paymentsRouter)
 app.use('/api/orders', ordersRouter)
 app.use('/api/admin/auth', adminAuthRouter)
+app.use('/api/admin/purchase-inbox', purchaseInboxRouter)
 app.use('/api/admin', adminNotificationsRouter)
 app.use('/api/contact/notify', contactNotifyLimiter)
 app.use('/api/contact', contactRouter)

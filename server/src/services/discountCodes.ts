@@ -1,4 +1,4 @@
-import { requireSupabaseAdmin } from '../lib/supabase.js'
+import { d1Client } from '../lib/d1Client.js'
 import {
   evaluateDiscount,
   normalizeDiscountCode,
@@ -52,7 +52,7 @@ function mapRule(row: DiscountRow): DiscountRule {
 }
 
 async function findDiscountRow(code: string): Promise<DiscountRow | null> {
-  const db = requireSupabaseAdmin()
+  const db = d1Client
   const full = await db.from('discount_codes').select('*').eq('code', code).maybeSingle()
   if (!full.error) return (full.data as DiscountRow | null) ?? null
 
@@ -88,7 +88,7 @@ export async function resolveDiscount(args: {
 
 export async function recordDiscountRedemption(codeId: string): Promise<void> {
   try {
-    const db = requireSupabaseAdmin()
+    const db = d1Client
     const { data, error } = await db.from('discount_codes').select('usage_count').eq('id', codeId).maybeSingle()
     if (error || !data || data.usage_count == null) return
     await db

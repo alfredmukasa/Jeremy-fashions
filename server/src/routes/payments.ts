@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import Stripe from 'stripe'
 
-import { createUserSupabase, requireSupabaseAdmin } from '../lib/supabase.js'
+import { d1Client } from '../lib/d1Client.js'
 import { stripe } from '../lib/stripe.js'
 import type { AuthedRequest } from '../middleware/auth.js'
 import { optionalUser } from '../middleware/auth.js'
@@ -56,25 +56,16 @@ paymentsRouter.post(
       const user = (req as AuthedRequest).user
       const body = req.body as CreatePaymentIntentBody
 
-      let db: ReturnType<typeof createUserSupabase>
       if (user) {
         const accountEmail = user.email.trim().toLowerCase()
         if (body.email !== accountEmail) {
           return res.status(400).json({ error: 'Checkout email must match your signed-in account.' })
         }
-
-        const accessToken = (req as AuthedRequest).accessToken
-        if (!accessToken) {
+        if (!(req as AuthedRequest).accessToken) {
           return res.status(401).json({ error: 'Authentication is required to checkout.' })
         }
-
-        db = createUserSupabase(accessToken)
-      } else {
-        // Guest checkout: no user session, so RLS can't scope an anon client to this
-        // order. The service role bypasses RLS — every field it writes is still
-        // validated above (email/address) and in validateCheckoutItems (items/prices).
-        db = requireSupabaseAdmin()
       }
+      const db = d1Client
 
       const { items, totals, discount, shippingRates } = await validateCheckoutItems(body.items, {
         email: body.email,

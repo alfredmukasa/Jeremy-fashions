@@ -24,6 +24,9 @@ dist-ssr
 .vercel
 .foglamp/
 
+# Storage migration backups (never commit image binaries or source manifests)
+.storage-backup/
+
 # Credentials & key material
 *.pem
 *.key

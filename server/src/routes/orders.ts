@@ -6,7 +6,7 @@ import type { AuthedRequest } from '../middleware/auth.js'
 import { optionalUser } from '../middleware/auth.js'
 import { sendPaidOrderEmails } from '../services/paidOrderEmails.js'
 import { getOrderConfirmation, syncOrderFromPaymentIntent } from '../services/orderService.js'
-import { requireSupabaseAdmin } from '../lib/supabase.js'
+import { d1Client } from '../lib/d1Client.js'
 
 export const ordersRouter = Router()
 
@@ -59,7 +59,7 @@ async function syncPendingPaymentFromStripe(rawId: string) {
   const lookup = orderStatusLookup(rawId)
   if (!lookup) return
 
-  const db = requireSupabaseAdmin()
+  const db = d1Client
   const { data, error } = await db
     .from('orders')
     .select('id, stripe_payment_intent_id, payment_status')

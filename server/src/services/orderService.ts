@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 
 import type Stripe from 'stripe'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { d1Client, type StoreDb } from '../lib/d1Client.js'
 
 import { orderStatusLookup } from '../domain/orderLookup.js'
 import {
@@ -19,8 +19,8 @@ import {
 import { DEFAULT_SHIPPING_RATES } from '../domain/shippingRates.js'
 import { loadShippingRates } from './shippingSettings.js'
 import { sendPaidOrderEmails } from './paidOrderEmails.js'
+import { recordPaidPurchaseNotification } from './adminPurchaseEmail.js'
 import { recordDiscountRedemption, resolveDiscount, type AppliedDiscount } from './discountCodes.js'
-import { requireSupabaseAdmin, supabaseAnon } from '../lib/supabase.js'
 import type { CheckoutAddress, CheckoutLineItem } from '../types.js'
 
 export type { OrderTotals }
@@ -84,7 +84,7 @@ export async function validateCheckoutItems(
 
   const productIds = [...new Set(items.map((item) => item.productId))]
   const shippingRatesPromise = loadShippingRates()
-  const { data: products, error } = await supabaseAnon
+  const { data: products, error } = await d1Client
     .from('products')
     .select('id, title, price, compare_price, status, stock_quantity, sku, sizes')
     .in('id', productIds)
@@ -93,7 +93,7 @@ export async function validateCheckoutItems(
     throw new CheckoutError('Unable to validate products for checkout.', 500)
   }
 
-  const productMap = new Map((products ?? []).map((product) => [product.id, product]))
+  const productMap = new Map<string, any>((products ?? []).map((product: any) => [product.id, product]))
   const validated: CheckoutLineItem[] = []
 
   for (const item of items) {
@@ -149,7 +149,7 @@ export async function validateCheckoutItems(
   }
 }
 
-export async function findOrderByIdempotencyKey(db: SupabaseClient, idempotencyKey: string) {
+export async function findOrderByIdempotencyKey(db: StoreDb, idempotencyKey: string) {
   const { data, error } = await db
     .from('orders')
     .select(
@@ -177,7 +177,7 @@ export async function findOrderByIdempotencyKey(db: SupabaseClient, idempotencyK
 }
 
 export async function createPendingOrder(
-  db: SupabaseClient,
+  db: StoreDb,
   args: {
     userId: string | null
     email: string
@@ -246,7 +246,7 @@ export async function createPendingOrder(
 }
 
 export async function refreshPendingOrder(
-  db: SupabaseClient,
+  db: StoreDb,
   orderId: string,
   args: {
     items: CheckoutLineItem[]
@@ -350,7 +350,7 @@ export async function rememberCheckoutSession(session: Stripe.Checkout.Session) 
     }
   }
 
-  const db = requireSupabaseAdmin()
+  const db = d1Client
   const withSession = await db
     .from('orders')
     .update({ ...patch, stripe_checkout_session_id: session.id })
@@ -367,7 +367,7 @@ export async function rememberCheckoutSession(session: Stripe.Checkout.Session) 
   }
 }
 
-export async function attachPaymentIntent(db: SupabaseClient, orderId: string, paymentIntentId: string) {
+export async function attachPaymentIntent(db: StoreDb, orderId: string, paymentIntentId: string) {
   const { error } = await db
     .from('orders')
     .update({
@@ -381,7 +381,7 @@ export async function attachPaymentIntent(db: SupabaseClient, orderId: string, p
   }
 }
 
-export async function clearOrderPaymentIntent(db: SupabaseClient, orderId: string) {
+export async function clearOrderPaymentIntent(db: StoreDb, orderId: string) {
   const { error } = await db
     .from('orders')
     .update({
@@ -428,7 +428,7 @@ function orderItemPayload(orderId: string, item: CheckoutLineItem, withSnapshot:
   }
 }
 
-async function insertOrderItems(db: SupabaseClient, orderId: string, items: CheckoutLineItem[]) {
+async function insertOrderItems(db: StoreDb, orderId: string, items: CheckoutLineItem[]) {
   const withSnapshot = items.map((item) => orderItemPayload(orderId, item, true))
   const primary = await db.from('order_items').insert(withSnapshot)
   if (!primary.error) return null
@@ -439,7 +439,7 @@ async function insertOrderItems(db: SupabaseClient, orderId: string, items: Chec
 
 export async function releaseWebhookEvent(eventId: string) {
   try {
-    const supabaseAdmin = requireSupabaseAdmin()
+    const supabaseAdmin = d1Client
     await supabaseAdmin.from('stripe_webhook_events').delete().eq('id', eventId)
   } catch {
     // Best-effort undo so Stripe can retry after a handler failure.
@@ -452,7 +452,7 @@ export async function claimWebhookEvent(
   orderId?: string | null,
 ): Promise<'claimed' | 'duplicate' | 'unavailable'> {
   try {
-    const supabaseAdmin = requireSupabaseAdmin()
+    const supabaseAdmin = d1Client
     const { error } = await supabaseAdmin.from('stripe_webhook_events').insert({
       id: eventId,
       event_type: eventType,
@@ -476,7 +476,7 @@ export async function resolveOrderIdFromStripeEvent(event: Stripe.Event): Promis
     typeof object.payment_intent === 'string' ? object.payment_intent : object.payment_intent?.id
   if (!paymentIntentId) return null
 
-  const supabaseAdmin = requireSupabaseAdmin()
+  const supabaseAdmin = d1Client
   const { data } = await supabaseAdmin
     .from('orders')
     .select('id')
@@ -565,7 +565,7 @@ async function flagPaymentMismatch(existing: OrderPaymentRow, paymentIntent: Str
     stripeCurrency: comparison.stripeCurrency,
   })
 
-  const supabaseAdmin = requireSupabaseAdmin()
+  const supabaseAdmin = d1Client
   await supabaseAdmin
     .from('orders')
     .update({
@@ -604,7 +604,7 @@ export async function markOrderProcessingFromIntent(paymentIntent: Stripe.Paymen
   }
   if (alreadyProcessedEvent(existing, eventId)) return existing
 
-  const supabaseAdmin = requireSupabaseAdmin()
+  const supabaseAdmin = d1Client
   const { data, error } = await supabaseAdmin
     .from('orders')
     .update({
@@ -656,7 +656,7 @@ export async function markOrderPaidFromIntent(paymentIntent: Stripe.PaymentInten
   const mismatch = await flagPaymentMismatch(existing, paymentIntent, eventId)
   if (mismatch) return existing
 
-  const supabaseAdmin = requireSupabaseAdmin()
+  const supabaseAdmin = d1Client
   const paidMetadata = mergePaymentMetadata(
     existing.payment_metadata,
     {
@@ -732,6 +732,14 @@ export async function markOrderPaidFromIntent(paymentIntent: Stripe.PaymentInten
   }
 
   if (paidRow) {
+    // Replaces the Postgres trigger (migration 0022): record the admin purchase
+    // notification exactly when the order transitions to paid. Best-effort — a
+    // notification failure must never break the payment flow.
+    try {
+      await recordPaidPurchaseNotification(existing.id, supabaseAdmin)
+    } catch (notifyError) {
+      console.error('[notifications] could not record paid purchase', existing.id, notifyError)
+    }
     await sendPaidOrderEmails(existing.id)
   }
 
@@ -745,7 +753,7 @@ export async function markOrderFailedFromIntent(paymentIntent: Stripe.PaymentInt
   }
   if (alreadyProcessedEvent(existing, eventId)) return existing
 
-  const supabaseAdmin = requireSupabaseAdmin()
+  const supabaseAdmin = d1Client
   const { data, error } = await supabaseAdmin
     .from('orders')
     .update({
@@ -787,7 +795,7 @@ export async function markOrderCancelledFromIntent(paymentIntent: Stripe.Payment
     return existing
   }
 
-  const supabaseAdmin = requireSupabaseAdmin()
+  const supabaseAdmin = d1Client
   const { data, error } = await supabaseAdmin
     .from('orders')
     .update({
@@ -826,7 +834,7 @@ export async function markOrderRefundedFromCharge(charge: Stripe.Charge, eventId
     typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id
   if (!paymentIntentId) return null
 
-  const supabaseAdmin = requireSupabaseAdmin()
+  const supabaseAdmin = d1Client
   const { data: existing, error: existingError } = await supabaseAdmin
     .from('orders')
     .select('id, payment_status, status, payment_metadata, total_amount, refund_amount')
@@ -915,7 +923,7 @@ export async function getOrderConfirmation(args: {
   const lookup = orderStatusLookup(args.orderId)
   if (!lookup) return null
 
-  const supabaseAdmin = requireSupabaseAdmin()
+  const supabaseAdmin = d1Client
   const select = `
     id,
     order_number,
@@ -1037,7 +1045,7 @@ type ConfirmationRow = {
   }> | null
 }
 
-async function insertOrder(db: SupabaseClient, row: Record<string, unknown>) {
+async function insertOrder(db: StoreDb, row: Record<string, unknown>) {
   const { data, error } = await db
     .from('orders')
     .insert(row)
@@ -1061,7 +1069,7 @@ async function selectOrderBy(
   column: 'id' | 'stripe_payment_intent_id',
   value: string,
 ): Promise<OrderPaymentRow | null> {
-  const supabaseAdmin = requireSupabaseAdmin()
+  const supabaseAdmin = d1Client
   const select =
     'id, email, order_number, payment_status, status, total_amount, currency, stripe_payment_intent_id, payment_metadata, confirmation_email_sent_at'
   const fallbackSelect = 'id, email, payment_status, status, total_amount, currency, stripe_payment_intent_id, payment_metadata'
@@ -1083,7 +1091,7 @@ async function selectOrderBy(
 }
 
 async function decrementStockForOrder(orderId: string) {
-  const supabaseAdmin = requireSupabaseAdmin()
+  const supabaseAdmin = d1Client
   const { data: items, error } = await supabaseAdmin
     .from('order_items')
     .select('product_id, quantity')

@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
+type StoreDb = { from: (table: string) => any }
 
 import { currencyCode, formatReceiptMoney } from './confirmationEmail.js'
 import {
@@ -26,14 +26,33 @@ type PurchaseOrder = {
   }>
 }
 
-export async function readPurchaseEmailSettings(client: SupabaseClient) {
+async function storeClient(db?: StoreDb): Promise<StoreDb> {
+  return db ?? (await import('../lib/d1Client.js')).d1Client
+}
+
+// Replaces the Postgres `record_paid_purchase_notification` trigger (migration
+// 0022), which SQLite/D1 has no equivalent for. Called once at the moment an
+// order transitions to paid. Idempotent: a repeated call (webhook retry) is a
+// no-op thanks to the order_id primary key.
+export async function recordPaidPurchaseNotification(
+  orderId: string,
+  db?: StoreDb,
+): Promise<void> {
+  const client = await storeClient(db)
+  const { error } = await client
+    .from('admin_purchase_notifications')
+    .upsert({ order_id: orderId }, { onConflict: 'order_id' })
+  if (error) throw new Error('Purchase notification could not be recorded.')
+}
+
+export async function readPurchaseEmailSettings(client: StoreDb) {
   const { data: settings, error } = await client
     .from('site_settings')
     .select('key, value')
     .in('key', ['purchase_notifications', 'contact_recipient', 'storefront'])
   if (error) throw new Error('Purchase email settings could not be loaded.')
   const values = Object.fromEntries(
-    (settings ?? []).map((row) => [row.key, row.value]),
+    (settings ?? []).map((row: { key: string; value: { email?: string } }) => [row.key, row.value]),
   )
   const override =
     typeof values.purchase_notifications?.email === 'string'
@@ -99,15 +118,19 @@ export async function deliverAdminPurchaseEmail(
     throw new Error(`Purchase email provider returned ${response.status}.`)
 }
 
-// A failed email never rolls back a payment. The webhook returns a retryable
+// A failed email never rolls back a payment. The caller returns a retryable
 // failure; subsequent attempts reuse the saved payload and provider key.
+//
+// Concurrency: unlike the former Supabase version, this does not take a DB
+// claim/lease (D1's HTTP client has no `.or()` filter). Duplicate concurrent
+// or retried sends are deduped by Resend's Idempotency-Key (admin-purchase/
+// <orderId>), and `email_sent_at` stops any subsequent attempt.
 export async function sendAdminPurchaseEmailIfNeeded(
   orderId: string,
-  db?: SupabaseClient,
+  db?: StoreDb,
   fetchImpl: typeof fetch = fetch,
 ): Promise<void> {
-  const client =
-    db ?? (await import('../lib/supabase.js')).requireSupabaseAdmin()
+  const client = await storeClient(db)
   const { data: notice, error } = await client
     .from('admin_purchase_notifications')
     .select('order_id, email_sent_at, email_payload')
@@ -127,23 +150,33 @@ export async function sendAdminPurchaseEmailIfNeeded(
       'Purchase email is waiting for email service configuration.',
     )
 
-  if (!notice.email_payload) {
+  let payload = (notice.email_payload as PurchaseEmailPayload | null) ?? null
+  if (!payload) {
     const { data: order, error: orderError } = await client
       .from('orders')
-      .select(
-        'id, order_number, email, total_amount, currency, order_items(title, quantity, size, color_name)',
-      )
+      .select('id, order_number, email, total_amount, currency')
       .eq('id', orderId)
       .maybeSingle()
     if (orderError || !order)
+      throw new Error('Purchase email order could not be loaded.')
+    // D1's generic client cannot run Supabase embedded selects, so order_items
+    // are fetched in a separate query.
+    const items = await client
+      .from('order_items')
+      .select('title, quantity, size, color_name')
+      .eq('order_id', orderId)
+    if (items.error)
       throw new Error('Purchase email order could not be loaded.')
     const base = process.env.VITE_ADMIN_BASE_PATH?.trim() || '/krewnox-admin'
     const path =
       base.startsWith('/') && !base.startsWith('//')
         ? base.replace(/\/+$/, '')
         : '/krewnox-admin'
-    const payload = buildAdminPurchaseEmail(
-      order as PurchaseOrder,
+    payload = buildAdminPurchaseEmail(
+      {
+        ...(order as Omit<PurchaseOrder, 'order_items'>),
+        order_items: (items.data ?? []) as PurchaseOrder['order_items'],
+      },
       from,
       settings.to,
       `https://krewnox.ca${path}/orders`,
@@ -156,47 +189,26 @@ export async function sendAdminPurchaseEmailIfNeeded(
     if (saved.error) throw new Error('Purchase email could not be queued.')
   }
 
-  const claimedAt = new Date().toISOString()
-  const staleBefore = new Date(Date.now() - 60_000).toISOString()
-  const claim = await client
-    .from('admin_purchase_notifications')
-    .update({ email_claimed_at: claimedAt })
-    .eq('order_id', orderId)
-    .is('email_sent_at', null)
-    .or(`email_claimed_at.is.null,email_claimed_at.lt.${staleBefore}`)
-    .select('email_payload')
-    .maybeSingle()
-  if (claim.error) throw new Error('Purchase email claim failed.')
-  if (!claim.data)
-    throw new Error('Purchase email is already being delivered; retry shortly.')
   try {
-    await deliverAdminPurchaseEmail(
-      orderId,
-      claim.data.email_payload as PurchaseEmailPayload,
-      apiKey,
-      fetchImpl,
-    )
+    await deliverAdminPurchaseEmail(orderId, payload, apiKey, fetchImpl)
     const saved = await client
       .from('admin_purchase_notifications')
       .update({
         email_sent_at: new Date().toISOString(),
-        email_claimed_at: null,
         email_last_error: null,
       })
       .eq('order_id', orderId)
-      .eq('email_claimed_at', claimedAt)
+      .is('email_sent_at', null)
     if (saved.error)
       throw new Error('Purchase email delivery could not be recorded.')
   } catch (error) {
     await client
       .from('admin_purchase_notifications')
       .update({
-        email_claimed_at: null,
         email_last_error:
           'Email delivery pending. Check the email service and retry the payment event.',
       })
       .eq('order_id', orderId)
-      .eq('email_claimed_at', claimedAt)
     throw error
   }
 }

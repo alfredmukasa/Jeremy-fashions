@@ -12,6 +12,7 @@ import { AuthButton } from '../../components/auth/AuthButton'
 import { AuthDivider, GoogleAuthButton } from '../../components/auth/GoogleAuthButton'
 import { AuthInput } from '../../components/auth/AuthInput'
 import { AuthLayout } from '../../components/auth/AuthLayout'
+import { isGoogleSigninEnabled } from '../../lib/googleSignin'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -82,8 +83,12 @@ export default function RegisterPage() {
       }
     >
       <div className="space-y-6">
-        <GoogleAuthButton label="Sign up with Google" />
-        <AuthDivider />
+        {isGoogleSigninEnabled() ? (
+          <>
+            <GoogleAuthButton label="Sign up with Google" />
+            <AuthDivider />
+          </>
+        ) : null}
         <form onSubmit={submit} className="space-y-5">
           {fieldError ? (
             <p className="border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">{fieldError}</p>

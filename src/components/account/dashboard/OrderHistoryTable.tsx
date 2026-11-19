@@ -10,6 +10,7 @@ import { formatPrice } from '../../../utils/formatPrice'
 
 import { Button } from '../../common/Button'
 import { EmptyState } from './EmptyState'
+import { OrderTotals } from './OrderTotals'
 import { PaymentStatusBadge } from './PaymentStatusBadge'
 import { StatusBadge } from './StatusBadge'
 
@@ -313,6 +314,9 @@ function OrderHistoryDetails({ id, order }: { id: string; order: CustomerOrderDe
             </li>
           ))}
         </ul>
+      </div>
+      <div className="lg:col-span-2 lg:max-w-xs lg:ml-auto">
+        <OrderTotals order={order} />
       </div>
     </div>
   )

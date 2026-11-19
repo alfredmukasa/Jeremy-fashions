@@ -8,6 +8,7 @@ import { cn } from '../../../utils/cn'
 import { formatPrice } from '../../../utils/formatPrice'
 
 import { Button } from '../../common/Button'
+import { OrderTotals } from './OrderTotals'
 import { PaymentStatusBadge } from './PaymentStatusBadge'
 import { StatusBadge } from './StatusBadge'
 
@@ -121,6 +122,10 @@ export function OrderCard({ order }: { order: CustomerOrderDetail }) {
               </li>
             ))}
           </ul>
+
+          <div className="mt-6 sm:max-w-xs sm:ml-auto">
+            <OrderTotals order={order} />
+          </div>
         </div>
       ) : null}
     </article>

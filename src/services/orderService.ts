@@ -7,6 +7,10 @@ export type CustomerOrder = {
   createdAt: string
   status: string
   paymentStatus: PaymentStatus
+  subtotalAmount: number | null
+  shippingAmount: number | null
+  taxAmount: number | null
+  discountAmount: number | null
   totalAmount: number
   refundAmount: number
   currency: string
@@ -49,6 +53,10 @@ type OrderRow = {
   created_at: string
   status: string
   payment_status: string
+  subtotal_amount?: number | string | null
+  shipping_amount?: number | string | null
+  tax_amount?: number | string | null
+  discount_amount?: number | string | null
   total_amount: number | string
   refund_amount?: number | string | null
   currency: string
@@ -83,19 +91,44 @@ type OrderItemRow = {
 function mapOrder(
   row: Pick<
     OrderRow,
-    'id' | 'order_number' | 'created_at' | 'status' | 'payment_status' | 'total_amount' | 'refund_amount' | 'currency' | 'payment_metadata'
+    | 'id'
+    | 'order_number'
+    | 'created_at'
+    | 'status'
+    | 'payment_status'
+    | 'subtotal_amount'
+    | 'shipping_amount'
+    | 'tax_amount'
+    | 'discount_amount'
+    | 'total_amount'
+    | 'refund_amount'
+    | 'currency'
+    | 'payment_metadata'
   >,
 ): CustomerOrder {
   const metadata = row.payment_metadata
   const refundFromMetadata =
     typeof metadata?.stripe_amount_refunded === 'number' ? metadata.stripe_amount_refunded / 100 : 0
+  const totalAmount = Number(row.total_amount)
+  // Prefer the stored column, fall back to payment metadata, and keep null when
+  // neither is present so the UI can hide the breakdown instead of faking zeros.
+  const money = (column: number | string | null | undefined, metadataKey: string): number | null => {
+    if (column != null && column !== '') return Number(column)
+    const fromMetadata = metadata?.[metadataKey]
+    if (fromMetadata != null && fromMetadata !== '') return Number(fromMetadata)
+    return null
+  }
   return {
     id: row.id,
     orderNumber: row.order_number || `KN-${row.id.replace(/-/g, '').slice(0, 8).toUpperCase()}`,
     createdAt: row.created_at,
     status: row.status,
     paymentStatus: normalizePaymentStatus(row.payment_status),
-    totalAmount: Number(row.total_amount),
+    subtotalAmount: money(row.subtotal_amount, 'subtotal'),
+    shippingAmount: money(row.shipping_amount, 'shipping'),
+    taxAmount: money(row.tax_amount, 'tax'),
+    discountAmount: money(row.discount_amount, 'discount'),
+    totalAmount,
     refundAmount: Number(row.refund_amount ?? refundFromMetadata),
     currency: row.currency,
   }
@@ -201,7 +234,9 @@ export async function listCustomerOrders(): Promise<CustomerOrder[]> {
 
   const query = supabase
     .from('orders')
-    .select('id, order_number, created_at, status, payment_status, total_amount, refund_amount, currency, payment_metadata')
+    .select(
+      'id, order_number, created_at, status, payment_status, subtotal_amount, shipping_amount, tax_amount, discount_amount, total_amount, refund_amount, currency, payment_metadata',
+    )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
 
@@ -236,6 +271,10 @@ export async function listCustomerOrdersDetailed(): Promise<CustomerOrderDetail[
       created_at,
       status,
       payment_status,
+      subtotal_amount,
+      shipping_amount,
+      tax_amount,
+      discount_amount,
       total_amount,
       refund_amount,
       currency,
